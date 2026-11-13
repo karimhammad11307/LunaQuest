@@ -1,7 +1,23 @@
-# LunaQuest
+# LunaQuest / Moonbound
 
-## Current handoff
+## Project documentation
 
-The user rejected the initial Figma direction and authorized a playable game rebuild. Mars Commander is now implemented locally with React + TypeScript and an original interactive SVG colony. Run `npm install` then `npm run dev`; see [README.md](README.md) and [game architecture](design/GAME_ARCHITECTURE.md). Five selectable buildings, upgrades, four supply systems, storms/failures/radiation/delays, save/resume and 30-day win/loss are functional. Six simulation tests and full Chromium mission tests passed; screenshots are in `artifacts/`. No live NASA data is connected. The earlier Figma design is retained as rejected exploration, not the implementation source of truth.
+Use the four documents in `docs/` as the authoritative planning set:
 
-The separate Codex skill setup remains incomplete: `frontend-design` is installed locally, while `develop-web-game`, `ui-ux-pro-max`, and live skill discovery retain the limitations recorded in [PROJECT_HISTORY.md](PROJECT_HISTORY.md). Preserve those setup notes when continuing.
+- [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) — verified history and current repository state.
+- [MASTER_PLAN.md](docs/MASTER_PLAN.md) — single source of truth for gameplay, science, art, architecture, QA and delivery.
+- [DEVELOPER_A_TASKS.md](docs/DEVELOPER_A_TASKS.md) — base, survival and integration ownership.
+- [DEVELOPER_B_TASKS.md](docs/DEVELOPER_B_TASKS.md) — arcade and mission ownership.
+
+## Current status
+
+The feature branch contains starter TypeScript game contracts, centralized configuration, partial pure survival rules, a React bootstrap and starter tests. It is not yet a playable game. Phaser is installed but no Phaser gameplay scenes exist. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`; do not use it as the Moonbound source of truth.
+
+## Project guardrails
+
+- Keep the Moonbound game top-down 3/4-view pixel art and the lunar setting.
+- Domain rules own all resources, costs, consequences and mission rewards; scenes dispatch typed actions and do not mutate shared resources.
+- Keep one `GameState`, `GameAction` and `MissionResult` contract. Developer A owns shared contract/config and integration; Developer B consumes it and owns arcade scenes/assets.
+- Keep all game numbers explicitly illustrative. NASA DONKI is solar-observation context, not direct lunar surface dose or temperature data. Make the game playable offline.
+- Check current Git status and branch before edits. Do not push or merge without explicit authorization.
+- Update the four docs when implementation or verified repository state changes; do not claim planned or unrun work is complete.
