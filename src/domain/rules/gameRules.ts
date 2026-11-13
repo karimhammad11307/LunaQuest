@@ -3,7 +3,7 @@ import type { AstronautState, GameState, MissionResult, MissionType, ResourceNam
 import { BALANCE } from '../../game/config/balance';
 import { BUILDING_LAYOUT, MISSION_CONFIG, WORLD } from '../../game/config/gameConfig';
 import type { MissionSpec } from '../../game/config/gameConfig';
-import { clamp, createInitialState, trimNotices } from './survivalRules';
+import { advanceSurvivalDay, applyEnvironmentalDamage, clamp, createInitialState, tickOutdoor, trimNotices } from './survivalRules';
 
 export type MissionCatalog = Record<MissionType, Pick<MissionSpec, 'available' | 'energyCost'>>;
 const resources: ResourceName[] = ['food', 'water', 'oxygen', 'energy'];
@@ -13,8 +13,8 @@ const statusFields: (keyof Pick<AstronautState, 'health' | 'suitOxygen' | 'therm
 const buildingMessages: Record<string, string> = {
   habitat: 'Habitat online! Your crew has a safe home.',
   greenhouse: 'Greenhouse ready! Farming unlocks soon.',
-  solar: 'Solar array ready! It will power the base.',
-  shield: 'Radiation shelter ready! Protection unlocks soon.',
+  solar: 'Solar array ready! Check stored energy.',
+  shield: 'Radiation shelter ready! Step inside for protection.',
   landingPad: 'Landing pad ready! Supply missions unlock soon.',
 };
 
@@ -59,11 +59,13 @@ function validLoadedState(value: unknown): value is GameState {
   const state = value as Partial<GameState>;
   const sceneIds = ['title', 'moon-base', 'chicken-hunt', 'ice-collection', 'result'];
   return numberIn(state.day, 1, BALANCE.dayLimit)
+    && Number.isInteger(state.daysSurvived) && numberIn(state.daysSurvived, 0, BALANCE.dayLimit)
     && numberIn(state.timeOfDay, 0, 1)
     && sceneIds.includes(state.scene ?? '')
     && validResourceMap(state.resources)
     && resources.every((name) => numberIn(state.resources?.[name], 0, 100))
     && !!state.astronaut
+    && ['outside', 'habitat', 'shelter'].includes(state.astronaut.location)
     && statusFields.every((name) => numberIn(state.astronaut?.[name], 0, 100))
     && numberIn(state.astronaut.position?.x, 0, WORLD.width)
     && numberIn(state.astronaut.position?.y, 0, WORLD.height)
@@ -104,6 +106,13 @@ function validLoadedState(value: unknown): value is GameState {
     && (state.weather.riskLevel === 'low' || state.weather.riskLevel === 'moderate' || state.weather.riskLevel === 'high')
     && typeof state.weather.isRealData === 'boolean'
     && (state.status === 'playing' || state.status === 'victory' || state.status === 'defeat')
+    && (state.selectedBuildingId === null || (typeof state.selectedBuildingId === 'string' && !!state.buildings[state.selectedBuildingId]))
+    && (state.lastDaySummary === null || (!!state.lastDaySummary && Number.isInteger(state.lastDaySummary.day)
+      && numberIn(state.lastDaySummary.day, 1, BALANCE.dayLimit)
+      && resources.every((name) => numberIn(state.lastDaySummary?.[name], 0, 100))
+      && numberIn(state.lastDaySummary.healthLost, 0, 100)
+      && Array.isArray(state.lastDaySummary.warnings)
+      && state.lastDaySummary.warnings.every((warning) => typeof warning === 'string')))
     && Array.isArray(state.notices)
     && state.notices.every((entry) => Number.isInteger(entry?.id) && numberIn(entry.id, 0) && typeof entry.text === 'string' && (entry.tone === 'info' || entry.tone === 'good' || entry.tone === 'warn'));
 }
@@ -120,15 +129,59 @@ export function reduceGameState(state: GameState, action: GameAction, missions: 
   if (state.status !== 'playing') return state;
 
   switch (action.type) {
+    case 'TICK':
+      return numberIn(action.deltaSeconds, Number.MIN_VALUE, 5) ? tickOutdoor(state, action.deltaSeconds) : state;
     case 'MOVE_PLAYER': {
+      if (state.astronaut.location !== 'outside') return state;
       if (!numberIn(action.x, 0, WORLD.width) || !numberIn(action.y, 0, WORLD.height)) return state;
       if (state.astronaut.position.x === action.x && state.astronaut.position.y === action.y) return state;
       return { ...state, astronaut: { ...state.astronaut, position: { x: action.x, y: action.y } } };
     }
     case 'INTERACT_BUILDING': {
       if (typeof action.buildingId !== 'string' || !state.buildings[action.buildingId]) return state;
-      return withNotice(state, buildingMessages[action.buildingId] ?? 'Building ready!', 'good');
+      if (state.astronaut.location !== 'outside' && (state.astronaut.location === 'habitat' ? action.buildingId !== 'habitat' : action.buildingId !== 'shield')) return state;
+      return withNotice({ ...state, selectedBuildingId: action.buildingId }, buildingMessages[action.buildingId] ?? 'Building ready!', 'good');
     }
+    case 'CLOSE_BUILDING':
+      return state.selectedBuildingId === null ? state : { ...state, selectedBuildingId: null };
+    case 'ENTER_HABITAT':
+      if (state.selectedBuildingId !== 'habitat' || state.astronaut.location !== 'outside') return state;
+      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'habitat' } }, 'Welcome home, astronaut! Suit oxygen is safe indoors.', 'good');
+    case 'LEAVE_HABITAT':
+      if (state.astronaut.location !== 'habitat') return state;
+      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'outside' } }, 'Back outside. Watch your suit oxygen!', 'info');
+    case 'ENTER_SHELTER':
+      if (state.selectedBuildingId !== 'shield' || state.astronaut.location !== 'outside') return state;
+      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'shelter' } }, 'Shelter entered. You are protected while it has power.', 'good');
+    case 'LEAVE_SHELTER':
+      if (state.astronaut.location !== 'shelter') return state;
+      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'outside' } }, 'You left the shelter.', 'info');
+    case 'EAT_FOOD': {
+      if (state.astronaut.location !== 'habitat' || state.astronaut.health >= 100 || state.resources.food < BALANCE.habitat.eatFoodCost) return state;
+      return withNotice({ ...state, resources: { ...state.resources, food: state.resources.food - BALANCE.habitat.eatFoodCost },
+        astronaut: { ...state.astronaut, health: clamp(state.astronaut.health + BALANCE.habitat.eatHealAmount) } }, 'Yum! Food restored your health.', 'good');
+    }
+    case 'REFILL_SUIT_OXYGEN': {
+      if (state.astronaut.location !== 'habitat' || state.astronaut.suitOxygen >= 100 || state.resources.oxygen <= 0) return state;
+      const required = (100 - state.astronaut.suitOxygen) * BALANCE.habitat.transferRatio;
+      const spent = Math.min(required, state.resources.oxygen);
+      const gained = spent / BALANCE.habitat.transferRatio;
+      if (gained <= 0) return state;
+      return withNotice({ ...state, resources: { ...state.resources, oxygen: clamp(state.resources.oxygen - spent) },
+        astronaut: { ...state.astronaut, suitOxygen: clamp(state.astronaut.suitOxygen + gained) } }, 'Suit oxygen refilled from base storage.', 'good');
+    }
+    case 'REST_AT_HABITAT': {
+      const h = BALANCE.habitat;
+      if (state.astronaut.location !== 'habitat' || state.astronaut.health >= 100
+        || state.resources.food < h.healFoodCost || state.resources.water < h.healWaterCost || state.resources.energy < h.healEnergyCost) return state;
+      return withNotice({ ...state, resources: { ...state.resources, food: state.resources.food - h.healFoodCost,
+        water: state.resources.water - h.healWaterCost, energy: state.resources.energy - h.healEnergyCost },
+        astronaut: { ...state.astronaut, health: clamp(state.astronaut.health + h.healAmount), thermalSafety: BALANCE.thermalRecoveryOnRest } }, 'Rest complete! Health and thermal safety improved.', 'good');
+    }
+    case 'ADVANCE_DAY':
+      return advanceSurvivalDay(state);
+    case 'APPLY_ENVIRONMENTAL_EXPOSURE':
+      return applyEnvironmentalDamage(state, action.damage);
     case 'COLLECT_RESOURCE': {
       if (state.activeMission) return state;
       if (!resources.includes(action.resource) || !numberIn(action.amount, Number.MIN_VALUE, 100)) return state;
@@ -210,7 +263,7 @@ export function reduceGameState(state: GameState, action: GameAction, missions: 
       return withNotice(next, rewarded ? `Mission returned! +${awardedXp} XP` : 'Mission ended. Crew returned without supplies.', rewarded ? 'good' : 'warn');
     }
     default:
-      // Daily survival, farming, shielding and incidents belong to later features.
+      // Farming, shielding upgrades and incidents belong to later features.
       return state;
   }
 }

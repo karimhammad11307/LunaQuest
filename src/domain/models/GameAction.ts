@@ -12,6 +12,15 @@ export type GameAction =
   | { type: 'TICK'; deltaSeconds: number }
   | { type: 'MOVE_PLAYER'; x: number; y: number }
   | { type: 'INTERACT_BUILDING'; buildingId: string }
+  | { type: 'CLOSE_BUILDING' }
+  | { type: 'ENTER_HABITAT' }
+  | { type: 'LEAVE_HABITAT' }
+  | { type: 'ENTER_SHELTER' }
+  | { type: 'LEAVE_SHELTER' }
+  | { type: 'REFILL_SUIT_OXYGEN' }
+  | { type: 'EAT_FOOD' }
+  | { type: 'REST_AT_HABITAT' }
+  | { type: 'APPLY_ENVIRONMENTAL_EXPOSURE'; damage: number }
   | { type: 'COLLECT_RESOURCE'; resource: ResourceName; amount: number }
   | { type: 'SPEND_RESOURCES'; costs: Partial<Resources> }
   | { type: 'ADD_XP'; amount: number; rewardId: string }

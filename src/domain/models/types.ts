@@ -22,6 +22,8 @@ export type ResourceName = keyof Resources;
 /** Astronaut physical state, 0–100 unless noted. */
 export interface AstronautState {
   health: number;
+  /** Current protection zone; only outside consumes portable oxygen. */
+  location: 'outside' | 'habitat' | 'shelter';
   /** Portable EVA suit oxygen, drains while outside. */
   suitOxygen: number;
   /** Suit thermal protection remaining (%). */
@@ -112,6 +114,8 @@ export interface WeatherStatus {
 
 export interface GameState {
   day: number;
+  /** Completed survival turns; victory follows the fifth completed turn. */
+  daysSurvived: number;
   /** 0–1 progress through the current day. */
   timeOfDay: number;
   scene: GameSceneId;
@@ -130,6 +134,8 @@ export interface GameState {
   awardedRewardIds: string[];
   weather: WeatherStatus;
   status: GameStatus;
+  selectedBuildingId: string | null;
+  lastDaySummary: { day: number; food: number; water: number; oxygen: number; energy: number; healthLost: number; warnings: string[] } | null;
   /** Message log entries for HUD feedback (most recent last). */
   notices: { id: number; text: string; tone: 'info' | 'good' | 'warn' }[];
 }

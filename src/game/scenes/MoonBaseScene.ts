@@ -14,6 +14,8 @@ export class MoonBaseScene extends Phaser.Scene {
   private message!: Phaser.GameObjects.Text;
   private messageTimer?: Phaser.Time.TimerEvent;
   private lastPositionSync = 0;
+  private survivalTime = 0;
+  private previousStatus: 'playing' | 'victory' | 'defeat' = 'playing';
 
   constructor(store: GameSessionStore) {
     super('MoonBaseScene');
@@ -167,8 +169,22 @@ export class MoonBaseScene extends Phaser.Scene {
     return Phaser.Math.Distance.Between(this.astronaut.x, this.astronaut.y, point.x, point.y) <= INTERACT_RADIUS;
   }
 
-  update(time: number): void {
-    this.astronaut.updateMovement();
+  update(time: number, delta: number): void {
+    const state = this.store.getState();
+    if (this.previousStatus !== 'playing' && state.status === 'playing') {
+      this.astronaut.setPosition(SPAWN_POINT.x, SPAWN_POINT.y);
+      this.survivalTime = 0;
+    }
+    this.previousStatus = state.status;
+    if (state.status === 'playing' && state.astronaut.location === 'outside' && !state.selectedBuildingId) this.astronaut.updateMovement();
+    else this.astronaut.stopMovement();
+    if (state.status === 'playing' && state.astronaut.location === 'outside' && !state.activeMission) {
+      this.survivalTime += Math.min(delta, 250);
+      if (this.survivalTime >= 250) {
+        this.store.dispatch({ type: 'TICK', deltaSeconds: this.survivalTime / 1000 });
+        this.survivalTime = 0;
+      }
+    } else this.survivalTime = 0;
     if (time - this.lastPositionSync > 160) {
       this.store.dispatch({ type: 'MOVE_PLAYER', x: Math.round(this.astronaut.x), y: Math.round(this.astronaut.y) });
       this.lastPositionSync = time;
@@ -185,7 +201,7 @@ export class MoonBaseScene extends Phaser.Scene {
       this.activeBuilding = closest;
       this.activeBuilding?.setApproach(true);
     }
-    if (closest) {
+    if (closest && state.status === 'playing' && state.astronaut.location === 'outside' && !state.selectedBuildingId) {
       this.prompt.setText(`E  ${closest.entry.label}`).setPosition(closest.x, closest.y - 57).setVisible(true);
     } else this.prompt.setVisible(false);
   }

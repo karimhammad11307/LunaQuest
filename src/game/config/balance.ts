@@ -65,6 +65,8 @@ export const BALANCE = {
     healWaterCost: 5,
     healEnergyCost: 4,
     healAmount: 12,
+    eatFoodCost: 10,
+    eatHealAmount: 20,
   },
 
   solar: {
@@ -79,6 +81,7 @@ export const BALANCE = {
   health: {
     starvePerDay: 8,
     dehydratePerDay: 12,
+    lifeSupportFailurePerDay: 14,
     suitOxygenEmptyPerSecond: 2,
     lowOxygenThreshold: 10,
   },
