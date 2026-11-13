@@ -2,7 +2,7 @@
 
 ## Current state
 
-Mars Commander has a verified, editable Figma design and a local design brief. No application code has been written. The earlier skill-installation work remains incomplete as recorded below.
+The initial Figma direction was rejected. Mars Commander now has a locally playable React/TypeScript colony game with an original SVG world, deterministic simulation and verified browser interactions. The separate skill-installation work remains incomplete as recorded below.
 
 ## 2026-11-13 — Codex skill setup
 
@@ -26,3 +26,16 @@ Mars Commander has a verified, editable Figma design and a local design brief. N
 - **Limitations:** The Figma prototype is a guided navigation demo, not a complete simulation. Recycler previews return to the base; battery and greenhouse are visual concepts; both emergency choices lead to the illustrative learning summary. No live NASA dataset is connected. Browser keyboard, screen-reader, responsive and reduced-motion behavior require implementation and testing later.
 - **Remaining work:** User review of the design, then application implementation only when requested. Select and attribute an authentic NASA archive and calibrate the resource model during that implementation. Earlier skill setup limitations remain separate.
 - **Commit/push:** Not committed or pushed.
+
+## 2026-11-13 — Playable colony game rebuild
+
+- **Request:** Replace the rejected website-like design with a playable world, verify a vertical slice, then complete the 30-day survival prototype.
+- **Skills:** Applied installed frontend-design, React best practices, webapp-testing and local-only Sites guidance. `develop-web-game` was searched for and remains unavailable. Applied project-history-update for this checkpoint.
+- **Architecture:** Evaluated Phaser; chose React + TypeScript with interactive SVG and CSS animation for this discrete turn simulation. Pure reducer owns production, consumption, upgrades, hazards, safety and deliveries. No backend, authentication or hosting.
+- **Implemented:** Original Mars terrain and five clickable buildings; animated astronauts and construction; four resource meters with shared daily rates; upgrades through level 3; four event types with two consequences each; storm effects, delayed supplies, crew safety, day-30 win, life-support loss, restart, journal, local save/resume, keyboard building input, modal focus containment and reduced-motion styles.
+- **Files:** `src/game.ts`, `src/World.tsx`, `src/main.tsx`, `src/style.css`, `src/game.test.ts`, `tests/browser.mjs`, `tests/mission.mjs`, `design/GAME_ARCHITECTURE.md`, README, package configuration/lock, screenshots under `artifacts/`, and handoff documents.
+- **Verification:** Production TypeScript/Vite build passed. Six simulation tests passed. Chromium vertical-slice test passed (select/upgrade, Next day, dust decision, save). Full browser test passed a 30-day victory in 40 turns/decisions, all four hazards, save/resume, neglect loss and restart, five mobile building targets, help dismissal and zero page errors. Captured and inspected desktop/mobile/game-over screenshots.
+- **Fixes from evidence:** Initial balance allowed neglect to win; increased food consumption. Mobile screenshot showed cropped targets, then sideways focus scrolling; adjusted scene framing and clipped outer viewport; browser assertion confirms zero horizontal scroll. Downloaded Node type definitions after test files exposed a production type-check failure.
+- **Environment:** npm network access, dev-server sockets, tsx IPC and headless browser launch required sandbox escalation. Approved external execution succeeded. Chromium installed for reproducible testing.
+- **Limitations:** Original vector art and decorative crew motion; no physics/pathfinding. Events follow a curated schedule. Values and delivery durations are explicitly simplified game points, not real NASA measurements; no live NASA feed. Fonts use a remote optional stylesheet with system fallback.
+- **State:** No commit or push performed for this operation. Run instructions and science scope are documented. Existing Figma files were not edited.
