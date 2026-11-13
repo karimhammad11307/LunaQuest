@@ -2,7 +2,9 @@
 
 This is Developer A's ordered implementation checklist. The [Master Plan](MASTER_PLAN.md) is the source of truth for game requirements; the [Developer A task plan](DEVELOPER_A_TASKS.md) contains ownership, dependencies, estimates, and acceptance criteria. This file describes planned work and does not imply that these features are already implemented.
 
-**Feature 1 checkpoint:** the Phaser base world, astronaut movement/collision/animation, five contextual building interactions, and shared-state HUD are implemented and browser-verified. A1's reducer/contract work and building economy are still pending. See the progress note in the Developer A task plan.
+**Feature 1 checkpoint:** the Phaser base world, astronaut movement/collision/animation, five contextual building interactions, and shared-state HUD were implemented and browser-verified. At that checkpoint, A1's reducer/contract work and building economy were pending. See the progress note in the Developer A task plan.
+
+**Feature 2 checkpoint:** the GameSessionStore, pure resource/action rules and run-ID mission contract are implemented and verified. The next Developer A work is building economy and the day/survival loop. Evidence is in [ImplementedFeatureA.md](ImplementedFeatureA.md).
 
 ## 1. A1 — Freeze the shared contract and build the game store
 

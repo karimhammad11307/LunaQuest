@@ -7,6 +7,9 @@ Moonbound is a child-friendly lunar survival game for the NASA Space Apps Challe
 - [Developer A: base and survival tasks](docs/DEVELOPER_A_TASKS.md)
 - [Developer B: arcade and mission tasks](docs/DEVELOPER_B_TASKS.md)
 - [Developer A implementation order](docs/IMPLEMENTATION_A_STEPS.md)
+- [Verified Developer A feature log](docs/ImplementedFeatureA.md)
+
+Feature 2 adds the shared state foundation: validated resource and XP actions, mission progress and exactly-once mission results. The live game still has no mission scene or daily survival loop.
 
 ## Play Feature 1
 

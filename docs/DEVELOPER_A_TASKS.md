@@ -8,7 +8,9 @@
 
 The first playable Moon Base is implemented on `feat/base-survival`: Phaser boot/base scenes, individually generated pixel textures, the five separate building objects, astronaut movement and animation, static collisions, contextual interactions, and a React HUD subscribed to the shared state. A minimal `GameSessionStore` supports movement and interaction notices only. The existing survival-rule tests remain intact. `npm run build`, `npm test` (four starter tests), and `node tests/feature1.mjs` passed; the browser check covered five building interactions and collision stops, walk/idle frames, HUD values, and desktop/mobile screenshots. Art source and licensing are in `src/assets/manifest.json`.
 
-**Remaining under A1:** finish the pure reducer, action validation, mission idempotency and shared contract freeze for Developer B. **Remaining under A5:** building economy and resource actions. A6 onward are still future tasks. Do not mark those complete based on Feature 1.
+**At the Feature 1 checkpoint,** the pure reducer, action validation, mission idempotency and shared contract freeze were still pending under A1. Building economy and resource actions remained under A5. Feature 1 alone did not complete those tasks.
+
+**Feature 2 progress:** The shared store, pure typed action reducer, validated resource rules, provisional mission state, exactly-once mission results and non-mission XP reward IDs are implemented and verified at `6231e69`. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for evidence and the Developer B handoff. Event rules, full daily survival, building economy and save/resume remain future work. Existing Feature 1 browser behavior was rechecked after the store change.
 
 Developer A owns `src/domain/**`, `src/game/config/**`, React shell `src/app/**`, base scenes/entities, NASA/Save services, base assets and deployment. Specific primary paths:
 

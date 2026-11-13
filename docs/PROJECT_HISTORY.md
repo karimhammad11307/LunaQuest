@@ -94,3 +94,13 @@ This documentation-only consolidation replaces `doc/PLAN.md`, `doc/PLAN_DEV_A.md
 **Remaining:** complete A1 domain rules/contract freeze, building economy, resource depletion/day loop, missions, incidents, NASA, persistence and deployment. No Developer B-owned gameplay files or old backup branch were edited. No push or merge was performed.
 
 **Style reference clarification:** After the Feature 1 commit, the user supplied a public [astronaut sprite prompt page](https://stablediffusionweb.com/prompts/sprite-for-an-astronaut-for-top-down-2d-game) as a reference for pixel quality, outline/shading, astronaut design language and color richness, explicitly not for copying composition or assets. The game remains a top-down 3/4 playable map assembled from separate objects. The available web reader exposed the page text but not the actual image; a direct fetch returned HTTP 403. `src/assets/manifest.json` records the reference-only use. No game asset from that site was imported.
+
+## 2026-11-13 — Feature 2: shared game state and mission rewards
+
+**Request and Git:** The user stated Feature 1 was merged to main and requested a new `feat/game-state` branch. Inspection found a clean `Game-State` checkout; `main` and `origin/main` both pointed to `98c60fe` and contained Feature 1. Codex created `feat/game-state` from that commit without editing the existing branch. The verified implementation commit is `6231e69` (`feat: add shared game state and mission reward rules`).
+
+**Implemented:** Extended existing GameState/GameAction/MissionResult rather than replacing them. A pure reducer validates resource collection/spending, XP reward IDs, astronaut status, mission launch/provisional progress and exactly-once completion. The shared GameSessionStore delegates to those rules and notifies subscribers only on accepted changes. Mission run IDs and completed-run ledger are in state for future persistence. Default mission availability remains false, so no unfinished scene launches.
+
+**Verification:** `npm run build` passed. `npm test` passed 16 tests (12 new and four preserved). The existing Feature 1 Chromium check passed with all five building interactions/collisions, walk/idle frames, pointer interaction, HUD and mobile layout. No Developer B-owned files, mission scenes, backend, NASA integration or daily survival simulation were changed. No push or merge was performed.
+
+**Next work:** implement building economy and the day/survival loop, then integrate mission scenes through the frozen run-ID contract. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for the concise Developer A log and handoff.
