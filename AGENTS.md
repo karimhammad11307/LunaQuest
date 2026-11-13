@@ -13,7 +13,11 @@ The [Developer A implementation steps](docs/IMPLEMENTATION_A_STEPS.md) provide a
 
 ## Current status
 
-Features 1–6 now provide a playable Phaser Moon Base, five interactive buildings, one shared `GameSessionStore`, exactly-once mission rewards, active-play HP decay, two scripted emergencies and NASA DONKI educational context. Feature 6 implementation is `789d294` on the user-managed current branch: default historical demo, explicit live requests, six-hour cache, labeled partial coverage and offline fallback. `npm run build`, 76 Vitest cases and Feature 1/3/4/HP/5/6 Chromium checks passed, including mobile weather-panel inspection. A real browser request reached NASA CME, SEP and notifications endpoints; FLR returned 404, and the panel correctly labeled the partial result. The Chicken Hunt scaffold compiles but is not registered or playable. Save/resume, mission integration and the optional power incident remain unimplemented. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`; do not use it as the Moonbound source of truth. See [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) and [ImplementedFeatureA.md](docs/ImplementedFeatureA.md) for details. Next Developer A work is A11 save/resume, subject to the user's direction.
+On local `main`, Features 1–6 provide the playable Phaser Moon Base, five interactive buildings, one `GameSessionStore`, active-play HP decay, two scripted emergencies and NASA DONKI context. Merge `cc857d9` integrated Chicken Hunt from the Landing Pad into the existing `main.tsx` shell; the shared reducer applies mission results once. Build, 113 Vitest cases, Feature 1/3/4/HP/5/6 Chromium regressions and a Chicken Hunt launch/pause/return browser check passed. Ice Collection, save/resume, arcade touch controls and deployment remain open. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`. See [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) for the verified merge record.
+
+## Current handoff
+
+The local merge conflicts are resolved and `main` contains `cc857d9`; no push was performed. Next work is A11 save/resume and the remaining Developer B mission scope, as directed by the user. Keep `main.tsx` connected to the single domain store and check [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) before changing scene flow.
 
 ## Project guardrails
 

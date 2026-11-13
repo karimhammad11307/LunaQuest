@@ -20,6 +20,8 @@ The first playable Moon Base is implemented on `feat/base-survival`: Phaser boot
 
 **Feature 6 progress:** A10's NASA DONKI service, normalizer, six-hour cache, explicit live mode, default historical demo mode, partial-coverage labeling, offline fallback and compact Moon Base panel are implemented at `789d294` on the user-managed current branch. The weather-to-game mapping supplies educational context only; A9's scripted storm timing and damage are unchanged. `npm run build`, 76 Vitest cases and Feature 1/3/4/HP/5/6 Chromium checks passed. A real browser request obtained CME, SEP and notifications records, while FLR returned 404 and was marked partial. See [ImplementedFeatureA.md](ImplementedFeatureA.md). A11 save/resume remains the next A-owned task; Developer B mission integration is separate.
 
+**A12 integration checkpoint:** Local merge `cc857d9` registered Chicken Hunt in the existing React/Phaser shell, enabled its landing-pad launch, passed a unique run ID, and returned results through the single reducer. The Moon Base and other A-owned features remained in place. Build, 113 Vitest cases and the Chicken Hunt plus Feature 1/3/4/HP/5/6 Chromium checks passed. A12 is **partial**: Ice Collection and save/resume integration remain outstanding. See [PROJECT_HISTORY.md](PROJECT_HISTORY.md).
+
 Developer A owns `src/domain/**`, `src/game/config/**`, React shell `src/app/**`, base scenes/entities, NASA/Save services, base assets and deployment. Specific primary paths:
 
 ```text

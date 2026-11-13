@@ -2,6 +2,8 @@
 
 **Branch:** `feat/arcade-missions`, created from Developer A's A1 contract/foundation commit. **Scope:** Chicken Hunt, Ice Collection, original arcade art/effects/audio, mission tests and integration support. **Authority:** gameplay/architecture/science in [MASTER_PLAN.md](MASTER_PLAN.md); shared chronology in [DEVELOPER_A_TASKS.md](DEVELOPER_A_TASKS.md).
 
+**Verified integration checkpoint:** Developer B's Chicken Hunt ship, bird, combat, food pickup, timer and return scene from `devB_first` were preserved in local merge `cc857d9` and registered on `main`. Arcade unit tests and a Chromium launch/pause/return check pass. Ice Collection, arcade touch controls, sound and full mission polish remain planned; this checkpoint does not complete all B tasks. See [PROJECT_HISTORY.md](PROJECT_HISTORY.md).
+
 ## Ownership boundaries
 
 ```text
