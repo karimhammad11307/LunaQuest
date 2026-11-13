@@ -129,6 +129,22 @@ At that checkpoint, the branch was `building-survival`. The playable Phaser Moon
 
 **Decisions and limits:** All amounts are illustrative game units. The simplified daily sequence spends base life-support energy, charges the battery from an assumed illuminated workday, then charges shield upkeep; missing morning life-support power can still harm health. The sprout is a short visual transition within the one-day crop cycle. A repaired shield remains off until activated. Building damage is reachable through test fixtures; normal damage events are Feature 5 work. Solar-storm decisions, missions, NASA DONKI and save/resume remain unimplemented.
 
-## Current repository status after Feature 4
+## Repository status after Feature 4 checkpoint
 
-The current branch is `Greenhouse,-Solar-Energy-&-Shields`. Features 1–4 are implemented locally with the shared `GameSessionStore` and an unchanged `MissionResult` contract. Feature 4 implementation is committed at `290288b`. Feature 5 incidents and later NASA/persistence/integration work remain; Developer B mission scenes remain separate. The documentation checkpoint commit is reported in the final task response.
+At that checkpoint, the branch was `Greenhouse,-Solar-Energy-&-Shields`. Features 1–4 were implemented locally with the shared `GameSessionStore` and an unchanged `MissionResult` contract. Feature 4 implementation was committed at `290288b`. Feature 5 incidents and later NASA/persistence/integration work remained; Developer B mission scenes remained separate. Its documentation checkpoint was reported in that task's final response.
+
+## 2026-11-13 — HP and food audit before Feature 5
+
+**Request and Git:** The user requested an audit of normal HP decay, food healing and storage, pause/loading/terminal behavior, and extra survival damage before any Feature 5 work. Inspection found a clean `main` checkout at `1328f0e`, a merge commit already present before this operation. Codex did not switch, create, merge or push branches. The verified implementation commit is `74f860b` (`fix: add controlled HP decay and pause-safe food recovery`).
+
+**Finding and change:** Existing eating already spent stored food and healed through the single reducer, with HP capped at 100; valid mission food entered storage without automatic healing. Starvation, empty suit oxygen and unprotected environmental exposure already caused additional damage. The missing behavior was slow HP decay during ordinary active play. Developer A added 0.05 illustrative HP per second through bounded domain `TICK` actions on the controlled Phaser timer, including indoor base time. A typed pause state/action and small React control stop gameplay and simulation while paused; ticks also reject loading, other scenes/active missions and terminal states. The scene resets its tick accumulator on pause or hidden-tab time, avoiding catch-up damage. No HP mutation was added to Phaser or React.
+
+**Build compatibility finding:** The merged, incomplete Developer B Chicken Hunt scaffold had four pre-existing TypeScript errors: three invalid lifecycle `override` modifiers and a `MissionResult` missing `runId`. To verify the requested build and the food-result contract, Codex made only those compatibility corrections in `src/game/scenes/ChickenHuntScene.ts`. The scene remains unregistered and unplayable; no arcade gameplay was implemented.
+
+**Verification:** `npm run build` passed after the compatibility fix. `npm test` passed 51 cases across six files, including eight new HP/food audit cases. Chromium `tests/healthFoodAudit.mjs` verified actual slow decay, pause/resume, loading freeze, habitat eating and terminal freeze. Existing Feature 1, 3 and 4 Chromium regressions passed. Pause/eating/mobile screenshots were captured or refreshed and visually inspected under ignored `artifacts/`. `git diff --cached --check` passed before commit.
+
+**Limits and next work:** Chicken Hunt is still a scaffold; its food-result rule was exercised through domain tests, not a completed mission. Save/resume, full loading flow, and Feature 5 incidents remain unimplemented. The current build uses no NASA data. This audit did not begin Feature 5.
+
+## Current repository status after the audit
+
+The current branch is `main`; implementation is committed at `74f860b`. Features 1–4 and the corrected HP/food rules are locally verified. Chicken Hunt has a compiling scaffold but no playable mission flow. Feature 5 incidents remain the next Developer A feature. The documentation checkpoint commit is reported in the final task response.

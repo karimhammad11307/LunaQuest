@@ -58,3 +58,19 @@ Record only Developer A features that were implemented and verified. Add a conci
 **Verification:** `npm run build` passed. `npm test` passed 34 tests across four files (nine new Feature 4 cases). Chromium `tests/feature1.mjs`, `tests/feature3.mjs`, and `tests/feature4.mjs` all passed on the committed implementation. The new browser check exercised planting, seed/sprout/ready sprites, harvest rewards without HP gain, solar yield and repair, shield activation, protected exposure and power failure. Planted, harvest, repaired-solar and active-shield screenshots were captured and inspected in ignored `artifacts/`. `git diff --cached --check` passed before the implementation commit.
 
 **Limits:** One crop cycle takes one day; the sprout is a short visual transition during day advance. Solar charging uses an illustrative illuminated-workday assumption, not a real lunar lighting forecast. Damage/repair is testable now, but routine gameplay does not create damaged buildings until later incidents. No solar-storm event, advanced power routing, Developer B missions, NASA DONKI or persistence was added.
+
+## HP and Food Mechanics Audit — before Feature 5
+
+**Status:** Verified and corrected. **Implementation commit:** `74f860b` (`fix: add controlled HP decay and pause-safe food recovery`) on the user-managed current `main` branch.
+
+**Verified existing behavior:** `EAT_FOOD` consumes 10 stored food through the shared reducer/store, restores up to 20 HP, caps HP at 100, and rejects insufficient food or full-health use. Valid Chicken Hunt `MissionResult` food enters storage exactly once and does not heal HP. Daily starvation and dehydration, empty outdoor suit oxygen, and unprotected environmental exposure already caused extra bounded damage; defeat occurs at zero HP.
+
+**Correction:** Normal active play previously had no baseline HP decay. A centralized `BALANCE.health.passivePerSecond = 0.05` now removes 3 illustrative HP per minute through bounded `TICK` actions. The Phaser scene dispatches on its controlled 250 ms simulation timer in both indoor and outdoor base play; it never changes HP directly. Suit oxygen still drains outdoors only. A typed `SET_PAUSED` action and compact pause control freeze movement, HP, suit oxygen and gameplay actions. Ticks also reject loading, non-base/mission and victory/defeat states; no paused time is accumulated on resume.
+
+**Build compatibility:** The already committed, incomplete Developer B `ChickenHuntScene` scaffold prevented `npm run build`: three Phaser lifecycle `override` modifiers were invalid and its result omitted required `runId`. The minimal compatibility edit removes those modifiers and echoes the launch `runId` in `MissionResult`. This does not register, launch or implement Chicken Hunt gameplay.
+
+**Files:** `src/domain/models/{types.ts,GameAction.ts}`, `src/domain/rules/{survivalRules.ts,gameRules.ts,feature3.test.ts,healthFoodAudit.test.ts}`, `src/game/config/balance.ts`, `src/game/scenes/{MoonBaseScene.ts,ChickenHuntScene.ts}`, `src/app/{main.tsx,style.css}`, `tests/{feature3.mjs,feature4.mjs,healthFoodAudit.mjs}`.
+
+**Verification:** `npm run build` passed; `npm test` passed 51 tests across six files (eight new HP/food audit tests). Chromium `tests/healthFoodAudit.mjs` passed real-time decay, pause/resume, loading freeze, habitat eating and terminal freeze. Existing Chromium `tests/feature1.mjs`, `tests/feature3.mjs` and `tests/feature4.mjs` passed. Pause, eating and mobile screenshots were inspected under ignored `artifacts/`. `git diff --cached --check` passed before commit.
+
+**Limits:** The Chicken Hunt scene remains an unintegrated scaffold; mission food behavior is verified with a valid domain result, not a playable Chicken Hunt run. Loading is represented by the current state/scene guards; save/resume and Feature 5 incidents remain unimplemented. No branches were changed, merged or pushed.
