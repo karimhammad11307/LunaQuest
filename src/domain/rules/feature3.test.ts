@@ -50,10 +50,12 @@ describe('Feature 3 survival and building actions', () => {
     expect(reduceGameState(hungry, { type: 'EAT_FOOD' })).toBe(hungry);
   });
 
-  it('transfers base oxygen into suit without creating oxygen and stops drain indoors', () => {
+  it('transfers base oxygen into suit without creating oxygen and stops suit drain indoors', () => {
     const outside = { ...createInitialState(), astronaut: { ...createInitialState().astronaut, suitOxygen: 40 } };
     const home = habitat(outside);
-    expect(reduceGameState(home, { type: 'TICK', deltaSeconds: 5 })).toBe(home);
+    const indoors = reduceGameState(home, { type: 'TICK', deltaSeconds: 5 });
+    expect(indoors.astronaut.suitOxygen).toBe(home.astronaut.suitOxygen);
+    expect(indoors.astronaut.health).toBeCloseTo(home.astronaut.health - BALANCE.health.passivePerSecond * 5);
     const refilled = reduceGameState(home, { type: 'REFILL_SUIT_OXYGEN' });
     expect(refilled.astronaut.suitOxygen).toBe(100);
     expect(refilled.resources.oxygen).toBeCloseTo(home.resources.oxygen - 60 * BALANCE.habitat.transferRatio);
@@ -69,10 +71,10 @@ describe('Feature 3 survival and building actions', () => {
     const start = { ...createInitialState(), astronaut: { ...createInitialState().astronaut, suitOxygen: 0.1, health: 10 } };
     const empty = reduceGameState(start, { type: 'TICK', deltaSeconds: 1 });
     expect(empty.astronaut.suitOxygen).toBe(0);
-    expect(empty.astronaut.health).toBe(8);
+    expect(empty.astronaut.health).toBeCloseTo(8 - BALANCE.health.passivePerSecond);
     expect(empty.notices.at(-1)?.text).toContain('Suit oxygen empty');
     const hurt = reduceGameState(empty, { type: 'TICK', deltaSeconds: 1 });
-    expect(hurt.astronaut.health).toBe(6);
+    expect(hurt.astronaut.health).toBeCloseTo(6 - BALANCE.health.passivePerSecond * 2);
     expect(reduceGameState(hurt, { type: 'TICK', deltaSeconds: Number.NaN })).toBe(hurt);
     expect(reduceGameState(hurt, { type: 'TICK', deltaSeconds: 1000 })).toBe(hurt);
   });

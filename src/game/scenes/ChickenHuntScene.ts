@@ -98,7 +98,7 @@ export class ChickenHuntScene extends Phaser.Scene {
    * Called once when the scene is started via `scene.start(key, data)`.
    * Receives and validates the launch data from Dev A's coordinator.
    */
-  override init(data: unknown): void {
+  init(data: unknown): void {
     this.isShuttingDown = false;
     this.hasEmittedResult = false;
     this.starLayers = [];
@@ -140,7 +140,7 @@ export class ChickenHuntScene extends Phaser.Scene {
    * generateAllArcadeTextures() is idempotent — it checks
    * scene.textures.exists() before creating anything.
    */
-  override preload(): void {
+  preload(): void {
     generateAllArcadeTextures(this);
   }
 
@@ -152,7 +152,7 @@ export class ChickenHuntScene extends Phaser.Scene {
    * Build the initial scene: space background colour + parallax starfield.
    * Gameplay entities (ship, enemies, HUD, timer) are added in Phase 2.
    */
-  override create(): void {
+  create(): void {
     if (this.isShuttingDown) return;
 
     // PALETTE.spaceDeep = '#12172F'. Phaser requires an integer here, not a string.
@@ -304,6 +304,7 @@ export class ChickenHuntScene extends Phaser.Scene {
     this.hasEmittedResult = true;
 
     const result: MissionResult = {
+      runId: this.launchData.runId,
       missionType: 'chicken-hunt',
       success: partial.success,
       returnedSafely: partial.returnedSafely,

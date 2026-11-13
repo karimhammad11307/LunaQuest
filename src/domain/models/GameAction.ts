@@ -10,6 +10,7 @@ import type { AstronautState, MissionResult, MissionType, GameState, ResourceNam
 export type GameAction =
   /** Internal clock tick from the scene update loop. */
   | { type: 'TICK'; deltaSeconds: number }
+  | { type: 'SET_PAUSED'; paused: boolean }
   | { type: 'MOVE_PLAYER'; x: number; y: number }
   | { type: 'INTERACT_BUILDING'; buildingId: string }
   | { type: 'CLOSE_BUILDING' }

@@ -76,6 +76,8 @@ export const BALANCE = {
   },
 
   health: {
+    /** Gentle active-play fatigue: 3 HP per minute, in illustrative game units. */
+    passivePerSecond: 0.05,
     starvePerDay: 8,
     dehydratePerDay: 12,
     lifeSupportFailurePerDay: 14,

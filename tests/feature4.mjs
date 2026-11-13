@@ -34,9 +34,11 @@ if (await greenhouseTexture() !== 'crop-ready') throw new Error('Ready crop pixe
 await page.getByRole('button', { name: 'Leave Habitat' }).click();
 await close();
 await moveTo(267, 316);
+const beforeHarvestHealth = (await state()).astronaut.health;
 await page.getByRole('button', { name: /Harvest Crop/ }).click();
 current = await state();
-if (current.resources.food !== 74 || current.resources.oxygen !== 78 || current.xp !== 5 || current.astronaut.health !== 100) throw new Error('Harvest rewards or health rule failed');
+if (current.resources.food !== 74 || current.resources.oxygen !== 78 || current.xp !== 5
+  || current.astronaut.health > beforeHarvestHealth || current.astronaut.health < beforeHarvestHealth - 0.5) throw new Error('Harvest rewards or health rule failed');
 await page.screenshot({ path: 'artifacts/feature4-harvest.png', fullPage: true });
 await close();
 await moveTo(538, 278);
@@ -62,16 +64,18 @@ if (!current.buildings.shield.active || current.resources.energy !== beforeShiel
 const ringVisible = () => page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').buildings.find((b) => b.entry.id === 'shield').shieldRing.visible);
 if (!(await ringVisible())) throw new Error('Pixel shield ring is not visible');
 await page.screenshot({ path: 'artifacts/feature4-shield.png', fullPage: true });
+const protectedHealth = (await state()).astronaut.health;
 await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'APPLY_ENVIRONMENTAL_EXPOSURE', damage: 18 }));
-if ((await state()).astronaut.health !== 100) throw new Error('Powered shield did not protect astronaut');
+if (Math.abs((await state()).astronaut.health - protectedHealth) > 0.5) throw new Error('Powered shield did not protect astronaut');
 await page.evaluate(() => {
   const store = window.__moonboundStore;
   store.dispatch({ type: 'SPEND_RESOURCES', costs: { energy: store.getState().resources.energy } });
 });
 if (await ringVisible()) throw new Error('Shield ring stayed visible without power');
 if ((await state()).buildings.shield.active) throw new Error('Shield did not switch off after losing power');
+const exposedHealth = (await state()).astronaut.health;
 await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'APPLY_ENVIRONMENTAL_EXPOSURE', damage: 18 }));
-if ((await state()).astronaut.health !== 82) throw new Error('Unpowered shield incorrectly protected astronaut');
+if (Math.abs((await state()).astronaut.health - (exposedHealth - 18)) > 0.5) throw new Error('Unpowered shield incorrectly protected astronaut');
 if (errors.length) throw new Error(`Browser errors: ${errors.join(' | ')}`);
 console.log('Feature 4 browser checks passed: seed/sprout/ready, harvest, solar yield/repair, shield protection and power failure.');
 await browser.close();

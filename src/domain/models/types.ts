@@ -130,6 +130,8 @@ export interface GameState {
   awardedRewardIds: string[];
   weather: WeatherStatus;
   status: GameStatus;
+  /** Suspends base-world simulation and gameplay actions without ending the run. */
+  paused: boolean;
   selectedBuildingId: string | null;
   lastDaySummary: {
     day: number;

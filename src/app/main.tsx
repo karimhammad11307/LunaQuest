@@ -55,11 +55,16 @@ function App() {
   };
   useEffect(() => {
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { store.dispatch({ type: 'CLOSE_BUILDING' }); setActionFeedback(''); }
+      if (event.key !== 'Escape') return;
+      const current = store.getState();
+      if (showHelp) setShowHelp(false);
+      else if (current.paused) store.dispatch({ type: 'SET_PAUSED', paused: false });
+      else if (current.selectedBuildingId) { store.dispatch({ type: 'CLOSE_BUILDING' }); setActionFeedback(''); }
+      else store.dispatch({ type: 'SET_PAUSED', paused: true });
     };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
-  }, []);
+  }, [showHelp]);
   const virtualInput = (direction: string | null) => window.dispatchEvent(new CustomEvent('moonbound-input', { detail: direction }));
   return (
     <main className="app-shell"><div className="game-frame">
@@ -67,6 +72,7 @@ function App() {
         <div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div>
         <div className="mission-day"><span>MISSION DAY</span><strong>{state.day}<em>/ {BALANCE.dayLimit}</em></strong></div>
         <span className="xp-counter" aria-label={`${state.xp} experience points`}>XP {state.xp}</span>
+        <button className="pause-button" type="button" disabled={state.status !== 'playing'} onClick={() => { store.dispatch({ type: 'SET_PAUSED', paused: !state.paused }); setShowHelp(false); }}>{state.paused ? 'Resume' : 'Pause'}</button>
         <button className="help-button" type="button" onClick={() => setShowHelp(!showHelp)} aria-expanded={showHelp}>? <span>How to play</span></button>
       </header>
       <div className="hud" aria-label="Colony supplies and astronaut health">
@@ -107,7 +113,8 @@ function App() {
           {actionFeedback && <p className="action-feedback" role="alert">{actionFeedback}</p>}
         </aside>}
         {state.status !== 'playing' && <aside className="result-panel" aria-label="Mission result"><strong>{state.status === 'victory' ? 'MISSION COMPLETE!' : 'GAME OVER'}</strong><p>{state.status === 'victory' ? 'You kept the crew safe for five complete days!' : 'Your astronaut needs another try.'}</p><p>Days survived: {state.daysSurvived} / {BALANCE.dayLimit}</p><button type="button" onClick={() => { store.dispatch({ type: 'RESTART_GAME' }); setActionFeedback(''); }}>Restart Mission</button></aside>}
-        {showHelp && <aside className="help-panel"><strong>Explore the base</strong><p>Move with WASD or arrow keys. Walk near a building and press E, or click it when close.</p><p>Enter the habitat to eat, refill your suit and advance the day. Keep the crew safe for five days!</p><button type="button" onClick={() => setShowHelp(false)}>Got it</button></aside>}
+        {state.paused && state.status === 'playing' && <aside className="pause-panel" aria-label="Game paused"><strong>PAUSED</strong><p>Take your time. Health and suit oxygen are safe while paused.</p><button type="button" onClick={() => store.dispatch({ type: 'SET_PAUSED', paused: false })}>Resume Mission</button></aside>}
+        {showHelp && <aside className="help-panel"><strong>Explore the base</strong><p>Move with WASD or arrow keys. Walk near a building and press E, or click it when close.</p><p>Health slowly falls during active play. Eat stored food at the habitat to recover. Pause when you need a break.</p><p>Keep the crew safe for five days!</p><button type="button" onClick={() => setShowHelp(false)}>Got it</button></aside>}
       </div>
       {state.lastDaySummary && state.status === 'playing' && <div className="day-summary" role="status">Day {state.lastDaySummary.day} survived · Food −{state.lastDaySummary.food} · Water −{state.lastDaySummary.water} · Base O₂ −{state.lastDaySummary.oxygen} · Energy −{state.lastDaySummary.energy} / +{state.lastDaySummary.energyProduced} solar{state.lastDaySummary.shieldEnergyUsed > 0 && <> · Shield −{state.lastDaySummary.shieldEnergyUsed}</>}{state.lastDaySummary.warnings.length > 0 && <strong> · {state.lastDaySummary.warnings.join(' ')}</strong>}</div>}
       {state.status === 'playing' && (state.resources.food <= BALANCE.warnings.food || state.astronaut.suitOxygen <= BALANCE.warnings.suitOxygen) && <div className="survival-warning" role="alert">{state.astronaut.suitOxygen <= BALANCE.warnings.suitOxygen ? 'Suit oxygen low! Return to the habitat.' : 'Food is running low! Find supplies soon.'}</div>}

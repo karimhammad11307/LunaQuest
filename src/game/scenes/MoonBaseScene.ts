@@ -147,6 +147,7 @@ export class MoonBaseScene extends Phaser.Scene {
   }
 
   private pointerInteract(id: string): void {
+    if (this.store.getState().paused) return;
     const building = this.buildings.find((item) => item.entry.id === id);
     if (!building) return;
     if (this.isNear(building)) this.activate(building);
@@ -154,6 +155,7 @@ export class MoonBaseScene extends Phaser.Scene {
   }
 
   private interact(): void {
+    if (this.store.getState().paused) return;
     if (this.activeBuilding) this.activate(this.activeBuilding);
   }
 
@@ -237,14 +239,16 @@ export class MoonBaseScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     const state = this.store.getState();
+    const simulationActive = state.status === 'playing' && !state.paused && state.scene === 'moon-base'
+      && state.weather.source !== 'loading' && !state.activeMission && !document.hidden;
     if (this.previousStatus !== 'playing' && state.status === 'playing') {
       this.astronaut.setPosition(SPAWN_POINT.x, SPAWN_POINT.y);
       this.survivalTime = 0;
     }
     this.previousStatus = state.status;
-    if (state.status === 'playing' && state.astronaut.location === 'outside' && !state.selectedBuildingId) this.astronaut.updateMovement();
+    if (simulationActive && state.astronaut.location === 'outside' && !state.selectedBuildingId) this.astronaut.updateMovement();
     else this.astronaut.stopMovement();
-    if (state.status === 'playing' && state.astronaut.location === 'outside' && !state.activeMission) {
+    if (simulationActive) {
       this.survivalTime += Math.min(delta, 250);
       if (this.survivalTime >= 250) {
         this.store.dispatch({ type: 'TICK', deltaSeconds: this.survivalTime / 1000 });
@@ -267,7 +271,7 @@ export class MoonBaseScene extends Phaser.Scene {
       this.activeBuilding = closest;
       this.activeBuilding?.setApproach(true);
     }
-    if (closest && state.status === 'playing' && state.astronaut.location === 'outside' && !state.selectedBuildingId) {
+    if (closest && simulationActive && state.astronaut.location === 'outside' && !state.selectedBuildingId) {
       this.prompt.setText(`E  ${closest.entry.label}`).setPosition(closest.x, closest.y - 57).setVisible(true);
     } else this.prompt.setVisible(false);
   }

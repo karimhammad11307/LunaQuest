@@ -73,6 +73,7 @@ export function createInitialState(): GameState {
       isRealData: false,
     },
     status: 'playing',
+    paused: false,
     selectedBuildingId: null,
     lastDaySummary: null,
     notices: [
@@ -82,14 +83,21 @@ export function createInitialState(): GameState {
   };
 }
 
-/** Real-time outdoor drain of suit oxygen + thermal safety. */
+/** Whether the base-world simulation clock may advance. */
+export function canTickSurvival(state: GameState): boolean {
+  return state.status === 'playing' && !state.paused && state.scene === 'moon-base'
+    && state.weather.source !== 'loading' && !state.activeMission;
+}
+
+/** Real-time outdoor drain of suit oxygen, thermal safety, and gentle HP fatigue. */
 export function tickOutdoor(state: GameState, deltaSeconds: number): GameState {
-  if (state.status !== 'playing' || state.astronaut.location !== 'outside' || state.activeMission) return state;
+  if (!canTickSurvival(state) || state.astronaut.location !== 'outside'
+    || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0 || deltaSeconds > 5) return state;
   const astro = state.astronaut;
   const wasOxygen = Math.floor(astro.suitOxygen);
   const suitOxygen = clamp(astro.suitOxygen - BALANCE.suitOxygenDrainPerSecond * deltaSeconds);
   const thermalSafety = clamp(astro.thermalSafety - BALANCE.thermalDrainPerSecond * deltaSeconds);
-  let health = astro.health;
+  let health = clamp(astro.health - BALANCE.health.passivePerSecond * deltaSeconds);
   const notices = [...state.notices];
   if (suitOxygen <= 0) {
     health = clamp(health - BALANCE.health.suitOxygenEmptyPerSecond * deltaSeconds);
@@ -109,9 +117,23 @@ export function tickOutdoor(state: GameState, deltaSeconds: number): GameState {
   };
 }
 
+/** One controlled simulation tick; only suit systems depend on being outdoors. */
+export function tickSurvival(state: GameState, deltaSeconds: number): GameState {
+  if (!canTickSurvival(state) || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0 || deltaSeconds > 5) return state;
+  if (state.astronaut.location === 'outside') return tickOutdoor(state, deltaSeconds);
+  const health = clamp(state.astronaut.health - BALANCE.health.passivePerSecond * deltaSeconds);
+  return {
+    ...state,
+    astronaut: { ...state.astronaut, health },
+    status: health === 0 ? 'defeat' : state.status,
+    scene: health === 0 ? 'result' : state.scene,
+  };
+}
+
 /** Reusable environmental exposure rule for later radiation incidents. */
 export function applyEnvironmentalDamage(state: GameState, damage: number): GameState {
-  if (state.status !== 'playing' || !Number.isFinite(damage) || damage <= 0 || damage > 100) return state;
+  if (state.status !== 'playing' || state.paused || state.weather.source === 'loading'
+    || !Number.isFinite(damage) || damage <= 0 || damage > 100) return state;
   const { location } = state.astronaut;
   const shieldPowered = state.buildings.shield.active && state.buildings.shield.condition === 'good' && state.resources.energy > 0;
   const protectedHere = location === 'shelter'
@@ -134,7 +156,7 @@ export function solarYieldForDay(solar: BuildingState): number {
 
 /** One full completed day: consumption, one solar charge, shield upkeep, and crop growth. */
 export function advanceSurvivalDay(state: GameState): GameState {
-  if (state.status !== 'playing' || state.activeMission || state.astronaut.location !== 'habitat') return state;
+  if (!canTickSurvival(state) || state.astronaut.location !== 'habitat') return state;
   const used = {
     food: Math.min(state.resources.food, BALANCE.daily.food),
     water: Math.min(state.resources.water, BALANCE.daily.water),

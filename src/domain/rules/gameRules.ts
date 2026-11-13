@@ -3,7 +3,7 @@ import type { AstronautState, GameState, MissionResult, MissionType, ResourceNam
 import { BALANCE } from '../../game/config/balance';
 import { BUILDING_LAYOUT, MISSION_CONFIG, WORLD } from '../../game/config/gameConfig';
 import type { MissionSpec } from '../../game/config/gameConfig';
-import { advanceSurvivalDay, applyEnvironmentalDamage, clamp, createInitialState, tickOutdoor, trimNotices } from './survivalRules';
+import { advanceSurvivalDay, applyEnvironmentalDamage, clamp, createInitialState, tickSurvival, trimNotices } from './survivalRules';
 
 export type MissionCatalog = Record<MissionType, Pick<MissionSpec, 'available' | 'energyCost'>>;
 const resources: ResourceName[] = ['food', 'water', 'oxygen', 'energy'];
@@ -106,6 +106,7 @@ function validLoadedState(value: unknown): value is GameState {
     && (state.weather.riskLevel === 'low' || state.weather.riskLevel === 'moderate' || state.weather.riskLevel === 'high')
     && typeof state.weather.isRealData === 'boolean'
     && (state.status === 'playing' || state.status === 'victory' || state.status === 'defeat')
+    && typeof state.paused === 'boolean'
     && (state.selectedBuildingId === null || (typeof state.selectedBuildingId === 'string' && !!state.buildings[state.selectedBuildingId]))
     && (state.lastDaySummary === null || (!!state.lastDaySummary && Number.isInteger(state.lastDaySummary.day)
       && numberIn(state.lastDaySummary.day, 1, BALANCE.dayLimit)
@@ -137,10 +138,15 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
     return { ...state, notices: state.notices.filter((entry) => entry.id !== action.noticeId) };
   }
   if (state.status !== 'playing') return state;
+  if (action.type === 'SET_PAUSED') {
+    if (typeof action.paused !== 'boolean' || state.paused === action.paused) return state;
+    return { ...state, paused: action.paused };
+  }
+  if (state.paused || state.weather.source === 'loading') return state;
 
   switch (action.type) {
     case 'TICK':
-      return numberIn(action.deltaSeconds, Number.MIN_VALUE, 5) ? tickOutdoor(state, action.deltaSeconds) : state;
+      return numberIn(action.deltaSeconds, Number.MIN_VALUE, 5) ? tickSurvival(state, action.deltaSeconds) : state;
     case 'MOVE_PLAYER': {
       if (state.astronaut.location !== 'outside') return state;
       if (!numberIn(action.x, 0, WORLD.width) || !numberIn(action.y, 0, WORLD.height)) return state;
