@@ -12,6 +12,8 @@ The first playable Moon Base is implemented on `feat/base-survival`: Phaser boot
 
 **Feature 2 progress:** The shared store, pure typed action reducer, validated resource rules, provisional mission state, exactly-once mission results and non-mission XP reward IDs are implemented and verified at `6231e69`. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for evidence and the Developer B handoff. Event rules, full daily survival, building economy and save/resume remain future work. Existing Feature 1 browser behavior was rechecked after the store change.
 
+**Feature 3 progress:** The habitat/shelter interactions and core five-day survival loop are implemented at `836f340` on `building-survival`. Eating, suit refill, rest, daily costs, warnings, victory/defeat and restart are verified. Greenhouse/solar production, shield upgrades, incidents and persistence remain future tasks. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for test evidence. The A5/A6 plan table below records the original schedule; Feature 3 fulfills the scoped interactions and survival foundation, while production and event work remain A7–A9.
+
 Developer A owns `src/domain/**`, `src/game/config/**`, React shell `src/app/**`, base scenes/entities, NASA/Save services, base assets and deployment. Specific primary paths:
 
 ```text

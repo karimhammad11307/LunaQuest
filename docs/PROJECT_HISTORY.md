@@ -42,19 +42,19 @@ The root history also records a `frontend-design` skill installation and unsucce
 
 ## Branches and commits
 
-Git references inspected on the current feature branch before documentation edits:
+Git references inspected at the earlier documentation-consolidation checkpoint:
 
 | Ref | Commit | Verified description |
 |---|---|---|
-| `feat/base-survival` (current) | `4a447bb` | Repository preparation baseline; clean before this consolidation. |
+| `feat/base-survival` (then current) | `4a447bb` | Repository preparation baseline; clean before that consolidation. |
 | `main`, `origin/main` | `4a447bb` | Same commit as feature-branch baseline at inspection. |
 | `base-survival`, `origin/base-survival` | `5a5eefc` | Cline-attributed partial Moonbound scaffold. |
 | `backup/mars-commander-codex`, `TestCline` | `cf01cb4` | Previous Mars Commander implementation preserved. |
 | `016a2a1` | project plans/progress report | Adds `doc/PLAN.md`, `doc/PLAN_DEV_A.md`, `doc/PLAN_DEV_B.md`, `doc/REPORT.md`. |
 
-These refs were inspected, not rewritten. This task must remain on `feat/base-survival`; do not switch, push, or merge.
+These were historical observations at that checkpoint, not a claim about the current checkout.
 
-## Current technical state (repository fact at baseline)
+## Technical state at repository preparation baseline
 
 - Package is `moonbound`; scripts are Vite `dev`, TypeScript/Vite `build`, `preview`, Vitest `test` and `test:watch`.
 - Declared stack: React 19, TypeScript, Vite 6, Phaser 3.90, Vitest, Playwright tooling. Phaser is a dependency, not evidence of an implemented Phaser game.
@@ -64,7 +64,7 @@ These refs were inspected, not rewritten. This task must remain on `feat/base-su
 - `src/domain/rules/survivalRules.ts` contains starter rules only. Four tests cover existing starter behavior.
 - No live NASA DONKI integration, credentials, server, or deployed game is present.
 
-## What works and what remains
+## What worked and remained at that baseline
 
 **Present and previously verified/reported:** configuration and lockfile exist; Vite/React bootstrap; basic initial state/building construction, clamping, outdoor oxygen/thermal drain; four starter Vitest cases. The prior handoff reports `npm install`, production build, and these tests succeeded at the repository-preparation checkpoint.
 
@@ -104,3 +104,17 @@ This documentation-only consolidation replaces `doc/PLAN.md`, `doc/PLAN_DEV_A.md
 **Verification:** `npm run build` passed. `npm test` passed 16 tests (12 new and four preserved). The existing Feature 1 Chromium check passed with all five building interactions/collisions, walk/idle frames, pointer interaction, HUD and mobile layout. No Developer B-owned files, mission scenes, backend, NASA integration or daily survival simulation were changed. No push or merge was performed.
 
 **Next work:** implement building economy and the day/survival loop, then integrate mission scenes through the frozen run-ID contract. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for the concise Developer A log and handoff.
+
+## 2026-11-13 — Feature 3: building interactions and survival
+
+**Request and Git:** The user requested Feature 3 and then explicitly instructed Codex to work in the already checked-out branch without branch management. Inspection found a clean `building-survival` checkout at `76f6649` before edits. The verified implementation commit is `836f340` (`feat: add building interactions and survival loop`). No branch creation, switching, merge or push occurred.
+
+**Implemented:** Developer A extended the existing shared state/reducer/store with typed habitat and shelter actions, stored-food eating and HP recovery, base-to-suit oxygen transfer, outdoor oxygen drain and gradual empty-suit damage, deterministic daily food/water/base-oxygen/energy consumption, health consequences, five-complete-day victory, defeat and clean restart. Phaser keeps movement, collisions and proximity detection; React renders compact building actions, separate base/suit oxygen, warnings, summaries and result overlays. Greenhouse/solar remain informational; landing missions remain disabled. The reusable environmental damage rule recognizes powered, intact protected locations, but no incident is triggered in this feature. Existing mission rewards still add food to storage once and do not auto-heal HP.
+
+**Verification:** `npm run build` passed and `npm test` passed 25 tests across three files. Existing Chromium `tests/feature1.mjs` passed all five interactions/collisions, movement animation, initial HUD and mobile layout. New Chromium `tests/feature3.mjs` passed habitat entry, refill, eating, daily costs, victory, defeat/restart and shelter entry/exit. Habitat and victory screenshots were captured and inspected in ignored `artifacts/`. Initial Chromium launch inside the sandbox was blocked; an elevated rerun passed. `git diff --check` passed before the implementation commit.
+
+**Decisions and limits:** Day 1 is the first playable day; each `ADVANCE_DAY` completes one day, and victory follows the fifth completed day while HP remains above zero. Daily resource shortage causes gradual HP penalties; zero HP is the terminal defeat condition. Day advance is available in the habitat. Resource amounts are illustrative game units, not NASA measurements. Initial supplies permit five-day victory without missions, but replenishment gameplay awaits Developer B integration. Greenhouse/solar production, radiation incidents, NASA DONKI and persistence remain unimplemented. No Developer B-owned mission files were changed.
+
+## Current repository status after Feature 3
+
+The current branch is `building-survival`. The playable Phaser Moon Base, shared store and exactly-once mission reward contract from Features 1–2 remain. Feature 3 adds the functional survival loop described above. The next Developer A work is Feature 4 production/solar mechanics; Developer B missions remain separate. The code implementation is committed at `836f340`; the documentation checkpoint commit is recorded in the final task report.

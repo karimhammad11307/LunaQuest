@@ -13,7 +13,7 @@ The [Developer A implementation steps](docs/IMPLEMENTATION_A_STEPS.md) provide a
 
 ## Current status
 
-Feature 1 has a playable Phaser Moon Base: original procedural pixel terrain and separate buildings, animated four-direction astronaut movement, Arcade Physics collisions, five contextual building interactions, React HUD backed by the shared `GameSessionStore`, and touch controls. Feature 2 adds a pure action reducer, validated resource and XP changes, provisional mission progress, and exactly-once run-ID mission rewards. Resource economy at buildings, daily survival, mission scenes, events, NASA integration and save/resume remain unimplemented. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`; do not use it as the Moonbound source of truth.
+Features 1–3 now provide a playable Phaser Moon Base, animated movement/collisions, five contextual buildings, the shared `GameSessionStore` and exactly-once mission rewards. Feature 3 adds habitat eating/refill/rest, shelter entry, outdoor suit oxygen drain, daily resource/HP simulation, five-day victory, defeat and restart. `npm run build`, 25 Vitest cases, and both Feature 1 and Feature 3 Chromium gameplay checks passed at the Feature 3 checkpoint. Mission scenes, greenhouse/solar production, incidents, NASA integration and save/resume remain unimplemented. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`; do not use it as the Moonbound source of truth. See [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) and [ImplementedFeatureA.md](docs/ImplementedFeatureA.md) for verified details. Next Developer A work is Feature 4 production/solar mechanics; Developer B owns separate mission scenes.
 
 ## Project guardrails
 
