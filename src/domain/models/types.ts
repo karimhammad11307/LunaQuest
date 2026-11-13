@@ -17,6 +17,8 @@ export interface Resources {
   energy: number;
 }
 
+export type ResourceName = keyof Resources;
+
 /** Astronaut physical state, 0–100 unless noted. */
 export interface AstronautState {
   health: number;
@@ -68,6 +70,8 @@ export type GameSceneId =
   | 'result';
 
 export interface MissionResult {
+  /** Unique ID supplied at launch and returned unchanged by the mission scene. */
+  runId: string;
   missionType: MissionType;
   success: boolean;
   /** Player returned to base without being carried home. */
@@ -80,6 +84,14 @@ export interface MissionResult {
   /** Mission duration in seconds. */
   duration: number;
   educationalMessage: string;
+}
+
+/** Provisional mission data. It never changes base supplies until completion. */
+export interface MissionProgress {
+  runId: string;
+  missionType: MissionType;
+  elapsedSeconds: number;
+  collectedResources: Partial<Resources>;
 }
 
 export type GameStatus = 'playing' | 'victory' | 'defeat';
@@ -107,8 +119,15 @@ export interface GameState {
   astronaut: AstronautState;
   buildings: Record<string, BuildingState>;
   activeMission: MissionType | null;
+  activeMissionRunId: string | null;
+  missionProgress: MissionProgress | null;
+  /** Persist this ledger with the session so replayed result messages have no effect. */
+  completedMissionRunIds: string[];
+  lastMissionResult: MissionResult | null;
   activeEventId: string | null;
   xp: number;
+  /** Idempotency keys for non-mission XP awards (tutorials and future events). */
+  awardedRewardIds: string[];
   weather: WeatherStatus;
   status: GameStatus;
   /** Message log entries for HUD feedback (most recent last). */

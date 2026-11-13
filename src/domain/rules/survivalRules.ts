@@ -11,11 +11,8 @@ import { BUILDING_LAYOUT, SPAWN_POINT } from '../../game/config/gameConfig';
 export const clamp = (v: number, min = 0, max = 100): number =>
   Math.max(min, Math.min(max, v));
 
-let noticeSeq = 0;
-
-function notice(text: string, tone: 'info' | 'good' | 'warn'): GameState['notices'][number] {
-  noticeSeq += 1;
-  return { id: noticeSeq, text, tone };
+function notice(id: number, text: string, tone: 'info' | 'good' | 'warn'): GameState['notices'][number] {
+  return { id, text, tone };
 }
 
 export function trimNotices(notices: GameState['notices']): GameState['notices'] {
@@ -59,8 +56,13 @@ export function createInitialState(): GameState {
     },
     buildings: createInitialBuildings(),
     activeMission: null,
+    activeMissionRunId: null,
+    missionProgress: null,
+    completedMissionRunIds: [],
+    lastMissionResult: null,
     activeEventId: null,
     xp: 0,
+    awardedRewardIds: [],
     weather: {
       source: 'demo',
       label: 'Demo Space Weather',
@@ -70,8 +72,8 @@ export function createInitialState(): GameState {
     },
     status: 'playing',
     notices: [
-      notice('Welcome to Moonbound! Walk with WASD or arrow keys.', 'info'),
-      notice('Press E near a building to interact. Visit all five!', 'info'),
+      notice(1, 'Welcome to Moonbound! Walk with WASD or arrow keys.', 'info'),
+      notice(2, 'Press E near a building to interact. Visit all five!', 'info'),
     ],
   };
 }
@@ -89,7 +91,7 @@ export function tickOutdoor(state: GameState, deltaSeconds: number): GameState {
     health = clamp(health - BALANCE.health.suitOxygenEmptyPerSecond * deltaSeconds);
   }
   if (wasOxygen >= 25 && suitOxygen < 25) {
-    notices.push(notice('Your suit oxygen is low — go back to base!', 'warn'));
+    notices.push(notice(Math.max(0, ...notices.map((entry) => entry.id)) + 1, 'Your suit oxygen is low — go back to base!', 'warn'));
   }
   return {
     ...state,

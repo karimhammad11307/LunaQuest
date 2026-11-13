@@ -92,6 +92,12 @@ export const BALANCE = {
     daySurvived: 10,
   },
 
+  missionResult: {
+    maxXp: 100,
+    maxDurationSeconds: 3600,
+    maxRunIdLength: 80,
+  },
+
   warnings: {
     food: 20,
     water: 20,
