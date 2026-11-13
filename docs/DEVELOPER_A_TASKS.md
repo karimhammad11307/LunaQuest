@@ -16,6 +16,8 @@ The first playable Moon Base is implemented on `feat/base-survival`: Phaser boot
 
 **Feature 4 progress:** A7–A8 greenhouse planting/one-day growth/harvest, solar daily charging, shield activation/upkeep/protection, and simple building repairs are implemented and verified at `290288b` on the user-managed current branch. Build, 34 Vitest cases, and Feature 1/3/4 Chromium checks passed. See [ImplementedFeatureA.md](ImplementedFeatureA.md). Incident-driven damage and timed solar warnings remain A9, while NASA data and persistence remain later tasks.
 
+**Feature 5 progress:** A9's required scripted solar storm and oxygen leak are implemented at `5e8ee0c` on the user-managed current branch. Countdown, shelter/shield protection, radiation HP damage, habitat leak repair, section isolation, distinct costs, XP and once-only outcomes use the shared domain store. `npm run build`, 64 Vitest cases and Feature 1/3/4/HP/Feature 5 Chromium checks passed. See [ImplementedFeatureA.md](ImplementedFeatureA.md). The optional power incident was deferred; A10 NASA data and A11 persistence remain next A-owned work.
+
 Developer A owns `src/domain/**`, `src/game/config/**`, React shell `src/app/**`, base scenes/entities, NASA/Save services, base assets and deployment. Specific primary paths:
 
 ```text

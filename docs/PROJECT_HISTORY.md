@@ -145,6 +145,24 @@ At that checkpoint, the branch was `Greenhouse,-Solar-Energy-&-Shields`. Feature
 
 **Limits and next work:** Chicken Hunt is still a scaffold; its food-result rule was exercised through domain tests, not a completed mission. Save/resume, full loading flow, and Feature 5 incidents remain unimplemented. The current build uses no NASA data. This audit did not begin Feature 5.
 
-## Current repository status after the audit
+## Repository status after the HP audit checkpoint
 
 The current branch is `main`; implementation is committed at `74f860b`. Features 1–4 and the corrected HP/food rules are locally verified. Chicken Hunt has a compiling scaffold but no playable mission flow. Feature 5 incidents remain the next Developer A feature. The documentation checkpoint commit is reported in the final task response.
+
+## 2026-11-13 — Feature 5: space emergencies and survival events
+
+**Request and Git:** The user requested Developer A's Feature 5 only and retained all branch management. Inspection found a clean checkout on `Feature-5--Space-Emergencies-(A9)` before edits. The verified implementation commit is `5e8ee0c` (`feat: add scripted solar storm and oxygen leak emergencies`). No branch was created, switched, merged or pushed.
+
+**Implemented:** A typed emergency catalog and pure domain rules extend the existing `GameState`, `GameAction` and `GameSessionStore`. The first completed day triggers a 24-second solar warning and 12-second simulated storm; the second completed day triggers an 8-second oxygen-leak warning. No incidents overlap, and an active incident must resolve before another day advances. Domain `TICK` applies bounded one-second pulses, with no timer progress during pause, loading, mission or terminal states. Completed-event IDs and outcomes prevent replayed rewards. Restart clears both.
+
+**Player decisions and consequences:** During the storm the astronaut can keep moving, press E at the shelter to enter, activate the existing shield for energy, stay in the powered habitat, or ignore the warning. The active shield protects only within the documented nearby-base radius. Unprotected radiation reduces HP and increases the illustrative exposure meter; surviving in the shelter or shield area without exposure grants 15 XP once. During the leak, paid habitat repair stops oxygen loss for 15 XP; isolation costs less energy plus base oxygen, stops the loss, disables/damages the greenhouse until repair, and grants 8 XP. Ignoring the leak leaves oxygen draining and can cause gradual HP damage and defeat. Existing food healing, suit oxygen, solar, repairs and five-day outcomes remain in the same reducer.
+
+**Visuals and science labeling:** React shows a compact warning/countdown, actions and costs. Phaser shows warning tint, hazard badges, a habitat leak marker, HP/O₂ loss floaters and clear repair/isolation feedback while retaining astronaut movement. Science takeaways state that these are simulated game hazards, not NASA local lunar dose or oxygen measurements. No NASA DONKI connection was added.
+
+**Verification:** `npm run build` passed; `npm test` passed 64 cases across seven files, including 13 Feature 5 cases. Chromium `tests/feature1.mjs`, `tests/feature3.mjs`, `tests/feature4.mjs`, `tests/healthFoodAudit.mjs` and `tests/feature5.mjs` passed; the new browser script covered the storm warning, E shelter, protected XP, oxygen leak drain/repair, isolation, ignored storm damage and pause. Feature 5 screenshots of warning, exposure, leak and isolation were captured and inspected. `git diff --cached --check` passed before the implementation commit. Earlier day-loop regression tests were adapted to account for the new event gate; an HP browser assertion was adjusted to tolerate ongoing legitimate decay. The first `npm test` run after the event gate found two old day-loop expectations that needed this adaptation; the first Feature 5 test run found an incorrect object-identity assertion. A later build caught a test-only catalog index type error. All were corrected and the final build/test run passed. A local Vite browser launch initially failed under the filesystem sandbox and then ran with approved escalation.
+
+**Limits and next work:** The event schedule is deterministic and game values are illustrative. The optional power emergency and audio cues were not implemented. Chicken Hunt remains an unregistered scaffold; Developer B mission integration, NASA DONKI and save/resume remain future work. No dependencies changed. Feature 5 is complete at the implementation commit; this documentation checkpoint is committed separately.
+
+## Current repository status
+
+The current user-managed branch is `Feature-5--Space-Emergencies-(A9)`. Features 1–5 and the HP/food audit are implemented and locally verified as described above. Required A9 incidents are playable; A10 NASA data, A11 persistence, Developer B mission integration and final deployment remain unimplemented. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for the concise Developer A verification log and [MASTER_PLAN.md](MASTER_PLAN.md) for planned scope.
