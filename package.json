@@ -1,1 +1,29 @@
-{"name":"mars-commander","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite --host 127.0.0.1","build":"tsc -b && vite build","test":"tsx --test src/game.test.ts"},"dependencies":{"react":"^19.0.0","react-dom":"^19.0.0"},"devDependencies":{"@playwright/test":"^1.51.0","@types/node":"^26.6.6","@types/react":"^19.0.0","@types/react-dom":"^19.0.0","tsx":"^4.19.0","typescript":"^5.7.0","vite":"^6.1.0"}}
+{
+  "name": "moonbound",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.1.0",
+    "vitest": "^3.1.0"
+  }
+}
