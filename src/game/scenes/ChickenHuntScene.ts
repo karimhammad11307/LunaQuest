@@ -119,7 +119,7 @@ export class ChickenHuntScene extends Phaser.Scene {
   // Phaser Lifecycle: init
   // =========================================================================
 
-  override init(data: unknown): void {
+  init(data: unknown): void {
     this.isShuttingDown = false;
     this.hasEmittedResult = false;
     this.missionState = 'READY';
@@ -155,7 +155,7 @@ export class ChickenHuntScene extends Phaser.Scene {
   // Phaser Lifecycle: preload
   // =========================================================================
 
-  override preload(): void {
+  preload(): void {
     generateAllArcadeTextures(this);
   }
 
@@ -163,7 +163,7 @@ export class ChickenHuntScene extends Phaser.Scene {
   // Phaser Lifecycle: create
   // =========================================================================
 
-  override create(): void {
+  create(): void {
     if (this.isShuttingDown) return;
 
     // Background
@@ -498,6 +498,7 @@ export class ChickenHuntScene extends Phaser.Scene {
     }
 
     const result: MissionResult = {
+      runId: this.launchData.runId,
       missionType: 'chicken-hunt',
       success,
       returnedSafely,

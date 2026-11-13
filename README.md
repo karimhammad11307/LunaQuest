@@ -1,24 +1,32 @@
 # Moonbound: Survival Mission
 
-Moonbound is planned as a playable, child-friendly lunar survival game for the NASA Space Apps Challenge 2026. The current repository is a partial foundation; the Moon Base and mission gameplay are not implemented yet. See the authoritative documentation:
+Moonbound is a top-down 3/4 pixel-art lunar survival game for children, built with Phaser 3, TypeScript and a lightweight React shell for the NASA Space Apps Challenge 2026. The current playable Moon Base has five interactive buildings, a five-day survival loop, greenhouse/solar/shield systems, a scripted solar storm and an oxygen leak. The Developer B missions, save/resume and deployment are not integrated yet.
 
 - [Project history and verified status](docs/PROJECT_HISTORY.md)
 - [Master game and engineering plan](docs/MASTER_PLAN.md)
-- [Developer A: base and survival tasks](docs/DEVELOPER_A_TASKS.md)
-- [Developer B: arcade and mission tasks](docs/DEVELOPER_B_TASKS.md)
+- [Developer A tasks](docs/DEVELOPER_A_TASKS.md) · [Developer B tasks](docs/DEVELOPER_B_TASKS.md)
+- [Developer A implementation order](docs/IMPLEMENTATION_A_STEPS.md) · [Verified feature log](docs/ImplementedFeatureA.md)
 
-## Run the current bootstrap
+## Run and verify
 
 ```sh
 npm install
 npm run dev
 ```
 
-## Verify the current foundation
+Open the local Vite URL. Move with **WASD or arrow keys**, approach a building and press **E**. Click or tap a nearby building to interact. Open **Space Weather** in the bottom status strip to inspect NASA observation context; the default is a clearly labeled historical demo example. All game resource, HP and hazard values are illustrative.
 
 ```sh
 npm run build
 npm test
 ```
 
-Phaser is configured as a dependency but no Phaser scene is implemented at this stage. The earlier Mars Commander prototype is preserved on `backup/mars-commander-codex`.
+With the dev server running on port 5173, browser checks are `node tests/feature1.mjs`, `node tests/feature3.mjs`, `node tests/feature4.mjs`, `node tests/healthFoodAudit.mjs`, `node tests/feature5.mjs`, and `node tests/feature6.mjs`. Use `MOONBOUND_URL` if Vite runs on another port. Screenshots go to ignored `artifacts/`.
+
+## NASA DONKI configuration
+
+Copy `.env.example` to `.env.local` to change the optional weather mode. `VITE_NASA_DATA_MODE=demo` is the offline-safe default; `live` fetches the last seven UTC days from `/DONKI/FLR`, `/DONKI/CME`, `/DONKI/SEP` and `/DONKI/notifications` in the background. The in-game **Try NASA live** button also requests live data. Successful observations are cached locally for six hours. Empty results show a calm status; failures and rate limits use a labeled historical demo example and never stop gameplay.
+
+`VITE_NASA_API_KEY` is supported for browser requests, but **every `VITE_` value is public in the production bundle**. Do not put a private API key there. Without a configured key, explicit live mode uses NASA's public `DEMO_KEY`, which has a low shared rate limit; the startup default avoids consuming it. This project does not include a private-key proxy. NASA DONKI reports solar activity, not radiation dose at the fictional lunar base. The storm's timing and damage remain scripted game mechanics, independent of NASA availability.
+
+The art is original procedural pixel art described in `src/assets/manifest.json`. The earlier Mars Commander prototype is preserved on `backup/mars-commander-codex`.

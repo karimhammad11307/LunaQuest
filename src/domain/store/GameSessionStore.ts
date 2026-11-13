@@ -1,99 +1,45 @@
 import type { GameAction } from '../models/GameAction';
 import type { GameState } from '../models/types';
-import { createInitialState, trimNotices } from '../rules/survivalRules';
+import { createInitialState } from '../rules/survivalRules';
+import { reduceGameState } from '../rules/gameRules';
+import type { MissionCatalog } from '../rules/gameRules';
+import { MISSION_CONFIG } from '../../game/config/gameConfig';
 
 type Listener = (state: GameState) => void;
 
-const buildingMessages: Record<string, string> = {
-  habitat: 'Habitat online! Your crew has a safe home.',
-  greenhouse: 'Greenhouse ready! Farming unlocks soon.',
-  solar: 'Solar array ready! It will power the base.',
-  shield: 'Radiation shelter ready! Protection unlocks soon.',
-  landingPad: 'Landing pad ready! Supply missions unlock soon.',
-};
-
-/** The single session source for Phaser and React. Feature 1 has no economy. */
+/** Single state owner shared by the Phaser scene and React HUD. */
 export class GameSessionStore {
   private state: GameState;
   private listeners = new Set<Listener>();
-  private noticeId = 100;
+  private readonly missions: MissionCatalog;
+  private destroyed = false;
 
-  constructor(initialState: GameState = createInitialState()) {
+  constructor(initialState: GameState = createInitialState(), missions: MissionCatalog = MISSION_CONFIG) {
     this.state = initialState;
+    this.missions = missions;
   }
 
   getState = (): GameState => this.state;
 
   subscribe = (listener: Listener): (() => void) => {
+    if (this.destroyed) return () => {};
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
 
-  dispatch = (action: GameAction): void => {
-    switch (action.type) {
-      case 'MOVE_PLAYER':
-        if (this.state.astronaut.position.x === action.x && this.state.astronaut.position.y === action.y) return;
-        this.state = {
-          ...this.state,
-          astronaut: { ...this.state.astronaut, position: { x: action.x, y: action.y } },
-        };
-        break;
-      case 'INTERACT_BUILDING': {
-        if (!this.state.buildings[action.buildingId]) return;
-        this.noticeId += 1;
-        this.state = {
-          ...this.state,
-          notices: trimNotices([
-            ...this.state.notices,
-            { id: this.noticeId, text: buildingMessages[action.buildingId] ?? 'Building ready!', tone: 'good' },
-          ]),
-        };
-        break;
-      }
-      case 'COMPLETE_MISSION': {
-        const foodAdded = action.result.collectedResources.food ?? 0;
-        const damage = action.result.healthDamage ?? 0;
-        this.noticeId += 1;
-        this.state = {
-          ...this.state,
-          resources: {
-            ...this.state.resources,
-            food: Math.min(100, this.state.resources.food + foodAdded),
-          },
-          astronaut: {
-            ...this.state.astronaut,
-            health: Math.max(0, this.state.astronaut.health - damage),
-          },
-          notices: trimNotices([
-            ...this.state.notices,
-            {
-              id: this.noticeId,
-              text: action.result.returnedSafely
-                ? `Mission complete! Banked +${foodAdded} food. (+${action.result.xpEarned} XP)`
-                : `Ship took damage! Returned to base.`,
-              tone: action.result.success ? 'good' : 'warning',
-            },
-          ]),
-        };
-        break;
-      }
-      case 'LOAD_GAME':
-        this.state = action.state;
-        break;
-      case 'RESTART_GAME':
-        this.state = createInitialState();
-        break;
-      case 'DISMISS_NOTICE':
-        this.state = { ...this.state, notices: this.state.notices.filter((n) => n.id !== action.noticeId) };
-        break;
-      default:
-        // Future survival and mission actions are deliberately not simulated here.
-        return;
+  /** Returns the current state; rejected actions retain its object identity. */
+  dispatch = (action: GameAction): GameState => {
+    if (this.destroyed) return this.state;
+    const next = reduceGameState(this.state, action, this.missions);
+    if (next !== this.state) {
+      this.state = next;
+      this.listeners.forEach((listener) => listener(next));
     }
-    this.listeners.forEach((listener) => listener(this.state));
+    return this.state;
   };
 
   destroy(): void {
+    this.destroyed = true;
     this.listeners.clear();
   }
 }

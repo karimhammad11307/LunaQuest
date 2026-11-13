@@ -42,19 +42,19 @@ The root history also records a `frontend-design` skill installation and unsucce
 
 ## Branches and commits
 
-Git references inspected on the current feature branch before documentation edits:
+Git references inspected at the earlier documentation-consolidation checkpoint:
 
 | Ref | Commit | Verified description |
 |---|---|---|
-| `feat/base-survival` (current) | `4a447bb` | Repository preparation baseline; clean before this consolidation. |
+| `feat/base-survival` (then current) | `4a447bb` | Repository preparation baseline; clean before that consolidation. |
 | `main`, `origin/main` | `4a447bb` | Same commit as feature-branch baseline at inspection. |
 | `base-survival`, `origin/base-survival` | `5a5eefc` | Cline-attributed partial Moonbound scaffold. |
 | `backup/mars-commander-codex`, `TestCline` | `cf01cb4` | Previous Mars Commander implementation preserved. |
 | `016a2a1` | project plans/progress report | Adds `doc/PLAN.md`, `doc/PLAN_DEV_A.md`, `doc/PLAN_DEV_B.md`, `doc/REPORT.md`. |
 
-These refs were inspected, not rewritten. This task must remain on `feat/base-survival`; do not switch, push, or merge.
+These were historical observations at that checkpoint, not a claim about the current checkout.
 
-## Current technical state (repository fact at baseline)
+## Technical state at repository preparation baseline
 
 - Package is `moonbound`; scripts are Vite `dev`, TypeScript/Vite `build`, `preview`, Vitest `test` and `test:watch`.
 - Declared stack: React 19, TypeScript, Vite 6, Phaser 3.90, Vitest, Playwright tooling. Phaser is a dependency, not evidence of an implemented Phaser game.
@@ -64,7 +64,7 @@ These refs were inspected, not rewritten. This task must remain on `feat/base-su
 - `src/domain/rules/survivalRules.ts` contains starter rules only. Four tests cover existing starter behavior.
 - No live NASA DONKI integration, credentials, server, or deployed game is present.
 
-## What works and what remains
+## What worked and remained at that baseline
 
 **Present and previously verified/reported:** configuration and lockfile exist; Vite/React bootstrap; basic initial state/building construction, clamping, outdoor oxygen/thermal drain; four starter Vitest cases. The prior handoff reports `npm install`, production build, and these tests succeeded at the repository-preparation checkpoint.
 
@@ -82,3 +82,105 @@ These refs were inspected, not rewritten. This task must remain on `feat/base-su
 ## Documentation consolidation record
 
 This documentation-only consolidation replaces `doc/PLAN.md`, `doc/PLAN_DEV_A.md`, `doc/PLAN_DEV_B.md`, `doc/REPORT.md`, root `PROJECT_HISTORY.md`, `docs/HANDOFF.md`, and the two historical Mars notes under `design/` with the authoritative set in `docs/`: this history, [MASTER_PLAN.md](MASTER_PLAN.md), [DEVELOPER_A_TASKS.md](DEVELOPER_A_TASKS.md), and [DEVELOPER_B_TASKS.md](DEVELOPER_B_TASKS.md). Unique history, architecture, decisions, verification reports and task requirements were incorporated before those duplicate/legacy files were removed. `README.md` and `AGENTS.md` now link to the four documents and describe the actual partial state. Verification on `feat/base-survival`: exactly four Markdown files in `docs/`; old `doc/` directory and root planning file are absent; internal references were searched; `git diff --check` passed; no source, dependency, lockfile or game configuration changes appear in the diff. No tests/build were run because this is documentation-only. No Figma files, branches or remotes changed. Commit state is reported in the task response.
+
+## 2026-11-13 — Feature 1: playable pixel-art Moon Base
+
+**Request:** implement the first playable Phaser feature on `feat/base-survival`, including original top-down 3/4 pixel environment, five buildings, animated astronaut, movement/collisions, proximity interactions, and compact shared-state HUD; defer economy, missions and other survival features.
+
+**Actual changes:** Added original procedural canvas textures and an asset/licensing manifest; Phaser Boot and MoonBase scenes; reusable Astronaut and Building objects; a minimal `GameSessionStore`; React Phaser host, resource HUD, help, mobile touch controls and pixel-styled shell; a focused Chromium gameplay check. Reused existing `GameState`, `GameAction`, layout, palette and initial-state rules. The store handles only movement, interaction notices, load/restart and notice dismissal in this feature; it does not implement the survival reducer.
+
+**Verification:** `npm run build` passed; existing `npm test` passed four cases; headless Chromium loaded the running Vite app and verified walk/idle animations, keyboard interactions with all five buildings, nearby pointer interaction, collision stops at all five building footprints, HUD initial values, mobile controls and absence of horizontal overflow. Desktop/mobile screenshots were captured and visually inspected under ignored `artifacts/`. A browser launch initially failed inside the sandbox, then succeeded with required elevated permission. The user clarified that the reference is a style guide rather than a composition to copy. The image itself was not present in the accessible conversation, so direct visual comparison remains open; the documented top-down 3/4 pixel-art direction and palette guided the original art.
+
+**Remaining:** complete A1 domain rules/contract freeze, building economy, resource depletion/day loop, missions, incidents, NASA, persistence and deployment. No Developer B-owned gameplay files or old backup branch were edited. No push or merge was performed.
+
+**Style reference clarification:** After the Feature 1 commit, the user supplied a public [astronaut sprite prompt page](https://stablediffusionweb.com/prompts/sprite-for-an-astronaut-for-top-down-2d-game) as a reference for pixel quality, outline/shading, astronaut design language and color richness, explicitly not for copying composition or assets. The game remains a top-down 3/4 playable map assembled from separate objects. The available web reader exposed the page text but not the actual image; a direct fetch returned HTTP 403. `src/assets/manifest.json` records the reference-only use. No game asset from that site was imported.
+
+## 2026-11-13 — Feature 2: shared game state and mission rewards
+
+**Request and Git:** The user stated Feature 1 was merged to main and requested a new `feat/game-state` branch. Inspection found a clean `Game-State` checkout; `main` and `origin/main` both pointed to `98c60fe` and contained Feature 1. Codex created `feat/game-state` from that commit without editing the existing branch. The verified implementation commit is `6231e69` (`feat: add shared game state and mission reward rules`).
+
+**Implemented:** Extended existing GameState/GameAction/MissionResult rather than replacing them. A pure reducer validates resource collection/spending, XP reward IDs, astronaut status, mission launch/provisional progress and exactly-once completion. The shared GameSessionStore delegates to those rules and notifies subscribers only on accepted changes. Mission run IDs and completed-run ledger are in state for future persistence. Default mission availability remains false, so no unfinished scene launches.
+
+**Verification:** `npm run build` passed. `npm test` passed 16 tests (12 new and four preserved). The existing Feature 1 Chromium check passed with all five building interactions/collisions, walk/idle frames, pointer interaction, HUD and mobile layout. No Developer B-owned files, mission scenes, backend, NASA integration or daily survival simulation were changed. No push or merge was performed.
+
+**Next work:** implement building economy and the day/survival loop, then integrate mission scenes through the frozen run-ID contract. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for the concise Developer A log and handoff.
+
+## 2026-11-13 — Feature 3: building interactions and survival
+
+**Request and Git:** The user requested Feature 3 and then explicitly instructed Codex to work in the already checked-out branch without branch management. Inspection found a clean `building-survival` checkout at `76f6649` before edits. The verified implementation commit is `836f340` (`feat: add building interactions and survival loop`). No branch creation, switching, merge or push occurred.
+
+**Implemented:** Developer A extended the existing shared state/reducer/store with typed habitat and shelter actions, stored-food eating and HP recovery, base-to-suit oxygen transfer, outdoor oxygen drain and gradual empty-suit damage, deterministic daily food/water/base-oxygen/energy consumption, health consequences, five-complete-day victory, defeat and clean restart. Phaser keeps movement, collisions and proximity detection; React renders compact building actions, separate base/suit oxygen, warnings, summaries and result overlays. Greenhouse/solar remain informational; landing missions remain disabled. The reusable environmental damage rule recognizes powered, intact protected locations, but no incident is triggered in this feature. Existing mission rewards still add food to storage once and do not auto-heal HP.
+
+**Verification:** `npm run build` passed and `npm test` passed 25 tests across three files. Existing Chromium `tests/feature1.mjs` passed all five interactions/collisions, movement animation, initial HUD and mobile layout. New Chromium `tests/feature3.mjs` passed habitat entry, refill, eating, daily costs, victory, defeat/restart and shelter entry/exit. Habitat and victory screenshots were captured and inspected in ignored `artifacts/`. Initial Chromium launch inside the sandbox was blocked; an elevated rerun passed. `git diff --check` passed before the implementation commit.
+
+**Decisions and limits:** Day 1 is the first playable day; each `ADVANCE_DAY` completes one day, and victory follows the fifth completed day while HP remains above zero. Daily resource shortage causes gradual HP penalties; zero HP is the terminal defeat condition. Day advance is available in the habitat. Resource amounts are illustrative game units, not NASA measurements. Initial supplies permit five-day victory without missions, but replenishment gameplay awaits Developer B integration. Greenhouse/solar production, radiation incidents, NASA DONKI and persistence remain unimplemented. No Developer B-owned mission files were changed.
+
+## Repository status after Feature 3 checkpoint
+
+At that checkpoint, the branch was `building-survival`. The playable Phaser Moon Base, shared store and exactly-once mission reward contract from Features 1–2 remained. Feature 3 added the functional survival loop described above. The next Developer A work then was Feature 4 production/solar mechanics; Developer B missions remained separate. The code implementation was committed at `836f340`; its documentation checkpoint was reported in that task's final response.
+
+## 2026-11-13 — Feature 4: greenhouse, solar energy and shields
+
+**Request and Git:** The user requested Developer A tasks A7–A8 and explicitly retained branch management. Codex found a clean checkout on `Greenhouse,-Solar-Energy-&-Shields`, made no branch changes, and committed the verified implementation as `290288b` (`feat: add greenhouse solar shields and repairs`). No merge or push occurred.
+
+**Implemented:** The Greenhouse plants for water/energy, grows from seed to ready on one day advance with a brief sprout visual, then harvests bounded food/base oxygen and XP once per crop without restoring HP. Solar production is calculated in the pure day rule once per completed day, capped by battery capacity, halved when damaged, and absent when broken/inactive. Shield activation and day upkeep spend energy; powered outside shielding is integrated with the Feature 3 environmental-damage rule. Power loss or damage switches the shield off. Selected damaged/broken buildings can be repaired for energy, with repeat/shortage rejection. Phaser now renders separate crop stages, status lamps, solar glow, shield pulse, repair sparks and floating resource feedback. React retains the compact building panels and displays costs, condition, production and XP. No Developer B-owned files or mission contract shape changed.
+
+**Verification:** `npm run build` passed. `npm test` passed 34 tests in four files. The existing Feature 1 and Feature 3 Chromium scripts passed on the committed implementation, as did new `tests/feature4.mjs` for planting, growth sprites, harvest, solar output/repair, shield protection and power failure. Four Feature 4 screenshots were captured and visually inspected under ignored `artifacts/`. `git diff --cached --check` passed before commit.
+
+**Decisions and limits:** All amounts are illustrative game units. The simplified daily sequence spends base life-support energy, charges the battery from an assumed illuminated workday, then charges shield upkeep; missing morning life-support power can still harm health. The sprout is a short visual transition within the one-day crop cycle. A repaired shield remains off until activated. Building damage is reachable through test fixtures; normal damage events are Feature 5 work. Solar-storm decisions, missions, NASA DONKI and save/resume remain unimplemented.
+
+## Repository status after Feature 4 checkpoint
+
+At that checkpoint, the branch was `Greenhouse,-Solar-Energy-&-Shields`. Features 1–4 were implemented locally with the shared `GameSessionStore` and an unchanged `MissionResult` contract. Feature 4 implementation was committed at `290288b`. Feature 5 incidents and later NASA/persistence/integration work remained; Developer B mission scenes remained separate. Its documentation checkpoint was reported in that task's final response.
+
+## 2026-11-13 — HP and food audit before Feature 5
+
+**Request and Git:** The user requested an audit of normal HP decay, food healing and storage, pause/loading/terminal behavior, and extra survival damage before any Feature 5 work. Inspection found a clean `main` checkout at `1328f0e`, a merge commit already present before this operation. Codex did not switch, create, merge or push branches. The verified implementation commit is `74f860b` (`fix: add controlled HP decay and pause-safe food recovery`).
+
+**Finding and change:** Existing eating already spent stored food and healed through the single reducer, with HP capped at 100; valid mission food entered storage without automatic healing. Starvation, empty suit oxygen and unprotected environmental exposure already caused additional damage. The missing behavior was slow HP decay during ordinary active play. Developer A added 0.05 illustrative HP per second through bounded domain `TICK` actions on the controlled Phaser timer, including indoor base time. A typed pause state/action and small React control stop gameplay and simulation while paused; ticks also reject loading, other scenes/active missions and terminal states. The scene resets its tick accumulator on pause or hidden-tab time, avoiding catch-up damage. No HP mutation was added to Phaser or React.
+
+**Build compatibility finding:** The merged, incomplete Developer B Chicken Hunt scaffold had four pre-existing TypeScript errors: three invalid lifecycle `override` modifiers and a `MissionResult` missing `runId`. To verify the requested build and the food-result contract, Codex made only those compatibility corrections in `src/game/scenes/ChickenHuntScene.ts`. The scene remains unregistered and unplayable; no arcade gameplay was implemented.
+
+**Verification:** `npm run build` passed after the compatibility fix. `npm test` passed 51 cases across six files, including eight new HP/food audit cases. Chromium `tests/healthFoodAudit.mjs` verified actual slow decay, pause/resume, loading freeze, habitat eating and terminal freeze. Existing Feature 1, 3 and 4 Chromium regressions passed. Pause/eating/mobile screenshots were captured or refreshed and visually inspected under ignored `artifacts/`. `git diff --cached --check` passed before commit.
+
+**Limits and next work:** Chicken Hunt is still a scaffold; its food-result rule was exercised through domain tests, not a completed mission. Save/resume, full loading flow, and Feature 5 incidents remain unimplemented. The current build uses no NASA data. This audit did not begin Feature 5.
+
+## Repository status after the HP audit checkpoint
+
+The current branch is `main`; implementation is committed at `74f860b`. Features 1–4 and the corrected HP/food rules are locally verified. Chicken Hunt has a compiling scaffold but no playable mission flow. Feature 5 incidents remain the next Developer A feature. The documentation checkpoint commit is reported in the final task response.
+
+## 2026-11-13 — Feature 5: space emergencies and survival events
+
+**Request and Git:** The user requested Developer A's Feature 5 only and retained all branch management. Inspection found a clean checkout on `Feature-5--Space-Emergencies-(A9)` before edits. The verified implementation commit is `5e8ee0c` (`feat: add scripted solar storm and oxygen leak emergencies`). No branch was created, switched, merged or pushed.
+
+**Implemented:** A typed emergency catalog and pure domain rules extend the existing `GameState`, `GameAction` and `GameSessionStore`. The first completed day triggers a 24-second solar warning and 12-second simulated storm; the second completed day triggers an 8-second oxygen-leak warning. No incidents overlap, and an active incident must resolve before another day advances. Domain `TICK` applies bounded one-second pulses, with no timer progress during pause, loading, mission or terminal states. Completed-event IDs and outcomes prevent replayed rewards. Restart clears both.
+
+**Player decisions and consequences:** During the storm the astronaut can keep moving, press E at the shelter to enter, activate the existing shield for energy, stay in the powered habitat, or ignore the warning. The active shield protects only within the documented nearby-base radius. Unprotected radiation reduces HP and increases the illustrative exposure meter; surviving in the shelter or shield area without exposure grants 15 XP once. During the leak, paid habitat repair stops oxygen loss for 15 XP; isolation costs less energy plus base oxygen, stops the loss, disables/damages the greenhouse until repair, and grants 8 XP. Ignoring the leak leaves oxygen draining and can cause gradual HP damage and defeat. Existing food healing, suit oxygen, solar, repairs and five-day outcomes remain in the same reducer.
+
+**Visuals and science labeling:** React shows a compact warning/countdown, actions and costs. Phaser shows warning tint, hazard badges, a habitat leak marker, HP/O₂ loss floaters and clear repair/isolation feedback while retaining astronaut movement. Science takeaways state that these are simulated game hazards, not NASA local lunar dose or oxygen measurements. No NASA DONKI connection was added.
+
+**Verification:** `npm run build` passed; `npm test` passed 64 cases across seven files, including 13 Feature 5 cases. Chromium `tests/feature1.mjs`, `tests/feature3.mjs`, `tests/feature4.mjs`, `tests/healthFoodAudit.mjs` and `tests/feature5.mjs` passed; the new browser script covered the storm warning, E shelter, protected XP, oxygen leak drain/repair, isolation, ignored storm damage and pause. Feature 5 screenshots of warning, exposure, leak and isolation were captured and inspected. `git diff --cached --check` passed before the implementation commit. Earlier day-loop regression tests were adapted to account for the new event gate; an HP browser assertion was adjusted to tolerate ongoing legitimate decay. The first `npm test` run after the event gate found two old day-loop expectations that needed this adaptation; the first Feature 5 test run found an incorrect object-identity assertion. A later build caught a test-only catalog index type error. All were corrected and the final build/test run passed. A local Vite browser launch initially failed under the filesystem sandbox and then ran with approved escalation.
+
+**Limits and next work:** The event schedule is deterministic and game values are illustrative. The optional power emergency and audio cues were not implemented. Chicken Hunt remains an unregistered scaffold; Developer B mission integration, NASA DONKI and save/resume remain future work. No dependencies changed. Feature 5 is complete at the implementation commit; this documentation checkpoint is committed separately.
+
+## Repository status after Feature 5 checkpoint
+
+The current user-managed branch is `Feature-5--Space-Emergencies-(A9)`. Features 1–5 and the HP/food audit are implemented and locally verified as described above. Required A9 incidents are playable; A10 NASA data, A11 persistence, Developer B mission integration and final deployment remain unimplemented. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for the concise Developer A verification log and [MASTER_PLAN.md](MASTER_PLAN.md) for planned scope.
+
+## 2026-11-14 — Feature 6: NASA DONKI space-weather context
+
+**Request and Git:** The user requested Developer A's Feature 6 only, keeping branch management with the user. Inspection found a clean checkout on `Feature-6--NASA-DONKI-Integration-(A10)`. The verified implementation commit is `789d294` (`feat: add NASA DONKI weather context with offline fallback`). No branch was created, switched, renamed, merged or pushed.
+
+**Implementation:** A browser-side `NASAWeatherService` isolates recent DONKI `/FLR`, `/CME`, `/SEP` and `/notifications` requests, endpoint-specific normalization, bounded payload/record validation, six-second timeout, rate-limit and network handling, six-hour memory/LocalStorage cache and historical demo fallback. The default mode is demo and starts without network. A compact optional React panel shows source, latest relevant event/date, simplified game category, partial coverage, fallback reason and science labeling. A typed `SET_SPACE_WEATHER` action updates only the existing shared `GameSessionStore` weather field; Phaser does not fetch NASA data. The Feature 5 storm still triggers by completed day and keeps the same timer, shield, HP and XP rules.
+
+**Scientific and security decisions:** The game maps a recent SEP to High context and selected M/X flare or analyzed fast CME to Elevated context; other observations map to Normal. Those are educational **game labels**, not NASA lunar surface measurements or hazard forecasts. Notifications provide context but do not by themselves escalate risk. The demo fixture uses illustrative normalized example IDs tied to documented September 2017 solar activity and is explicitly historical, not a current NASA reading. `VITE_NASA_API_KEY` is optional and public in the browser bundle; no private key or backend is used. Explicit live mode uses public `DEMO_KEY` when no key is configured. NASA's [API authentication guide](https://api.nasa.gov/assets/html/authentication.html) documents the shared `DEMO_KEY` limit; the [DONKI endpoint list](https://api.nasa.gov/) and [NASA 2017 flare record](https://science.nasa.gov/resource/major-solar-flare/) support the endpoint and fixture choices. The master plan and README were updated to state the public-key constraint accurately.
+
+**Live endpoint finding:** On 2026-11-13 UTC, direct legitimate requests and a real Chromium request reached NASA. The latest-week CME, SEP and notifications endpoints returned HTTP 200; FLR returned HTTP 404, including a separate historical FLR query. The browser service therefore showed partial live coverage with 32 available normalized records and no change to gameplay. A historical SEP response confirmed the `sepID` and `eventTime` fields. Initial sandboxed `curl` could not resolve `api.nasa.gov`; the approved network rerun succeeded. Browser live requests used public `DEMO_KEY` within the documented low-volume quota. This is point-in-time verification, not a claim that FLR is permanently unavailable.
+
+**Verification:** `npm run build` passed and `npm test` passed 76 cases across eight files, including 12 new service/mapping/cache/fallback cases. Chromium Feature 1, 3, 4, HP/food, 5 and 6 scripts passed. Feature 6 checked demo startup without network, mocked partial live and cached states, offline fallback, movement and mobile panel bounds. Demo, partial-live, offline and mobile screenshots were captured and inspected; the mobile panel was enlarged after its first screenshot showed clipped controls. A browser-only fetch-binding issue was found in the first Feature 6 run and corrected before the passing rerun. `git diff --cached --check` passed before the implementation commit.
+
+**Limits and remaining work:** FLR parsing is unit-tested but was not verified against a successful live FLR response. Partial coverage is labeled; NASA observations do not control storm timing or supply measured Moon Base dose. Save/resume (A11), Developer B mission integration, the optional power incident and deployment remain unimplemented. No dependencies or Developer B-owned gameplay files changed. The Feature 6 implementation is committed separately from this documentation checkpoint.
+
+## Current repository status
+
+The current user-managed branch is `Feature-6--NASA-DONKI-Integration-(A10)`. Features 1–6 are implemented and locally verified as described above. The next Developer A scope is A11 save/resume if the user requests it; mission integration and final hackathon delivery remain separate future work. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for concise verified feature records and [MASTER_PLAN.md](MASTER_PLAN.md) for planned scope.

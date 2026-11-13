@@ -27,10 +27,10 @@ export const BALANCE = {
     energy: 5,
   },
 
-  /** Solar array produces this each day when healthy. */
+  /** Simplified illuminated workday: one charge on ADVANCE_DAY, no lunar day/night model. */
   solarDailyYield: 16,
-  /** Manual "collect power" interaction. */
-  solarCollectYield: 7,
+  /** Damaged panels produce half yield; broken or inactive panels produce zero. */
+  solarDamagedEfficiency: 0.5,
 
   /** Real-time outdoor drain (per second while outside the habitat). */
   suitOxygenDrainPerSecond: 0.45,
@@ -45,9 +45,19 @@ export const BALANCE = {
     damagePerDay: 6,
   },
 
+  /** Scripted, illustrative hazards. Durations are real play seconds; damage and losses are game units. */
+  emergencies: {
+    storm: { id: 'solar-day-2', triggerAfterDays: 1, warningSeconds: 24, dangerSeconds: 12,
+      damagePerPulse: 3, exposurePerPulse: 5, pulseSeconds: 1, shieldRadius: 260, xp: 15 },
+    leak: { id: 'oxygen-leak-day-3', triggerAfterDays: 2, warningSeconds: 8,
+      oxygenLossPerPulse: 1, pulseSeconds: 1, criticalOxygen: 10, criticalHpLossPerPulse: 2,
+      isolateEnergyCost: 4, isolateOxygenCost: 5, repairXp: 15, isolateXp: 8 },
+  },
+
   greenhouse: {
     waterCost: 10,
     energyCost: 4,
+    /** One full day from planted seed to harvest-ready crop. */
     growthPerDay: 1,
     foodYield: 26,
     oxygenYield: 4,
@@ -65,10 +75,8 @@ export const BALANCE = {
     healWaterCost: 5,
     healEnergyCost: 4,
     healAmount: 12,
-  },
-
-  solar: {
-    collectEnergyCost: 0,
+    eatFoodCost: 10,
+    eatHealAmount: 20,
   },
 
   repair: {
@@ -77,8 +85,11 @@ export const BALANCE = {
   },
 
   health: {
+    /** Gentle active-play fatigue: 3 HP per minute, in illustrative game units. */
+    passivePerSecond: 0.05,
     starvePerDay: 8,
     dehydratePerDay: 12,
+    lifeSupportFailurePerDay: 14,
     suitOxygenEmptyPerSecond: 2,
     lowOxygenThreshold: 10,
   },
@@ -90,6 +101,12 @@ export const BALANCE = {
     emergency: 15,
     supplies: 5,
     daySurvived: 10,
+  },
+
+  missionResult: {
+    maxXp: 100,
+    maxDurationSeconds: 3600,
+    maxRunIdLength: 80,
   },
 
   warnings: {

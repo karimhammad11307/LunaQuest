@@ -65,7 +65,7 @@ export const MISSION_CONFIG: Record<MissionType, MissionSpec> = {
     label: 'Galactic Chicken Hunt',
     blurb: 'Fly out, zap alien chickens, bring food home.',
     energyCost: 6,
-    available: false,
+    available: true,
     sceneKey: 'ChickenHuntScene',
   },
   'ice-collection': {

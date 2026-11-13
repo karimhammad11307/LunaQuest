@@ -1,0 +1,11 @@
+{
+  "label": "Historical training example, not current space weather",
+  "referenceTime": "2017-09-07T12:00:00Z",
+  "sourceNote": "Illustrative normalized records based on NASA/CCMC reports of solar activity on 2017-09-06; example IDs are not DONKI record IDs.",
+  "sourceUrls": ["https://science.nasa.gov/resource/major-solar-flare/", "https://ccmc.gsfc.nasa.gov/challenges/sep/events/"],
+  "observations": [
+    { "id": "demo-example-flr-20170906", "type": "FLR", "observedAt": "2017-09-06T12:02:00Z", "classification": "X9.3", "speedKmS": null },
+    { "id": "demo-example-cme-20170906", "type": "CME", "observedAt": "2017-09-06T12:24:00Z", "classification": null, "speedKmS": null },
+    { "id": "demo-example-sep-20170906", "type": "SEP", "observedAt": "2017-09-06T12:35:00Z", "classification": null, "speedKmS": null }
+  ]
+}

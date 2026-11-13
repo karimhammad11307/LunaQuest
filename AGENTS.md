@@ -9,9 +9,11 @@ Use the four documents in `docs/` as the authoritative planning set:
 - [DEVELOPER_A_TASKS.md](docs/DEVELOPER_A_TASKS.md) — base, survival and integration ownership.
 - [DEVELOPER_B_TASKS.md](docs/DEVELOPER_B_TASKS.md) — arcade and mission ownership.
 
+The [Developer A implementation steps](docs/IMPLEMENTATION_A_STEPS.md) provide an execution checklist; [ImplementedFeatureA.md](docs/ImplementedFeatureA.md) records verified A work. MASTER_PLAN remains authoritative.
+
 ## Current status
 
-The feature branch contains starter TypeScript game contracts, centralized configuration, partial pure survival rules, a React bootstrap and starter tests. It is not yet a playable game. Phaser is installed but no Phaser gameplay scenes exist. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`; do not use it as the Moonbound source of truth.
+Features 1–6 now provide a playable Phaser Moon Base, five interactive buildings, one shared `GameSessionStore`, exactly-once mission rewards, active-play HP decay, two scripted emergencies and NASA DONKI educational context. Feature 6 implementation is `789d294` on the user-managed current branch: default historical demo, explicit live requests, six-hour cache, labeled partial coverage and offline fallback. `npm run build`, 76 Vitest cases and Feature 1/3/4/HP/5/6 Chromium checks passed, including mobile weather-panel inspection. A real browser request reached NASA CME, SEP and notifications endpoints; FLR returned 404, and the panel correctly labeled the partial result. The Chicken Hunt scaffold compiles but is not registered or playable. Save/resume, mission integration and the optional power incident remain unimplemented. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`; do not use it as the Moonbound source of truth. See [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) and [ImplementedFeatureA.md](docs/ImplementedFeatureA.md) for details. Next Developer A work is A11 save/resume, subject to the user's direction.
 
 ## Project guardrails
 

@@ -1,8 +1,24 @@
 # Developer A — Base, survival, and integration tasks
 
-**Branch:** `feat/base-survival` (already the working feature branch). **Role:** shared-contract owner and integration lead. **Authority:** [MASTER_PLAN.md](MASTER_PLAN.md) controls requirements; this file sequences A-owned implementation. Target delivery is a 20-hour elapsed two-person effort.
+**Branch workflow:** The user manages the current feature branch; `feat/base-survival` was the original plan branch, not a required checkout for later features. **Role:** shared-contract owner and integration lead. **Authority:** [MASTER_PLAN.md](MASTER_PLAN.md) controls requirements; this file sequences A-owned implementation. Target delivery is a 20-hour elapsed two-person effort.
 
 ## Ownership boundaries
+
+### Feature 1 progress (verified locally)
+
+The first playable Moon Base is implemented on `feat/base-survival`: Phaser boot/base scenes, individually generated pixel textures, the five separate building objects, astronaut movement and animation, static collisions, contextual interactions, and a React HUD subscribed to the shared state. A minimal `GameSessionStore` supports movement and interaction notices only. The existing survival-rule tests remain intact. `npm run build`, `npm test` (four starter tests), and `node tests/feature1.mjs` passed; the browser check covered five building interactions and collision stops, walk/idle frames, HUD values, and desktop/mobile screenshots. Art source and licensing are in `src/assets/manifest.json`.
+
+**At the Feature 1 checkpoint,** the pure reducer, action validation, mission idempotency and shared contract freeze were still pending under A1. Building economy and resource actions remained under A5. Feature 1 alone did not complete those tasks.
+
+**Feature 2 progress:** The shared store, pure typed action reducer, validated resource rules, provisional mission state, exactly-once mission results and non-mission XP reward IDs are implemented and verified at `6231e69`. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for evidence and the Developer B handoff. Event rules, full daily survival, building economy and save/resume remain future work. Existing Feature 1 browser behavior was rechecked after the store change.
+
+**Feature 3 progress:** The habitat/shelter interactions and core five-day survival loop are implemented at `836f340` on `building-survival`. Eating, suit refill, rest, daily costs, warnings, victory/defeat and restart are verified. Greenhouse/solar production, shield upgrades, incidents and persistence remain future tasks. See [ImplementedFeatureA.md](ImplementedFeatureA.md) for test evidence. The A5/A6 plan table below records the original schedule; Feature 3 fulfills the scoped interactions and survival foundation, while production and event work remain A7–A9.
+
+**Feature 4 progress:** A7–A8 greenhouse planting/one-day growth/harvest, solar daily charging, shield activation/upkeep/protection, and simple building repairs are implemented and verified at `290288b` on the user-managed current branch. Build, 34 Vitest cases, and Feature 1/3/4 Chromium checks passed. See [ImplementedFeatureA.md](ImplementedFeatureA.md). Incident-driven damage and timed solar warnings remain A9, while NASA data and persistence remain later tasks.
+
+**Feature 5 progress:** A9's required scripted solar storm and oxygen leak are implemented at `5e8ee0c` on the user-managed current branch. Countdown, shelter/shield protection, radiation HP damage, habitat leak repair, section isolation, distinct costs, XP and once-only outcomes use the shared domain store. `npm run build`, 64 Vitest cases and Feature 1/3/4/HP/Feature 5 Chromium checks passed. See [ImplementedFeatureA.md](ImplementedFeatureA.md). The optional power incident was deferred; A10 NASA data and A11 persistence remain next A-owned work.
+
+**Feature 6 progress:** A10's NASA DONKI service, normalizer, six-hour cache, explicit live mode, default historical demo mode, partial-coverage labeling, offline fallback and compact Moon Base panel are implemented at `789d294` on the user-managed current branch. The weather-to-game mapping supplies educational context only; A9's scripted storm timing and damage are unchanged. `npm run build`, 76 Vitest cases and Feature 1/3/4/HP/5/6 Chromium checks passed. A real browser request obtained CME, SEP and notifications records, while FLR returned 404 and was marked partial. See [ImplementedFeatureA.md](ImplementedFeatureA.md). A11 save/resume remains the next A-owned task; Developer B mission integration is separate.
 
 Developer A owns `src/domain/**`, `src/game/config/**`, React shell `src/app/**`, base scenes/entities, NASA/Save services, base assets and deployment. Specific primary paths:
 

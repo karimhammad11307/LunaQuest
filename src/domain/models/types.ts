@@ -2,7 +2,7 @@
  * MOONBOUND — SHARED DOMAIN CONTRACT (frozen for parallel development)
  *
  * Developer A owns this file. Developer B must consume these types,
- * never redefine them. See docs/HANDOFF notes in repository.
+ * never redefine them. See docs/MASTER_PLAN.md and developer task plans.
  *
  * Domain rules never import Phaser or React.
  */
@@ -17,9 +17,13 @@ export interface Resources {
   energy: number;
 }
 
+export type ResourceName = keyof Resources;
+
 /** Astronaut physical state, 0–100 unless noted. */
 export interface AstronautState {
   health: number;
+  /** Current protection zone; only outside consumes portable oxygen. */
+  location: 'outside' | 'habitat' | 'shelter';
   /** Portable EVA suit oxygen, drains while outside. */
   suitOxygen: number;
   /** Suit thermal protection remaining (%). */
@@ -46,15 +50,11 @@ export interface BuildingState {
   condition: BuildingCondition;
   /** Currently powered / operating. */
   active: boolean;
-  /** Greenhouse crop growth 0–1 when type === 'greenhouse'. */
+  /** Greenhouse crop growth 0–1: seed at 0, sprout during day transition, ready at 1. */
   cropGrowth: number;
   /** Crop planted (greenhouse only). */
   cropPlanted: boolean;
-  /**
-   * Day index on which a once-per-day interaction (solar collection) was
-   * last used. Optional so Developer B's code can construct BuildingState
-   * without it.
-   */
+  /** Reserved for an optional future once-per-day manual collection mechanic. */
   lastCollectedDay?: number;
 }
 
@@ -68,6 +68,8 @@ export type GameSceneId =
   | 'result';
 
 export interface MissionResult {
+  /** Unique ID supplied at launch and returned unchanged by the mission scene. */
+  runId: string;
   missionType: MissionType;
   success: boolean;
   /** Player returned to base without being carried home. */
@@ -80,6 +82,14 @@ export interface MissionResult {
   /** Mission duration in seconds. */
   duration: number;
   educationalMessage: string;
+}
+
+/** Provisional mission data. It never changes base supplies until completion. */
+export interface MissionProgress {
+  runId: string;
+  missionType: MissionType;
+  elapsedSeconds: number;
+  collectedResources: Partial<Resources>;
 }
 
 export type GameStatus = 'playing' | 'victory' | 'defeat';
@@ -96,10 +106,41 @@ export interface WeatherStatus {
   riskLevel: 'low' | 'moderate' | 'high';
   /** True when data comes from NASA DONKI, false when demo fixture. */
   isRealData: boolean;
+  /** The latest normalized DONKI record, if one exists in the bounded query window. */
+  latestEventType: import('./SpaceWeather').DonkiEventType | null;
+  observationCount: number;
+  /** UTC time when the service last fetched or loaded the source report. */
+  checkedAt: string | null;
+  fallbackReason: 'offline' | 'timeout' | 'rate-limit' | 'http-error' | 'invalid-response' | null;
+  partial: boolean;
+}
+
+export type EmergencyType = 'solar-storm' | 'oxygen-leak';
+export type EmergencyChoice = 'shelter' | 'shield' | 'ignore' | 'repair' | 'isolate' | 'habitat';
+
+/** Runtime countdowns live in the shared domain state, never in a scene timer. */
+export interface EmergencyState {
+  id: string;
+  type: EmergencyType;
+  phase: 'warning' | 'danger';
+  remainingSeconds: number;
+  pulseSeconds: number;
+  tookDamage: boolean;
+  ignored: boolean;
+}
+
+export interface EmergencyOutcome {
+  id: string;
+  choice: EmergencyChoice;
+  xpEarned: number;
+  message: string;
+  takeaway: string;
 }
 
 export interface GameState {
   day: number;
+  /** Completed survival turns; victory follows the fifth completed turn. */
+  daysSurvived: number;
   /** 0–1 progress through the current day. */
   timeOfDay: number;
   scene: GameSceneId;
@@ -107,10 +148,35 @@ export interface GameState {
   astronaut: AstronautState;
   buildings: Record<string, BuildingState>;
   activeMission: MissionType | null;
+  activeMissionRunId: string | null;
+  missionProgress: MissionProgress | null;
+  /** Persist this ledger with the session so replayed result messages have no effect. */
+  completedMissionRunIds: string[];
+  lastMissionResult: MissionResult | null;
   activeEventId: string | null;
+  activeEvent: EmergencyState | null;
+  completedEventIds: string[];
+  lastEventOutcome: EmergencyOutcome | null;
   xp: number;
+  /** Idempotency keys for non-mission XP awards (tutorials and future events). */
+  awardedRewardIds: string[];
   weather: WeatherStatus;
   status: GameStatus;
+  /** Suspends base-world simulation and gameplay actions without ending the run. */
+  paused: boolean;
+  selectedBuildingId: string | null;
+  lastDaySummary: {
+    day: number;
+    food: number;
+    water: number;
+    oxygen: number;
+    energy: number;
+    /** Actual solar charge stored after capacity clamping. */
+    energyProduced: number;
+    shieldEnergyUsed: number;
+    healthLost: number;
+    warnings: string[];
+  } | null;
   /** Message log entries for HUD feedback (most recent last). */
   notices: { id: number; text: string; tone: 'info' | 'good' | 'warn' }[];
 }

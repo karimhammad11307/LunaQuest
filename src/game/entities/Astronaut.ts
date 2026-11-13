@@ -30,6 +30,14 @@ export class Astronaut extends Phaser.Physics.Arcade.Sprite {
     this.virtualDirection = direction;
   }
 
+  stopMovement(): void {
+    this.setVelocity(0, 0);
+    if (this.wasMoving) {
+      this.play(`idle-${this.lastDirection}`, true);
+      this.wasMoving = false;
+    }
+  }
+
   updateMovement(): void {
     const left = this.keys.A.isDown || this.keys.LEFT.isDown || this.virtualDirection === 'left';
     const right = this.keys.D.isDown || this.keys.RIGHT.isDown || this.virtualDirection === 'right';
