@@ -18,6 +18,8 @@ The first playable Moon Base is implemented on `feat/base-survival`: Phaser boot
 
 **Feature 5 progress:** A9's required scripted solar storm and oxygen leak are implemented at `5e8ee0c` on the user-managed current branch. Countdown, shelter/shield protection, radiation HP damage, habitat leak repair, section isolation, distinct costs, XP and once-only outcomes use the shared domain store. `npm run build`, 64 Vitest cases and Feature 1/3/4/HP/Feature 5 Chromium checks passed. See [ImplementedFeatureA.md](ImplementedFeatureA.md). The optional power incident was deferred; A10 NASA data and A11 persistence remain next A-owned work.
 
+**Feature 6 progress:** A10's NASA DONKI service, normalizer, six-hour cache, explicit live mode, default historical demo mode, partial-coverage labeling, offline fallback and compact Moon Base panel are implemented at `789d294` on the user-managed current branch. The weather-to-game mapping supplies educational context only; A9's scripted storm timing and damage are unchanged. `npm run build`, 76 Vitest cases and Feature 1/3/4/HP/5/6 Chromium checks passed. A real browser request obtained CME, SEP and notifications records, while FLR returned 404 and was marked partial. See [ImplementedFeatureA.md](ImplementedFeatureA.md). A11 save/resume remains the next A-owned task; Developer B mission integration is separate.
+
 Developer A owns `src/domain/**`, `src/game/config/**`, React shell `src/app/**`, base scenes/entities, NASA/Save services, base assets and deployment. Specific primary paths:
 
 ```text
