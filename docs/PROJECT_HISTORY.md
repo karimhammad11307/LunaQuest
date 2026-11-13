@@ -197,4 +197,20 @@ At the Feature 6 checkpoint, the user-managed branch was `Feature-6--NASA-DONKI-
 
 ## Current repository status
 
-Local `main` contains the verified Chicken Hunt merge `cc857d9`. The Moon Base, survival loop, scripted emergencies, optional DONKI context and Chicken Hunt launch/return are integrated. The documentation checkpoint following that merge records the current handoff; the checkout remains local and unpushed. Developer A's next planned task is A11 save/resume, and Developer B's remaining mission scope includes Ice Collection.
+At the Chicken Hunt merge checkpoint, local `main` contained `cc857d9`. The Moon Base, survival loop, scripted emergencies, optional DONKI context and Chicken Hunt launch/return were integrated. A11 save/resume was still planned at that point, and Developer B's remaining mission scope included Ice Collection.
+
+## 2026-11-14 — Feature 7: browser save and resume
+
+**Request and Git:** The user requested only A11 browser persistence and retained all branch management. Inspection found a clean checkout on `Feature-7-—-Save-&-Resume-(A11)`. The verified implementation commit is `149af56` (`feat: add versioned Moonbound save and resume`). No branches were created, switched, renamed, merged or pushed during this feature.
+
+**Implementation:** `SaveService` stores a versioned LocalStorage envelope of the serializable `GameState`, using the existing reducer's loaded-state validator and `LOAD_GAME` action for hydration. It writes meaningful actions promptly and coalesces movement, HP timer ticks, mission progress and weather updates into one write per five seconds. Pagehide flushes pending progress. A single action-aware transition subscription preserves the existing React/Phaser state-subscription API. Missing/invalid versions, corrupt data, out-of-range values and storage errors fail safely. A valid save presents Continue/New Game before the Phaser canvas mounts; New Game confirms replacement, while terminal Restart uses the existing clean reducer.
+
+**Recovery decisions:** No elapsed wall time is simulated while the tab is closed. Continue returns the astronaut to the base plaza without changing HP, supplies, crop, shield or XP. An interrupted mission is canceled without rewards and its run ID is added to the completed ledger so stale results and same-ID relaunches cannot apply. An interrupted storm or oxygen leak restarts its warning, retaining previous damage, resources and event ID; no safety or XP is granted. A terminal result drops an orphaned active countdown. Unsupported save schemas are rejected rather than guessed at; no migration path exists yet. The existing Chicken Hunt scene and Developer B assets were not modified.
+
+**Verification:** `npm run build` passed and `npm test` passed 123 cases across 14 files, including 10 new SaveService cases. Chromium `tests/feature7.mjs` passed refresh/Continue, paused unloaded HP freeze, close/reopen in one browser context, mission interruption and stale-result rejection, emergency warning recovery/paused timer/resume, and New Game reset. Chromium Feature 1, 3, 4, HP/food, 5, 6 and Chicken Hunt integration regressions passed. The Continue screenshot was inspected. The first unit run exposed an existing one-argument subscriber expectation; the implementation kept that contract and added a separate action-aware subscription, then the final tests passed. Sandboxed local server launch required the approved elevated rerun. `git diff --cached --check` passed before commit.
+
+**Limits and remaining work:** Persistence is browser/profile-local, not cloud sync. Quota or unavailable storage leaves the game playable without saving. No unsupported-schema migration, Developer B Ice Collection, arcade touch controls, optional power incident or deployment was added. NASA live endpoints were not retested for this feature.
+
+## Current repository status
+
+The user-managed checkout is `Feature-7-—-Save-&-Resume-(A11)` at implementation commit `149af56` before this documentation checkpoint. Features 1–7, the Chicken Hunt launch/return, and local save/resume are implemented and verified as stated above. Ice Collection and final integration/deployment remain open. No push or merge was performed for Feature 7.

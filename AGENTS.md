@@ -13,11 +13,11 @@ The [Developer A implementation steps](docs/IMPLEMENTATION_A_STEPS.md) provide a
 
 ## Current status
 
-On local `main`, Features 1–6 provide the playable Phaser Moon Base, five interactive buildings, one `GameSessionStore`, active-play HP decay, two scripted emergencies and NASA DONKI context. Merge `cc857d9` integrated Chicken Hunt from the Landing Pad into the existing `main.tsx` shell; the shared reducer applies mission results once. Build, 113 Vitest cases, Feature 1/3/4/HP/5/6 Chromium regressions and a Chicken Hunt launch/pause/return browser check passed. Ice Collection, save/resume, arcade touch controls and deployment remain open. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`. See [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) for the verified merge record.
+On user-managed `Feature-7-—-Save-&-Resume-(A11)`, Features 1–7 provide the playable Phaser Moon Base, one `GameSessionStore`, scripted emergencies, NASA DONKI context and browser-local save/resume. Merge `cc857d9` integrated Chicken Hunt; Feature 7 implementation `149af56` added versioned saves, Continue, confirmed New Game and safe recovery. Build, 123 Vitest cases, Feature 1/3/4/HP/5/6/7 Chromium regressions and Chicken Hunt launch/return passed. Ice Collection, arcade touch controls and deployment remain open. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`. See [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) for verified details.
 
 ## Current handoff
 
-The local merge conflicts are resolved and `main` contains `cc857d9`; no push was performed. Next work is A11 save/resume and the remaining Developer B mission scope, as directed by the user. Keep `main.tsx` connected to the single domain store and check [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) before changing scene flow.
+Feature 7 is committed locally at `149af56` on the current branch; no push or merge was performed. Next work is the remaining Developer B mission scope and final A12 integration, as directed by the user. SaveService owns persistence only; Phaser and React continue to use the single store. Check [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md) before changing scene flow.
 
 ## Project guardrails
 

@@ -4,6 +4,8 @@
 
 **Verified integration checkpoint:** Developer B's Chicken Hunt ship, bird, combat, food pickup, timer and return scene from `devB_first` were preserved in local merge `cc857d9` and registered on `main`. Arcade unit tests and a Chromium launch/pause/return check pass. Ice Collection, arcade touch controls, sound and full mission polish remain planned; this checkpoint does not complete all B tasks. See [PROJECT_HISTORY.md](PROJECT_HISTORY.md).
 
+**A11 persistence handoff:** Save/resume at `149af56` preserves completed mission run IDs. A browser refresh during a mission cancels that run without rewards and retires its run ID; a new launch must use a fresh ID. B scenes continue to emit one typed `MissionResult` and do not write LocalStorage or shared resources. No B-owned scene or asset was changed for A11.
+
 ## Ownership boundaries
 
 ```text
