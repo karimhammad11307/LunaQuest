@@ -99,7 +99,7 @@ describe('Feature 3 survival and building actions', () => {
       expect(state.daysSurvived).toBe(n);
       expect(state.lastDaySummary?.day).toBe(n);
       expect(state.resources.food).toBe(55 - n * BALANCE.daily.food);
-      expect(state.resources.water).toBe(65 - n * BALANCE.daily.water);
+      expect(state.resources.water).toBe(Math.max(0, BALANCE.start.water - n * BALANCE.daily.water));
     }
     expect(state.status).toBe('victory');
     expect(state.day).toBe(5);

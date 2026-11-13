@@ -34,6 +34,7 @@ export type GameAction =
       runId: string;
     }
   | { type: 'COMPLETE_MISSION'; result: MissionResult }
+  | { type: 'COLLECT_EARTH_SUPPLY'; deliveryId: string }
   | { type: 'ADVANCE_DAY' }
   | { type: 'PLANT_CROP' }
   | { type: 'HARVEST_CROP' }

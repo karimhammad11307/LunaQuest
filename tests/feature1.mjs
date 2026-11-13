@@ -24,7 +24,7 @@ async function move(page, key, ms) {
 const page = await openGame();
 const canvasCount = await page.locator('#game-canvas canvas').count();
 if (canvasCount !== 1) throw new Error(`Expected one Phaser canvas, got ${canvasCount}`);
-for (const [name, amount] of [['Food', 55], ['Water', 65], ['Oxygen', 80], ['Energy', 75], ['Health', 100]]) {
+for (const [name, amount] of [['Food', 55], ['Water', 40], ['Oxygen', 80], ['Energy', 75], ['Health', 100]]) {
   const label = await page.locator(`.meter[aria-label^="${name}:"]`).getAttribute('aria-label');
   if (!label.includes(`${amount} of 100`)) throw new Error(`HUD does not show shared ${name} state: ${label}`);
 }

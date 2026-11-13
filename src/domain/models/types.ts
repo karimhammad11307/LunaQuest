@@ -152,6 +152,8 @@ export interface GameState {
   missionProgress: MissionProgress | null;
   /** Persist this ledger with the session so replayed result messages have no effect. */
   completedMissionRunIds: string[];
+  /** Earth water cargo IDs collected; due/uncollected pods are derived from day. */
+  collectedEarthSupplyIds: string[];
   lastMissionResult: MissionResult | null;
   activeEventId: string | null;
   activeEvent: EmergencyState | null;

@@ -1,0 +1,33 @@
+/** Short factual guidance shown only when a player chooses a sign or Learn button. */
+export const EDUCATION = {
+  habitat: { title: 'Habitat', x: 306, y: 270,
+    what: 'Your habitat is your safe home on the Moon.',
+    why: 'Astronauts need air, food, and shelter to stay healthy.',
+    mission: 'Enter to refill suit oxygen and eat when HP is low.' },
+  greenhouse: { title: 'Greenhouse', x: 146, y: 326,
+    what: 'Special greenhouses let plants grow in a controlled space.',
+    why: 'With light and water, plants make food and release oxygen.',
+    mission: 'Plant seeds, wait a day, then harvest.' },
+  solar: { title: 'Solar Array', x: 680, y: 295,
+    what: 'Solar panels turn sunlight into electricity.',
+    why: 'Power runs life support, farming, and shields.',
+    mission: 'Check the charge and repair damaged panels.' },
+  shield: { title: 'Radiation Shelter', x: 725, y: 427,
+    what: 'This shelter protects astronauts during space hazards.',
+    why: 'The Moon has no thick atmosphere like Earth to block radiation.',
+    mission: 'Get inside or power the shield when a storm warning appears.' },
+  landingPad: { title: 'Landing Pad', x: 295, y: 340,
+    what: 'Spacecraft use the Landing Pad to arrive and depart.',
+    why: 'Missions and deliveries help an isolated base survive.',
+    mission: 'Launch Chicken Hunt for food and watch for Earth cargo.' },
+  chickenHunt: { title: 'Chicken Hunt', x: 405, y: 405,
+    what: 'Chicken Hunt is a fictional arcade mission; alien birds are not lunar wildlife.',
+    why: 'Your astronaut needs stored food to stay healthy.',
+    mission: 'Fly, collect food drops, return safely, then eat at the Habitat.' },
+  earthSupply: { title: 'Earth Water Supply', x: 145, y: 406,
+    what: 'This pod represents water cargo sent from Earth.',
+    why: 'Launching water is hard and expensive; real missions study recycling and local ice.',
+    mission: 'Collect a landed pod to add water to your base.' },
+} as const;
+
+export type EducationId = keyof typeof EDUCATION;

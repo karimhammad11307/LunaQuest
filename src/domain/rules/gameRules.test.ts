@@ -3,6 +3,7 @@ import { createInitialState } from './survivalRules';
 import { reduceGameState } from './gameRules';
 import { GameSessionStore } from '../store/GameSessionStore';
 import { MISSION_CONFIG } from '../../game/config/gameConfig';
+import { BALANCE } from '../../game/config/balance';
 import type { GameAction } from '../models/GameAction';
 import type { MissionResult } from '../models/types';
 
@@ -24,7 +25,7 @@ const result: MissionResult = {
 describe('Feature 2 shared state rules', () => {
   it('starts with configured supplies, astronaut status, XP and empty mission ledger', () => {
     const state = createInitialState();
-    expect(state.resources).toEqual({ food: 55, water: 65, oxygen: 80, energy: 75 });
+    expect(state.resources).toEqual({ food: 55, water: BALANCE.start.water, oxygen: 80, energy: 75 });
     expect(state.astronaut.health).toBe(100);
     expect(state.xp).toBe(0);
     expect(state.awardedRewardIds).toEqual([]);
@@ -50,7 +51,7 @@ describe('Feature 2 shared state rules', () => {
     expect(rejected).toBe(state);
     expect(state.resources.food).toBe(55);
     const next = reduceGameState(state, { type: 'SPEND_RESOURCES', costs: { food: 8, water: 10 } });
-    expect(next.resources).toEqual({ food: 47, water: 55, oxygen: 80, energy: 75 });
+    expect(next.resources).toEqual({ food: 47, water: BALANCE.start.water - 10, oxygen: 80, energy: 75 });
   });
 
   it('rejects negative, zero, excessive, unknown and nonfinite resource changes', () => {

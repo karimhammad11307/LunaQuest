@@ -17,6 +17,8 @@
     { "key": "bld-solar", "size": "100x74", "purpose": "Solar panel array" },
     { "key": "bld-shield", "size": "104x80", "purpose": "Reinforced radiation shelter" },
     { "key": "bld-landingPad", "size": "116x68", "purpose": "Landing platform and parked spacecraft" },
+    { "key": "education-sign", "size": "24x32", "purpose": "Separate, non-blocking pixel-art learning terminal at seven Moon Base locations" },
+    { "key": "earth-supply-pod", "size": "44x34", "purpose": "Separate animated Earth water cargo pod at each scheduled delivery" },
     { "keys": ["crop-seed", "crop-sprout", "crop-ready"], "size": "24x20", "purpose": "Greenhouse growth-stage overlay; original procedural pixel sprites" },
     { "keys": ["astro-down-0", "astro-down-1", "astro-up-0", "astro-up-1", "astro-left-0", "astro-left-1", "astro-right-0", "astro-right-1"], "size": "26x32", "frameRate": "idle 2 fps; walk 7 fps", "purpose": "Four-direction astronaut idle and walk frames" }
   ],

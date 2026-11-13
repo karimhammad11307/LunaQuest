@@ -150,6 +150,21 @@ function crop(c: CanvasRenderingContext2D, stage: 'seed' | 'sprout' | 'ready') {
 
 /** Original authored canvas sprites, each registered as its own Phaser texture. */
 export function createPixelArt(scene: Phaser.Scene): void {
+  texture(scene, 'education-sign', 24, 32, (c) => {
+    box(c, 8, 26, 8, 5, C.outline); box(c, 10, 16, 4, 11, C.metal);
+    frame(c, 2, 2, 20, 18, C.cyanDim);
+    box(c, 5, 5, 14, 12, C.spaceMid); box(c, 10, 7, 4, 3, C.yellow);
+    box(c, 11, 11, 2, 4, C.yellow); box(c, 4, 19, 16, 2, C.cyanGlow);
+  });
+  texture(scene, 'earth-supply-pod', 44, 34, (c) => {
+    box(c, 2, 27, 40, 5, C.shadowDeep);
+    box(c, 4, 9, 36, 20, C.outline); box(c, 7, 8, 30, 18, C.metal);
+    box(c, 10, 4, 24, 5, C.outline); box(c, 13, 3, 18, 4, C.suitWhite);
+    box(c, 9, 11, 26, 3, C.suitWhite); box(c, 9, 17, 26, 6, C.cyanDim);
+    box(c, 18, 15, 8, 9, C.cyan); box(c, 20, 16, 4, 5, C.suitWhite);
+    box(c, 6, 25, 7, 4, C.orange); box(c, 31, 25, 7, 4, C.orange);
+    pix(c, [[9, 7], [33, 7], [11, 20], [31, 20]], C.yellow);
+  });
   texture(scene, 'ground-a', 32, 32, (c) => {
     box(c, 0, 0, 32, 32, C.terrain);
     pix(c, [[3, 6], [21, 5], [13, 22], [26, 26]], C.terrainLight);

@@ -6,7 +6,7 @@
  */
 import type { BuildingState, GameState, Resources } from '../models/types';
 import { BALANCE } from '../../game/config/balance';
-import { BUILDING_LAYOUT, SPAWN_POINT } from '../../game/config/gameConfig';
+import { BUILDING_LAYOUT, EARTH_SUPPLY_DELIVERIES, SPAWN_POINT } from '../../game/config/gameConfig';
 
 export const clamp = (v: number, min = 0, max = 100): number =>
   Math.max(min, Math.min(max, v));
@@ -61,6 +61,7 @@ export function createInitialState(): GameState {
     activeMissionRunId: null,
     missionProgress: null,
     completedMissionRunIds: [],
+    collectedEarthSupplyIds: [],
     lastMissionResult: null,
     activeEventId: null,
     activeEvent: null,
@@ -164,6 +165,12 @@ export function solarYieldForDay(solar: BuildingState): number {
     : BALANCE.solarDailyYield;
 }
 
+/** Scheduled pods remain available on every later day until collected. */
+export function pendingEarthSupplies(state: GameState) {
+  return EARTH_SUPPLY_DELIVERIES.filter((delivery) => state.day >= delivery.day
+    && !state.collectedEarthSupplyIds.includes(delivery.id));
+}
+
 /** One full completed day: consumption, one solar charge, shield upkeep, and crop growth. */
 export function advanceSurvivalDay(state: GameState): GameState {
   if (!canTickSurvival(state) || state.astronaut.location !== 'habitat') return state;
@@ -208,7 +215,9 @@ export function advanceSurvivalDay(state: GameState): GameState {
   const id = Math.max(0, ...state.notices.map((entry) => entry.id)) + 1;
   const text = status === 'victory' ? 'Five days survived! Mission complete!'
     : status === 'defeat' ? 'Life support failed. Try again, astronaut!'
-      : `Day ${state.day} complete! Solar +${energyProduced} energy; supplies used.`;
+      : BALANCE.earthSupply.deliveryDays.some((deliveryDay) => deliveryDay === daysSurvived + 1)
+        ? `Day ${state.day} complete! An Earth water pod landed near the Landing Pad.`
+        : `Day ${state.day} complete! Solar +${energyProduced} energy; supplies used.`;
   return {
     ...state, day: Math.min(daysSurvived + 1, BALANCE.dayLimit), daysSurvived,
     resources, buildings: { ...state.buildings, greenhouse: nextGreenhouse, shield: nextShield },

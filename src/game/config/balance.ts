@@ -10,7 +10,7 @@ export const BALANCE = {
 
   start: {
     food: 55,
-    water: 65,
+    water: 40,
     oxygen: 80,
     energy: 75,
     health: 100,
@@ -26,6 +26,9 @@ export const BALANCE = {
     oxygen: 6,
     energy: 5,
   },
+
+  /** Illustrative Earth cargo schedule: two fixed arrivals during the five-day mission. */
+  earthSupply: { deliveryDays: [2, 4], waterPerPod: 25, interactionRadius: 38 },
 
   /** Simplified illuminated workday: one charge on ADVANCE_DAY, no lunar day/night model. */
   solarDailyYield: 16,

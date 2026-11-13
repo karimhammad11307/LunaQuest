@@ -5,6 +5,7 @@
  * for building anchors and mission costs, so keep it dependency-free.
  */
 import type { BuildingType, MissionType } from '../../domain/models/types';
+import { BALANCE } from './balance';
 
 /** Logical render resolution (integer-scaled to the viewport). */
 export const VIEW = { width: 640, height: 360 } as const;
@@ -45,6 +46,11 @@ export const BUILDING_BY_ID: Record<string, BuildingLayoutEntry> = Object.fromEn
 
 /** Where the astronaut starts each run (just below the habitat). */
 export const SPAWN_POINT = { x: 400, y: 316 } as const;
+
+/** Separate cargo objects, adjacent to the Landing Pad but clear of its collision zone. */
+export const EARTH_SUPPLY_DELIVERIES = BALANCE.earthSupply.deliveryDays.map((day, index) => ({
+  id: `earth-water-day-${day}`, day, x: 205, y: index === 0 ? 405 : 451,
+}));
 
 export interface MissionSpec {
   label: string;

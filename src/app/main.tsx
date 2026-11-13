@@ -6,10 +6,11 @@ import { BootScene } from '../game/scenes/BootScene';
 import { MoonBaseScene } from '../game/scenes/MoonBaseScene';
 import { ChickenHuntScene } from '../game/scenes/ChickenHuntScene';
 import { MISSION_CONFIG, VIEW } from '../game/config/gameConfig';
+import { EDUCATION, type EducationId } from '../game/config/education';
 import { BALANCE } from '../game/config/balance';
 import type { GameAction } from '../domain/models/GameAction';
 import type { GameSceneId } from '../domain/models/types';
-import { solarYieldForDay } from '../domain/rules/survivalRules';
+import { pendingEarthSupplies, solarYieldForDay } from '../domain/rules/survivalRules';
 import { NASAWeatherService } from '../services/NASAWeatherService';
 import { SaveService } from '../services/SaveService';
 import './style.css';
@@ -76,6 +77,7 @@ function App() {
   const [showWeather, setShowWeather] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [dismissedMissionRunId, setDismissedMissionRunId] = useState<string | null>(null);
+  const [learningTopic, setLearningTopic] = useState<EducationId | null>(null);
   const weatherRequest = useRef(0);
   useEffect(() => {
     if (!sessionReady) return;
@@ -89,6 +91,22 @@ function App() {
   const indoors = state.astronaut.location !== 'outside';
   const emergency = state.activeEvent;
   const missionSummary = state.status === 'playing' && state.lastMissionResult?.runId !== dismissedMissionRunId ? state.lastMissionResult : null;
+  const openEducation = (topic: EducationId) => {
+    const current = store.getState();
+    if (current.status !== 'playing' || current.paused || current.scene !== 'moon-base') return;
+    if (current.selectedBuildingId) store.dispatch({ type: 'CLOSE_BUILDING' });
+    store.dispatch({ type: 'SET_PAUSED', paused: true });
+    setLearningTopic(topic);
+  };
+  const closeEducation = () => {
+    setLearningTopic(null);
+    store.dispatch({ type: 'SET_PAUSED', paused: false });
+  };
+  useEffect(() => {
+    const onOpen = (event: Event) => openEducation((event as CustomEvent<EducationId>).detail);
+    window.addEventListener('moonbound-open-education', onOpen);
+    return () => window.removeEventListener('moonbound-open-education', onOpen);
+  }, []);
   const loadWeather = async (mode: 'live' | 'demo') => {
     const request = ++weatherRequest.current;
     setWeatherLoading(true);
@@ -114,14 +132,15 @@ function App() {
       if (event.key !== 'Escape') return;
       if (!sessionReady) return;
       const current = store.getState();
-      if (showHelp) setShowHelp(false);
+      if (learningTopic) closeEducation();
+      else if (showHelp) setShowHelp(false);
       else if (current.paused) store.dispatch({ type: 'SET_PAUSED', paused: false });
       else if (current.selectedBuildingId) { store.dispatch({ type: 'CLOSE_BUILDING' }); setActionFeedback(''); }
       else store.dispatch({ type: 'SET_PAUSED', paused: true });
     };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
-  }, [showHelp, sessionReady]);
+  }, [showHelp, sessionReady, learningTopic]);
   const virtualInput = (direction: string | null) => window.dispatchEvent(new CustomEvent('moonbound-input', { detail: direction }));
   const startNewGame = () => {
     saveService.clear();
@@ -142,8 +161,8 @@ function App() {
         <div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div>
         <div className="mission-day"><span>MISSION DAY</span><strong>{state.day}<em>/ {BALANCE.dayLimit}</em></strong></div>
         <span className="xp-counter" aria-label={`${state.xp} experience points`}>XP {state.xp}</span>
-        <button className="pause-button" type="button" disabled={state.status !== 'playing'} onClick={() => { store.dispatch({ type: 'SET_PAUSED', paused: !state.paused }); setShowHelp(false); }}>{state.paused ? 'Resume' : 'Pause'}</button>
-        <button className="help-button" type="button" onClick={() => setShowHelp(!showHelp)} aria-expanded={showHelp}>? <span>How to play</span></button>
+        <button className="pause-button" type="button" disabled={state.status !== 'playing' || !!learningTopic} onClick={() => { store.dispatch({ type: 'SET_PAUSED', paused: !state.paused }); setShowHelp(false); }}>{state.paused ? 'Resume' : 'Pause'}</button>
+        <button className="help-button" type="button" disabled={!!learningTopic} onClick={() => setShowHelp(!showHelp)} aria-expanded={showHelp}>? <span>How to play</span></button>
       </header>
       <div className="hud" aria-label="Colony supplies and astronaut health">
         <Meter label="Food" icon="▣" value={state.resources.food} color="#FFD75E" low={state.resources.food <= BALANCE.warnings.food} />
@@ -184,6 +203,7 @@ function App() {
         {selected && building && state.status === 'playing' && <aside className="building-panel" aria-label={`${building.type} controls`}>
           <div className="panel-head"><strong>{({ habitat: 'HABITAT', greenhouse: 'GREENHOUSE', solar: 'SOLAR ARRAY', shield: 'RADIATION SHELTER', landingPad: 'LANDING PAD' } as Record<string, string>)[selected]}</strong><button type="button" aria-label="Close building controls" onClick={() => { store.dispatch({ type: 'CLOSE_BUILDING' }); setActionFeedback(''); }}>×</button></div>
           <p className={`building-condition condition-${building.condition}`}>STATUS: {building.condition === 'good' ? 'OPERATIONAL' : building.condition.toUpperCase()}</p>
+          <button className="learn-button" type="button" onClick={() => openEducation(selected as EducationId)}>Learn: {EDUCATION[selected as EducationId].title} <small>What · Why · Your mission</small></button>
           {selected === 'habitat' && <>
             {emergency?.type === 'oxygen-leak' && <p className="emergency-building-note">Oxygen is leaking! Repair this habitat or isolate the section.</p>}
             <p>{indoors ? 'Inside your safe home.' : 'Step inside to eat, rest and refill.'}</p>
@@ -206,13 +226,14 @@ function App() {
           </>}
           {selected === 'solar' && <><p>Stored energy: {Math.round(state.resources.energy)} / 100</p><p className="production-status">Next day: +{solarYieldForDay(building)} energy in simplified daylight.</p><p>Last day: +{state.lastDaySummary?.energyProduced ?? 0} energy stored.</p><p className="science-note">Damaged panels make less power; broken panels make none. Battery capacity is 100.</p></>}
           {selected === 'shield' && <><p>{state.astronaut.location === 'shelter' ? 'Protected inside the shelter.' : 'A safe place during outside hazards.'}</p><p className="shield-status">SHIELD: {building.active && state.resources.energy > 0 ? 'ACTIVE' : 'OFF'}</p><button type="button" onClick={() => dispatch({ type: 'ACTIVATE_SHIELD', active: !building.active }, 'Not enough energy or shield needs repair!')}>{building.active ? 'Switch Shield Off' : 'Activate Shield'} <small>{building.active ? 'no energy refund' : `−${BALANCE.shield.activationEnergy} energy · −${BALANCE.shield.dailyEnergyUpkeep} per day`}</small></button>{state.astronaut.location === 'shelter' ? <button type="button" onClick={() => dispatch({ type: 'LEAVE_SHELTER' }, 'Already outside.')}>Leave Shelter</button> : <button type="button" onClick={() => dispatch({ type: 'ENTER_SHELTER' }, 'Move closer to the shelter.')}>Enter Shelter</button>}<p className="science-note">Shelter and the powered shield protect against simulated radiation. The shield covers the nearby base only.</p></>}
-          {selected === 'landingPad' && <><p>Fly Chicken Hunt to collect food for the colony.</p><button className="mission-launch-button" type="button" onClick={() => dispatch({ type: 'START_MISSION', mission: 'chicken-hunt', runId: `chicken-${crypto.randomUUID()}` }, 'Need energy or finish the emergency first.')}>Launch Chicken Hunt <small>−{MISSION_CONFIG['chicken-hunt'].energyCost} energy · WASD / arrows to fly · Space to fire</small></button><button type="button" disabled>Ice Collection · Coming Soon</button><p className="science-note">Food is banked only after a safe, successful return. Eat it at the habitat to restore HP.</p></>}
+          {selected === 'landingPad' && <><p>Fly Chicken Hunt to collect food for the colony.</p><button type="button" onClick={() => openEducation('chickenHunt')}>Learn: Chicken Hunt <small>Fictional arcade training</small></button><button className="mission-launch-button" type="button" onClick={() => dispatch({ type: 'START_MISSION', mission: 'chicken-hunt', runId: `chicken-${crypto.randomUUID()}` }, 'Need energy or finish the emergency first.')}>Launch Chicken Hunt <small>−{MISSION_CONFIG['chicken-hunt'].energyCost} energy · WASD / arrows to fly · Space to fire</small></button><p>{pendingEarthSupplies(state).length ? `${pendingEarthSupplies(state).length} Earth water pod${pendingEarthSupplies(state).length > 1 ? 's' : ''} waiting west of the pad.` : state.day < 4 ? `Next Earth water delivery: Day ${state.day < 2 ? 2 : 4}.` : 'All scheduled Earth deliveries have arrived.'}</p><button type="button" onClick={() => openEducation('earthSupply')}>Learn: Earth Water Supply</button><p className="science-note">Food is banked only after a safe, successful return. Eat it at the habitat to restore HP.</p></>}
           {building.condition !== 'good' && <button className="repair-button" type="button" onClick={() => dispatch({ type: 'REPAIR_BUILDING', buildingId: selected }, 'Need energy to repair.')}>Repair {building.type} <small>−{BALANCE.repair.energyCost} energy</small></button>}
           {actionFeedback && <p className="action-feedback" role="alert">{actionFeedback}</p>}
         </aside>}
         {state.status !== 'playing' && <aside className="result-panel" aria-label="Mission result"><strong>{state.status === 'victory' ? 'MISSION COMPLETE!' : 'GAME OVER'}</strong><p>{state.status === 'victory' ? 'You kept the crew safe for five complete days!' : 'Your astronaut needs another try.'}</p><p>Days survived: {state.daysSurvived} / {BALANCE.dayLimit}</p><button type="button" onClick={() => { store.dispatch({ type: 'RESTART_GAME' }); setActionFeedback(''); }}>Restart Mission</button></aside>}
         {missionSummary && <aside className="mission-summary" aria-label="Chicken Hunt mission summary"><strong>{missionSummary.success && missionSummary.returnedSafely ? 'SUPPLIES DELIVERED!' : 'MISSION ENDED'}</strong><p>{missionSummary.educationalMessage}</p><p>Food +{missionSummary.collectedResources.food ?? 0} · XP +{missionSummary.xpEarned} · Health −{missionSummary.healthDamage}</p><button type="button" onClick={() => setDismissedMissionRunId(missionSummary.runId)}>Back to Moon Base</button></aside>}
-        {state.paused && state.status === 'playing' && <aside className="pause-panel" aria-label="Game paused"><strong>PAUSED</strong><p>Take your time. Health and suit oxygen are safe while paused.</p><button type="button" onClick={() => store.dispatch({ type: 'SET_PAUSED', paused: false })}>Resume Mission</button></aside>}
+        {learningTopic && <aside className="education-panel" role="dialog" aria-modal="true" aria-label={`${EDUCATION[learningTopic].title} learning sign`}><strong>✦ {EDUCATION[learningTopic].title}</strong><p><b>WHAT?</b> {EDUCATION[learningTopic].what}</p><p><b>WHY?</b> {EDUCATION[learningTopic].why}</p><p><b>YOUR MISSION</b> {EDUCATION[learningTopic].mission}</p><button type="button" onClick={closeEducation}>Got it — back to game</button></aside>}
+        {state.paused && !learningTopic && state.status === 'playing' && <aside className="pause-panel" aria-label="Game paused"><strong>PAUSED</strong><p>Take your time. Health and suit oxygen are safe while paused.</p><button type="button" onClick={() => store.dispatch({ type: 'SET_PAUSED', paused: false })}>Resume Mission</button></aside>}
         {showHelp && <aside className="help-panel"><strong>{state.scene === 'chicken-hunt' ? 'Chicken Hunt' : 'Explore the base'}</strong>{state.scene === 'chicken-hunt' ? <><p>Fly with WASD or arrow keys. Press Space to fire at alien birds and collect food drops.</p><p>Return to base before your ship is damaged. Food is stored when your mission succeeds.</p></> : <><p>Move with WASD or arrow keys. Walk near a building and press E, or click it when close.</p><p>Health slowly falls during active play. Eat stored food at the habitat to recover. Pause when you need a break.</p><p>Keep the crew safe for five days!</p></>}<button type="button" onClick={() => setShowHelp(false)}>Got it</button></aside>}
       </div>
       {state.lastDaySummary && state.status === 'playing' && <div className="day-summary" role="status">Day {state.lastDaySummary.day} survived · Food −{state.lastDaySummary.food} · Water −{state.lastDaySummary.water} · Base O₂ −{state.lastDaySummary.oxygen} · Energy −{state.lastDaySummary.energy} / +{state.lastDaySummary.energyProduced} solar{state.lastDaySummary.shieldEnergyUsed > 0 && <> · Shield −{state.lastDaySummary.shieldEnergyUsed}</>}{state.lastDaySummary.warnings.length > 0 && <strong> · {state.lastDaySummary.warnings.join(' ')}</strong>}</div>}

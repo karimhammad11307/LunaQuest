@@ -33,3 +33,9 @@
 .save-start{min-height:360px;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 50% 65%,#625884 0%,#383355 45%,#12172f 100%)}
 .save-start-panel{width:min(360px,100%);padding:22px;background:#292740;border:4px solid #4edce5;box-shadow:7px 7px #12172f;text-align:center;color:#e8e4f5;font:700 12px ui-monospace,monospace}
 .save-start-panel strong{display:block;color:#ffd75e;font-size:18px}.save-start-panel p{margin:12px 0}.save-start-panel button{display:block;width:100%;min-height:42px;margin:9px 0;padding:7px;background:#80e5a0;border:2px solid #12172f;color:#292740;font:900 13px ui-monospace,monospace;cursor:pointer}.save-start-panel button+button{background:#ffd75e}.save-start-panel button:focus-visible{outline:3px solid #ffd75e;outline-offset:2px}.save-start-panel small{color:#b9a7f5}
+
+/* A12: opt-in educational sign, styled as a compact game terminal. */
+.building-panel .learn-button{background:#4edce5}.building-panel .learn-button:hover{background:#9af0f4}
+.education-panel{position:absolute;z-index:10;right:12px;top:12px;width:min(330px,52%);max-height:calc(100% - 24px);overflow:auto;padding:14px;background:#292740f7;border:3px solid #ffd75e;box-shadow:5px 5px #12172f;color:#e8e4f5;font:700 11px ui-monospace,monospace;line-height:1.4}
+.education-panel strong{display:block;color:#ffd75e;font-size:15px}.education-panel p{margin:8px 0}.education-panel b{display:block;color:#4edce5;font-size:10px}.education-panel button{min-height:35px;width:100%;padding:6px;background:#80e5a0;border:2px solid #12172f;color:#292740;font:900 11px ui-monospace,monospace;cursor:pointer}.education-panel button:focus-visible{outline:3px solid #ffd75e;outline-offset:2px}
+@media(max-width:680px){.education-panel{left:50%;right:auto;top:5px;transform:translateX(-50%);width:min(320px,calc(100% - 10px));max-height:calc(100% - 10px);font-size:10px;padding:9px}.education-panel p{margin:5px 0}}

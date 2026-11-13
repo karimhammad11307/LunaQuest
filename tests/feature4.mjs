@@ -18,7 +18,7 @@ const close = () => page.getByRole('button', { name: 'Close building controls' }
 await moveTo(267, 316);
 await page.getByRole('button', { name: /Plant Seeds/ }).click();
 let current = await state();
-if (!current.buildings.greenhouse.cropPlanted || current.resources.water !== 55 || current.resources.energy !== 71) throw new Error('Planting did not spend resources once');
+if (!current.buildings.greenhouse.cropPlanted || current.resources.water !== 30 || current.resources.energy !== 71) throw new Error('Planting did not spend resources once');
 const greenhouseTexture = () => page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').buildings.find((b) => b.entry.id === 'greenhouse').cropSprite.texture.key);
 if (await greenhouseTexture() !== 'crop-seed') throw new Error('Seed pixel sprite is missing');
 await page.screenshot({ path: 'artifacts/feature4-planted.png', fullPage: true });

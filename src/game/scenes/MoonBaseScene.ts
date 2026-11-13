@@ -1,16 +1,25 @@
 import Phaser from 'phaser';
 import { BUILDING_LAYOUT, INTERACT_RADIUS, SPAWN_POINT, VIEW, WORLD } from '../config/gameConfig';
+import { EDUCATION, type EducationId } from '../config/education';
+import { BALANCE } from '../config/balance';
 import { PALETTE as C } from '../config/palette';
 import { Building } from '../entities/Building';
 import { Astronaut } from '../entities/Astronaut';
+import { EducationSign } from '../entities/EducationSign';
+import { EarthSupplyPod } from '../entities/EarthSupplyPod';
 import type { GameSessionStore } from '../../domain/store/GameSessionStore';
 import type { GameState } from '../../domain/models/types';
+import { pendingEarthSupplies } from '../../domain/rules/survivalRules';
 
 export class MoonBaseScene extends Phaser.Scene {
   private store: GameSessionStore;
   private astronaut!: Astronaut;
   private buildings: Building[] = [];
   private activeBuilding: Building | null = null;
+  private signs: EducationSign[] = [];
+  private activeSign: EducationSign | null = null;
+  private supplyPods = new Map<string, EarthSupplyPod>();
+  private activeSupplyPod: EarthSupplyPod | null = null;
   private prompt!: Phaser.GameObjects.Text;
   private message!: Phaser.GameObjects.Text;
   private messageTimer?: Phaser.Time.TimerEvent;
@@ -43,9 +52,14 @@ export class MoonBaseScene extends Phaser.Scene {
       const obstacle = item.getData('obstacle') as Phaser.GameObjects.Zone | undefined;
       if (obstacle) this.physics.add.collider(this.astronaut, obstacle);
     });
+    this.signs = (Object.keys(EDUCATION) as EducationId[]).map((id) => new EducationSign(this, id));
+    this.supplyPods.clear();
+    this.syncSupplyPods(this.previousState, false);
 
     this.input.keyboard!.on('keydown-E', this.interact, this);
     this.events.on('building-pointer', this.pointerInteract, this);
+    this.events.on('education-pointer', this.pointerEducation, this);
+    this.events.on('earth-supply-pointer', this.pointerSupply, this);
     const onVirtualInput = (event: Event) => {
       const input = (event as CustomEvent<string | null>).detail;
       if (input === 'interact') this.interact();
@@ -55,7 +69,13 @@ export class MoonBaseScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.keyboard?.off('keydown-E', this.interact, this);
       this.events.off('building-pointer', this.pointerInteract, this);
+      this.events.off('education-pointer', this.pointerEducation, this);
+      this.events.off('earth-supply-pointer', this.pointerSupply, this);
       window.removeEventListener('moonbound-input', onVirtualInput);
+      this.activeBuilding = null;
+      this.activeSign = null;
+      this.activeSupplyPod = null;
+      this.supplyPods.clear();
     });
 
     this.prompt = this.add.text(0, 0, '', {
@@ -171,9 +191,65 @@ export class MoonBaseScene extends Phaser.Scene {
     else this.showMessage(`Walk closer to ${building.entry.label}!`);
   }
 
+  private pointerEducation(id: EducationId): void {
+    const state = this.store.getState();
+    if (state.paused || state.status !== 'playing' || state.scene !== 'moon-base') return;
+    const sign = this.signs.find((item) => item.id === id);
+    if (!sign) return;
+    if (Phaser.Math.Distance.Between(this.astronaut.x, this.astronaut.y, sign.x, sign.y) <= 28) this.openEducation(sign);
+    else this.showMessage(`Walk closer to the ${EDUCATION[id].title} sign!`);
+  }
+
+  private pointerSupply(id: string): void {
+    const pod = this.supplyPods.get(id);
+    if (!pod || this.store.getState().paused) return;
+    if (Phaser.Math.Distance.Between(this.astronaut.x, this.astronaut.y, pod.x, pod.y) <= BALANCE.earthSupply.interactionRadius) this.collectSupply(pod);
+    else this.showMessage('Walk closer to the Earth supplies!');
+  }
+
   private interact(): void {
-    if (this.store.getState().paused) return;
-    if (this.activeBuilding) this.activate(this.activeBuilding);
+    const state = this.store.getState();
+    if (state.paused || state.status !== 'playing' || state.scene !== 'moon-base') return;
+    if (this.activeSupplyPod) this.collectSupply(this.activeSupplyPod);
+    else if (this.activeSign) this.openEducation(this.activeSign);
+    else if (this.activeBuilding) this.activate(this.activeBuilding);
+  }
+
+  private openEducation(sign: EducationSign): void {
+    window.dispatchEvent(new CustomEvent<EducationId>('moonbound-open-education', { detail: sign.id }));
+  }
+
+  private collectSupply(pod: EarthSupplyPod): void {
+    this.store.dispatch({ type: 'MOVE_PLAYER', x: Math.round(this.astronaut.x), y: Math.round(this.astronaut.y) });
+    const before = this.store.getState();
+    const x = pod.x;
+    const y = pod.y;
+    const after = this.store.dispatch({ type: 'COLLECT_EARTH_SUPPLY', deliveryId: pod.delivery.id });
+    if (after === before) { this.showMessage('Water tank needs 25 free units, or move closer!'); return; }
+    this.showMessage(after.notices.at(-1)?.text ?? 'Earth supplies collected!');
+    this.floatAt(x, y - 36, `+${BALANCE.earthSupply.waterPerPod} WATER`, '#4EDCE5');
+    this.cameras.main.flash(180, 78, 220, 229, false);
+  }
+
+  private syncSupplyPods(state: GameState, animate: boolean): void {
+    const due = pendingEarthSupplies(state);
+    const dueIds = new Set(due.map((delivery) => delivery.id));
+    for (const [id, pod] of this.supplyPods) {
+      if (!dueIds.has(id)) {
+        if (this.activeSupplyPod === pod) this.activeSupplyPod = null;
+        pod.destroy();
+        this.supplyPods.delete(id);
+      }
+    }
+    for (const delivery of due) {
+      if (this.supplyPods.has(delivery.id)) continue;
+      const pod = new EarthSupplyPod(this, delivery);
+      this.supplyPods.set(delivery.id, pod);
+      if (animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        pod.y -= 30;
+        this.tweens.add({ targets: pod, y: delivery.y, duration: 500, ease: 'Bounce.easeOut' });
+      }
+    }
   }
 
   private activate(building: Building): void {
@@ -195,7 +271,15 @@ export class MoonBaseScene extends Phaser.Scene {
   private onStoreState = (state: GameState): void => {
     const before = this.previousState;
     this.previousState = state;
+    if (before.day !== state.day || before.collectedEarthSupplyIds !== state.collectedEarthSupplyIds) {
+      this.syncSupplyPods(state, before.day !== state.day);
+    }
     if (before.activeEvent !== state.activeEvent || before.status !== state.status) this.renderEmergency(state);
+    if (before.status === 'playing' && state.status !== 'playing') {
+      this.prompt.setVisible(false);
+      this.messageTimer?.remove(false);
+      this.message.setVisible(false);
+    }
     if (before.activeEvent?.id !== state.activeEvent?.id && state.activeEvent) {
       this.showMessage(state.activeEvent.type === 'solar-storm' ? 'SOLAR STORM! RUN TO SHELTER!' : 'O₂ LEAK! REPAIR THE HABITAT!', 3500);
       this.cameras.main.flash(220, 255, 104, 77, false);
@@ -318,19 +402,40 @@ export class MoonBaseScene extends Phaser.Scene {
       this.lastPositionSync = time;
     }
     let closest: Building | null = null;
-    let distance = INTERACT_RADIUS;
+    let closestSign: EducationSign | null = null;
+    let closestPod: EarthSupplyPod | null = null;
+    let distance = Number.POSITIVE_INFINITY;
     for (const building of this.buildings) {
       const point = building.interactionPoint;
       const d = Phaser.Math.Distance.Between(this.astronaut.x, this.astronaut.y, point.x, point.y);
-      if (d <= distance) { closest = building; distance = d; }
+      if (d <= INTERACT_RADIUS && d < distance) { closest = building; closestSign = null; closestPod = null; distance = d; }
+    }
+    for (const sign of this.signs) {
+      const d = Phaser.Math.Distance.Between(this.astronaut.x, this.astronaut.y, sign.x, sign.y);
+      if (d <= 28 && d < distance) { closest = null; closestSign = sign; closestPod = null; distance = d; }
+    }
+    for (const pod of this.supplyPods.values()) {
+      const d = Phaser.Math.Distance.Between(this.astronaut.x, this.astronaut.y, pod.x, pod.y);
+      if (d <= BALANCE.earthSupply.interactionRadius && d < distance) { closest = null; closestSign = null; closestPod = pod; distance = d; }
     }
     if (closest !== this.activeBuilding) {
       this.activeBuilding?.setApproach(false);
       this.activeBuilding = closest;
       this.activeBuilding?.setApproach(true);
     }
-    if (closest && simulationActive && state.astronaut.location === 'outside' && !state.selectedBuildingId) {
-      this.prompt.setText(`E  ${closest.entry.label}`).setPosition(closest.x, closest.y - 57).setVisible(true);
+    if (closestSign !== this.activeSign) {
+      this.activeSign?.setApproach(false);
+      this.activeSign = closestSign;
+      this.activeSign?.setApproach(true);
+    }
+    if (closestPod !== this.activeSupplyPod) {
+      this.activeSupplyPod?.setApproach(false);
+      this.activeSupplyPod = closestPod;
+      this.activeSupplyPod?.setApproach(true);
+    }
+    if (simulationActive && state.astronaut.location === 'outside' && !state.selectedBuildingId && (closest || closestSign || closestPod)) {
+      this.prompt.setText(closestPod ? 'Press E to collect Earth supplies' : closestSign ? `E  Learn: ${EDUCATION[closestSign.id].title}` : `E  ${closest!.entry.label}`)
+        .setPosition(closestPod?.x ?? closestSign?.x ?? closest!.x, (closestPod?.y ?? closestSign?.y ?? closest!.y) - (closest ? 57 : 28)).setVisible(true);
     } else this.prompt.setVisible(false);
   }
 }

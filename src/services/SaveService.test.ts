@@ -3,7 +3,7 @@ import { GameSessionStore } from '../domain/store/GameSessionStore';
 import { reduceGameState } from '../domain/rules/gameRules';
 import { createInitialState } from '../domain/rules/survivalRules';
 import { BALANCE } from '../game/config/balance';
-import { parseSave, recoverSavedState, SAVE_KEY, SAVE_VERSION, SaveService } from './SaveService';
+import { LEGACY_SAVE_KEY, parseSave, recoverSavedState, SAVE_KEY, SAVE_VERSION, SaveService } from './SaveService';
 import type { GameState, MissionResult } from '../domain/models/types';
 
 function memoryStorage() {
@@ -43,6 +43,7 @@ describe('A11 browser save and recovery', () => {
     expect(loaded.buildings.greenhouse).toEqual(state.buildings.greenhouse);
     expect(loaded.buildings.shield).toEqual(state.buildings.shield);
     expect(loaded.completedMissionRunIds).toEqual(['run-one']);
+    expect(loaded.collectedEarthSupplyIds).toEqual([]);
     expect(loaded.xp).toBe(35);
     expect(loaded.scene).toBe('moon-base');
     expect(loaded.astronaut.position).toEqual(initial.astronaut.position);
@@ -57,7 +58,24 @@ describe('A11 browser save and recovery', () => {
     expect(parseSave(envelope({ ...initial, resources: { ...initial.resources, food: 101 } }))).toBeNull();
     expect(parseSave(envelope({ ...initial, astronaut: { ...initial.astronaut, health: -1 } }))).toBeNull();
     expect(parseSave(envelope({ ...initial, completedMissionRunIds: ['duplicate', 'duplicate'] }))).toBeNull();
+    expect(parseSave(envelope({ ...initial, collectedEarthSupplyIds: ['unknown'] }))).toBeNull();
     expect(parseSave(JSON.stringify({ schemaVersion: SAVE_VERSION, savedAt: 'not-a-date', state: initial }))).toBeNull();
+  });
+
+  it('migrates a valid V1 save to V2 without erasing progress or creating collected cargo', () => {
+    const storage = memoryStorage();
+    const original = createInitialState();
+    const legacy = { ...original, day: 3, daysSurvived: 2, xp: 24 };
+    const { collectedEarthSupplyIds: _unused, ...v1State } = legacy;
+    storage.values.set(LEGACY_SAVE_KEY, envelope(v1State, 1));
+    const service = new SaveService(storage);
+    const loaded = service.load()!;
+    expect(loaded.day).toBe(3);
+    expect(loaded.xp).toBe(24);
+    expect(loaded.collectedEarthSupplyIds).toEqual([]);
+    expect(service.save(loaded)).toBe(true);
+    expect(storage.values.has(SAVE_KEY)).toBe(true);
+    expect(storage.values.has(LEGACY_SAVE_KEY)).toBe(false);
   });
 
   it('keeps the game playable when storage is unavailable or quota writes fail', () => {

@@ -1,7 +1,7 @@
 import type { GameAction } from '../models/GameAction';
 import type { AstronautState, GameState, MissionResult, MissionType, ResourceName, Resources } from '../models/types';
 import { BALANCE } from '../../game/config/balance';
-import { BUILDING_LAYOUT, MISSION_CONFIG, WORLD } from '../../game/config/gameConfig';
+import { BUILDING_LAYOUT, EARTH_SUPPLY_DELIVERIES, MISSION_CONFIG, WORLD } from '../../game/config/gameConfig';
 import type { MissionSpec } from '../../game/config/gameConfig';
 import { advanceSurvivalDay, applyEnvironmentalDamage, clamp, createInitialState, tickSurvival, trimNotices } from './survivalRules';
 import { EMERGENCY_CATALOG, repairOxygenLeak, resolveEmergency, tickEmergency, triggerEmergency } from './eventRules';
@@ -16,7 +16,7 @@ const buildingMessages: Record<string, string> = {
   greenhouse: 'Greenhouse ready! Plant seeds or collect your crop.',
   solar: 'Solar array ready! Check power and panel condition.',
   shield: 'Radiation shelter ready! Step inside for protection.',
-  landingPad: 'Landing pad ready! Supply missions unlock soon.',
+  landingPad: 'Landing pad ready! Chicken Hunt is open, and Earth cargo lands nearby.',
 };
 
 const numberIn = (value: unknown, min: number, max = Number.MAX_SAFE_INTEGER): value is number =>
@@ -87,6 +87,10 @@ export function validLoadedState(value: unknown): value is GameState {
     && Array.isArray(state.completedMissionRunIds)
     && state.completedMissionRunIds.every(validRunId)
     && new Set(state.completedMissionRunIds).size === state.completedMissionRunIds.length
+    && Array.isArray(state.collectedEarthSupplyIds)
+    && state.collectedEarthSupplyIds.every((id) => typeof id === 'string'
+      && EARTH_SUPPLY_DELIVERIES.some((delivery) => delivery.id === id && state.day! >= delivery.day))
+    && new Set(state.collectedEarthSupplyIds).size === state.collectedEarthSupplyIds.length
     && (state.activeMission === null || (typeof state.activeMission === 'string' && Object.prototype.hasOwnProperty.call(MISSION_CONFIG, state.activeMission)))
     && (state.activeMissionRunId === null || validRunId(state.activeMissionRunId))
     && (state.activeMission === null) === (state.activeMissionRunId === null)
@@ -238,6 +242,17 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
     }
     case 'ADVANCE_DAY':
       return state.activeEvent ? state : triggerEmergency(advanceSurvivalDay(state));
+    case 'COLLECT_EARTH_SUPPLY': {
+      const delivery = EARTH_SUPPLY_DELIVERIES.find((entry) => entry.id === action.deliveryId);
+      const water = BALANCE.earthSupply.waterPerPod;
+      if (!delivery || state.scene !== 'moon-base' || state.activeMission || state.astronaut.location !== 'outside'
+        || state.day < delivery.day || state.collectedEarthSupplyIds.includes(delivery.id)
+        || state.resources.water + water > 100
+        || Math.hypot(state.astronaut.position.x - delivery.x, state.astronaut.position.y - delivery.y) > BALANCE.earthSupply.interactionRadius) return state;
+      return withNotice({ ...state, resources: { ...state.resources, water: state.resources.water + water },
+        collectedEarthSupplyIds: [...state.collectedEarthSupplyIds, delivery.id] },
+      `+${water} Water — Earth Supply Received!`, 'good');
+    }
     case 'PLANT_CROP': {
       const greenhouse = state.buildings.greenhouse;
       const cost = BALANCE.greenhouse;

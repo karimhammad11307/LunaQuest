@@ -6,8 +6,9 @@ import { createInitialState, trimNotices } from '../domain/rules/survivalRules';
 import { BALANCE } from '../game/config/balance';
 import { SPAWN_POINT } from '../game/config/gameConfig';
 
-export const SAVE_KEY = 'moonbound.session.v1';
-export const SAVE_VERSION = 1;
+export const SAVE_KEY = 'moonbound.session.v2';
+export const SAVE_VERSION = 2;
+export const LEGACY_SAVE_KEY = 'moonbound.session.v1';
 const DEFERRED_SAVE_MS = 5000;
 
 interface StoragePort {
@@ -58,9 +59,12 @@ export function parseSave(raw: string): GameState | null {
     const envelope: unknown = JSON.parse(raw);
     if (!envelope || typeof envelope !== 'object') return null;
     const candidate = envelope as Partial<SaveEnvelope>;
-    if (candidate.schemaVersion !== SAVE_VERSION || typeof candidate.savedAt !== 'string'
-      || !Number.isFinite(Date.parse(candidate.savedAt)) || !validLoadedState(candidate.state)) return null;
-    const recovered = recoverSavedState(candidate.state);
+    if (typeof candidate.savedAt !== 'string' || !Number.isFinite(Date.parse(candidate.savedAt))) return null;
+    // V1 had no Earth cargo ledger. Existing progress migrates with all due pods uncollected.
+    const state = candidate.schemaVersion === 1 && candidate.state && typeof candidate.state === 'object'
+      ? { ...candidate.state, collectedEarthSupplyIds: [] } : candidate.schemaVersion === SAVE_VERSION ? candidate.state : null;
+    if (!validLoadedState(state)) return null;
+    const recovered = recoverSavedState(state);
     return validLoadedState(recovered) ? recovered : null;
   } catch {
     return null;
@@ -86,7 +90,7 @@ export class SaveService {
 
   load(): GameState | null {
     try {
-      const raw = this.storage?.getItem(SAVE_KEY);
+      const raw = this.storage?.getItem(SAVE_KEY) ?? this.storage?.getItem(LEGACY_SAVE_KEY);
       return raw ? parseSave(raw) : null;
     } catch { return null; }
   }
@@ -96,6 +100,7 @@ export class SaveService {
     try {
       const envelope: SaveEnvelope = { schemaVersion: SAVE_VERSION, savedAt: new Date().toISOString(), state };
       this.storage.setItem(SAVE_KEY, JSON.stringify(envelope));
+      try { this.storage.removeItem(LEGACY_SAVE_KEY); } catch { /* new save is already durable */ }
       return true;
     } catch { return false; }
   }
@@ -103,7 +108,8 @@ export class SaveService {
   clear(): void {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
-    try { this.storage?.removeItem(SAVE_KEY); } catch { /* gameplay continues without storage */ }
+    try { this.storage?.removeItem(SAVE_KEY); this.storage?.removeItem(LEGACY_SAVE_KEY); }
+    catch { /* gameplay continues without storage */ }
   }
 
   /** One subscription. High-frequency movement/ticks coalesce into one write per window. */
