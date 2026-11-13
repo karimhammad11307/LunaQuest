@@ -109,7 +109,7 @@ describe('Feature 3 survival and building actions', () => {
     const home = habitat();
     const poor = { ...home, resources: { food: 1, water: 1, oxygen: 1, energy: 1 } };
     const day = reduceGameState(poor, { type: 'ADVANCE_DAY' });
-    expect(day.resources).toEqual({ food: 0, water: 0, oxygen: 0, energy: 0 });
+    expect(day.resources).toEqual({ food: 0, water: 0, oxygen: 0, energy: BALANCE.solarDailyYield });
     expect(day.astronaut.health).toBe(100 - BALANCE.health.starvePerDay - BALANCE.health.dehydratePerDay - BALANCE.health.lifeSupportFailurePerDay);
     expect(day.lastDaySummary?.warnings).toHaveLength(3);
     const defeated = reduceGameState({ ...poor, astronaut: { ...poor.astronaut, health: 10 } }, { type: 'ADVANCE_DAY' });

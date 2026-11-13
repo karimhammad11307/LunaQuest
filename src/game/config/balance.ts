@@ -27,10 +27,10 @@ export const BALANCE = {
     energy: 5,
   },
 
-  /** Solar array produces this each day when healthy. */
+  /** Simplified illuminated workday: one charge on ADVANCE_DAY, no lunar day/night model. */
   solarDailyYield: 16,
-  /** Manual "collect power" interaction. */
-  solarCollectYield: 7,
+  /** Damaged panels produce half yield; broken or inactive panels produce zero. */
+  solarDamagedEfficiency: 0.5,
 
   /** Real-time outdoor drain (per second while outside the habitat). */
   suitOxygenDrainPerSecond: 0.45,
@@ -48,6 +48,7 @@ export const BALANCE = {
   greenhouse: {
     waterCost: 10,
     energyCost: 4,
+    /** One full day from planted seed to harvest-ready crop. */
     growthPerDay: 1,
     foodYield: 26,
     oxygenYield: 4,
@@ -67,10 +68,6 @@ export const BALANCE = {
     healAmount: 12,
     eatFoodCost: 10,
     eatHealAmount: 20,
-  },
-
-  solar: {
-    collectEnergyCost: 0,
   },
 
   repair: {

@@ -4,6 +4,7 @@ import { PALETTE as C } from '../config/palette';
 import { Building } from '../entities/Building';
 import { Astronaut } from '../entities/Astronaut';
 import type { GameSessionStore } from '../../domain/store/GameSessionStore';
+import type { GameState } from '../../domain/models/types';
 
 export class MoonBaseScene extends Phaser.Scene {
   private store: GameSessionStore;
@@ -16,6 +17,8 @@ export class MoonBaseScene extends Phaser.Scene {
   private lastPositionSync = 0;
   private survivalTime = 0;
   private previousStatus: 'playing' | 'victory' | 'defeat' = 'playing';
+  private previousState!: GameState;
+  private unsubscribeStore?: () => void;
 
   constructor(store: GameSessionStore) {
     super('MoonBaseScene');
@@ -28,6 +31,8 @@ export class MoonBaseScene extends Phaser.Scene {
     this.drawWorld();
 
     this.buildings = BUILDING_LAYOUT.map((entry) => new Building(this, entry));
+    this.previousState = this.store.getState();
+    this.buildings.forEach((building) => building.syncState(this.previousState.buildings[building.entry.id], this.previousState.resources.energy));
     this.astronaut = new Astronaut(this, SPAWN_POINT.x, SPAWN_POINT.y);
     this.astronaut.setDepth(SPAWN_POINT.y + 12);
     this.buildings.forEach((b) => this.physics.add.collider(this.astronaut, b.collision));
@@ -60,6 +65,8 @@ export class MoonBaseScene extends Phaser.Scene {
       backgroundColor: C.outline, padding: { x: 9, y: 5 },
     }).setOrigin(0.5, 1).setScrollFactor(0).setDepth(3000).setVisible(false);
     this.message.setResolution(2);
+    this.unsubscribeStore = this.store.subscribe(this.onStoreState);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.unsubscribeStore?.());
 
     this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height);
     this.cameras.main.startFollow(this.astronaut, true, 0.08, 0.08);
@@ -162,6 +169,65 @@ export class MoonBaseScene extends Phaser.Scene {
     this.messageTimer?.remove(false);
     this.message.setText(value).setVisible(true);
     this.messageTimer = this.time.delayedCall(duration, () => this.message.setVisible(false));
+  }
+
+  private onStoreState = (state: GameState): void => {
+    const before = this.previousState;
+    this.previousState = state;
+    for (const building of this.buildings) {
+      if (before.buildings[building.entry.id] !== state.buildings[building.entry.id]
+        || (building.entry.id === 'shield' && before.resources.energy !== state.resources.energy)) {
+        building.syncState(state.buildings[building.entry.id], state.resources.energy);
+      }
+    }
+    if (before.status !== 'playing' || state.status !== 'playing') return;
+    const greenhouse = this.buildings.find((building) => building.entry.id === 'greenhouse')!;
+    const solar = this.buildings.find((building) => building.entry.id === 'solar')!;
+    const shield = this.buildings.find((building) => building.entry.id === 'shield')!;
+    if (!before.buildings.greenhouse.cropPlanted && state.buildings.greenhouse.cropPlanted) {
+      this.pixelBurst(greenhouse, 0x80e5a0);
+      this.floatText(greenhouse, 'SEEDS PLANTED', '#80E5A0');
+    } else if (before.buildings.greenhouse.cropPlanted && !state.buildings.greenhouse.cropPlanted) {
+      this.pixelBurst(greenhouse, 0xffd75e);
+      this.floatText(greenhouse, `+${state.resources.food - before.resources.food} FOOD  +${state.xp - before.xp} XP`, '#FFD75E');
+    } else if (before.buildings.greenhouse.cropGrowth < 1 && state.buildings.greenhouse.cropGrowth >= 1) {
+      this.pixelBurst(greenhouse, 0x80e5a0);
+      this.floatText(greenhouse, 'CROP READY!', '#80E5A0');
+    }
+    if (state.daysSurvived > before.daysSurvived && state.lastDaySummary && state.lastDaySummary.energyProduced > 0) {
+      this.pixelBurst(solar, 0x4edce5);
+      this.floatText(solar, `+${state.lastDaySummary.energyProduced} ENERGY`, '#4EDCE5');
+    }
+    if (before.buildings.shield.active !== state.buildings.shield.active) {
+      this.pixelBurst(shield, state.buildings.shield.active ? 0x8067da : 0xff6b81);
+      this.floatText(shield, state.buildings.shield.active ? 'SHIELD ON' : 'SHIELD OFF', state.buildings.shield.active ? '#B9A7F5' : '#FF6B81');
+    }
+    for (const building of this.buildings) {
+      const id = building.entry.id;
+      if (before.buildings[id].condition !== 'good' && state.buildings[id].condition === 'good') {
+        this.pixelBurst(building, 0xffd75e);
+        this.floatText(building, 'REPAIRED!', '#FFD75E');
+      }
+    }
+  };
+
+  private pixelBurst(building: Building, color: number): void {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const offsets = [[-22, -44], [-10, -53], [0, -55], [12, -50], [23, -41], [-16, -30], [16, -29]];
+    offsets.forEach(([x, y], index) => {
+      const pixel = this.add.rectangle(building.x + x, building.y + y, 4, 4, color).setDepth(building.depth + 40);
+      this.tweens.add({ targets: pixel, x: pixel.x + (index - 3) * 3, y: pixel.y - 14 - index % 3 * 4,
+        alpha: 0, duration: 520 + index * 45, onComplete: () => pixel.destroy() });
+    });
+  }
+
+  private floatText(building: Building, value: string, color: string): void {
+    const label = this.add.text(building.x, building.y - 65, value, {
+      fontFamily: 'monospace', fontSize: '10px', fontStyle: 'bold', color,
+      backgroundColor: C.outline, padding: { x: 5, y: 3 },
+    }).setOrigin(0.5).setDepth(building.depth + 50);
+    label.setResolution(2);
+    this.tweens.add({ targets: label, y: label.y - 20, alpha: 0, duration: 1050, onComplete: () => label.destroy() });
   }
 
   private isNear(building: Building): boolean {

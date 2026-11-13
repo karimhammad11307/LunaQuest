@@ -128,6 +128,26 @@ function astronaut(c: CanvasRenderingContext2D, direction: string, frameNo: numb
   box(c, 6, 23, 3, 2, C.cyan); box(c, 17, 23, 3, 2, C.cyan);
 }
 
+function crop(c: CanvasRenderingContext2D, stage: 'seed' | 'sprout' | 'ready') {
+  box(c, 1, 16, 22, 4, C.outline);
+  box(c, 3, 15, 18, 3, C.metalDark);
+  box(c, 7, 13, 10, 3, C.terrainDark);
+  if (stage === 'seed') {
+    box(c, 10, 11, 4, 3, C.yellow);
+    box(c, 11, 10, 2, 1, C.suitWhite);
+    return;
+  }
+  box(c, 11, stage === 'ready' ? 3 : 9, 2, stage === 'ready' ? 12 : 6, C.greenDark);
+  box(c, 7, stage === 'ready' ? 5 : 9, 5, 4, C.green);
+  box(c, 12, stage === 'ready' ? 3 : 8, 6, 4, C.greenDim);
+  if (stage === 'ready') {
+    box(c, 8, 1, 7, 3, C.green);
+    box(c, 9, 6, 3, 3, C.yellow);
+    box(c, 15, 8, 3, 3, C.yellow);
+    box(c, 10, 1, 2, 1, C.suitWhite);
+  }
+}
+
 /** Original authored canvas sprites, each registered as its own Phaser texture. */
 export function createPixelArt(scene: Phaser.Scene): void {
   texture(scene, 'ground-a', 32, 32, (c) => {
@@ -159,6 +179,9 @@ export function createPixelArt(scene: Phaser.Scene): void {
   texture(scene, TEXTURES.building('solar'), 100, 74, solar);
   texture(scene, TEXTURES.building('shield'), 104, 80, shield);
   texture(scene, TEXTURES.building('landingPad'), 116, 68, landingPad);
+  for (const stage of ['seed', 'sprout', 'ready'] as const) {
+    texture(scene, `crop-${stage}`, 24, 20, (c) => crop(c, stage));
+  }
   for (const dir of ['down', 'up', 'left', 'right']) {
     for (let frameNo = 0; frameNo < 2; frameNo++) {
       texture(scene, TEXTURES.astronaut(dir, frameNo), 26, 32, (c) => astronaut(c, dir, frameNo));

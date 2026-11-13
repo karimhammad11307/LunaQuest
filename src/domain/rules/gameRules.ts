@@ -12,8 +12,8 @@ const statusFields: (keyof Pick<AstronautState, 'health' | 'suitOxygen' | 'therm
 ];
 const buildingMessages: Record<string, string> = {
   habitat: 'Habitat online! Your crew has a safe home.',
-  greenhouse: 'Greenhouse ready! Farming unlocks soon.',
-  solar: 'Solar array ready! Check stored energy.',
+  greenhouse: 'Greenhouse ready! Plant seeds or collect your crop.',
+  solar: 'Solar array ready! Check power and panel condition.',
   shield: 'Radiation shelter ready! Step inside for protection.',
   landingPad: 'Landing pad ready! Supply missions unlock soon.',
 };
@@ -110,6 +110,8 @@ function validLoadedState(value: unknown): value is GameState {
     && (state.lastDaySummary === null || (!!state.lastDaySummary && Number.isInteger(state.lastDaySummary.day)
       && numberIn(state.lastDaySummary.day, 1, BALANCE.dayLimit)
       && resources.every((name) => numberIn(state.lastDaySummary?.[name], 0, 100))
+      && numberIn(state.lastDaySummary.energyProduced, 0, 100)
+      && numberIn(state.lastDaySummary.shieldEnergyUsed, 0, 100)
       && numberIn(state.lastDaySummary.healthLost, 0, 100)
       && Array.isArray(state.lastDaySummary.warnings)
       && state.lastDaySummary.warnings.every((warning) => typeof warning === 'string')))
@@ -119,6 +121,14 @@ function validLoadedState(value: unknown): value is GameState {
 
 /** Pure, deterministic action handling. Invalid actions return the identical state object. */
 export function reduceGameState(state: GameState, action: GameAction, missions: MissionCatalog = MISSION_CONFIG): GameState {
+  const next = reduceGameStateCore(state, action, missions);
+  if (next === state || !next.buildings.shield.active) return next;
+  if (next.resources.energy > 0 && next.buildings.shield.condition === 'good') return next;
+  return withNotice({ ...next, buildings: { ...next.buildings,
+    shield: { ...next.buildings.shield, active: false } } }, 'Shield lost power or needs repair!', 'warn');
+}
+
+function reduceGameStateCore(state: GameState, action: GameAction, missions: MissionCatalog): GameState {
   if (!action || typeof action !== 'object' || typeof action.type !== 'string') return state;
   if (action.type === 'LOAD_GAME') return validLoadedState(action.state) ? action.state : state;
   if (action.type === 'RESTART_GAME') return createInitialState();
@@ -180,6 +190,46 @@ export function reduceGameState(state: GameState, action: GameAction, missions: 
     }
     case 'ADVANCE_DAY':
       return advanceSurvivalDay(state);
+    case 'PLANT_CROP': {
+      const greenhouse = state.buildings.greenhouse;
+      const cost = BALANCE.greenhouse;
+      if (state.activeMission || state.selectedBuildingId !== 'greenhouse' || state.astronaut.location !== 'outside'
+        || greenhouse.cropPlanted || !greenhouse.active || greenhouse.condition !== 'good'
+        || state.resources.water < cost.waterCost || state.resources.energy < cost.energyCost) return state;
+      return withNotice({ ...state, resources: { ...state.resources, water: state.resources.water - cost.waterCost,
+        energy: state.resources.energy - cost.energyCost },
+      buildings: { ...state.buildings, greenhouse: { ...greenhouse, cropPlanted: true, cropGrowth: 0 } } }, 'Seeds planted! Give them one day to grow.', 'good');
+    }
+    case 'HARVEST_CROP': {
+      const greenhouse = state.buildings.greenhouse;
+      if (state.activeMission || state.selectedBuildingId !== 'greenhouse' || state.astronaut.location !== 'outside'
+        || !greenhouse.cropPlanted || greenhouse.cropGrowth < 1 || !greenhouse.active || greenhouse.condition !== 'good') return state;
+      const food = clamp(state.resources.food + BALANCE.greenhouse.foodYield);
+      const oxygen = clamp(state.resources.oxygen + BALANCE.greenhouse.oxygenYield);
+      if (food === state.resources.food && oxygen === state.resources.oxygen) return state;
+      if (!Number.isSafeInteger(state.xp + BALANCE.xp.supplies)) return state;
+      return withNotice({ ...state, resources: { ...state.resources, food, oxygen }, xp: state.xp + BALANCE.xp.supplies,
+        buildings: { ...state.buildings, greenhouse: { ...greenhouse, cropPlanted: false, cropGrowth: 0 } } },
+      `Food collected! +${food - state.resources.food} food, +${oxygen - state.resources.oxygen} base O₂, +${BALANCE.xp.supplies} XP.`, 'good');
+    }
+    case 'ACTIVATE_SHIELD': {
+      const shield = state.buildings.shield;
+      if (state.activeMission || state.selectedBuildingId !== 'shield' || typeof action.active !== 'boolean'
+        || (state.astronaut.location !== 'outside' && state.astronaut.location !== 'shelter')
+        || shield.active === action.active) return state;
+      if (!action.active) return withNotice({ ...state, buildings: { ...state.buildings, shield: { ...shield, active: false } } }, 'Shield switched off. No energy returned.', 'info');
+      if (shield.condition !== 'good' || state.resources.energy < BALANCE.shield.activationEnergy + BALANCE.shield.dailyEnergyUpkeep) return state;
+      return withNotice({ ...state, resources: { ...state.resources, energy: state.resources.energy - BALANCE.shield.activationEnergy },
+        buildings: { ...state.buildings, shield: { ...shield, active: true } } }, 'Shield activated! It uses energy each day.', 'good');
+    }
+    case 'REPAIR_BUILDING': {
+      if (state.activeMission || typeof action.buildingId !== 'string' || state.selectedBuildingId !== action.buildingId) return state;
+      const building = state.buildings[action.buildingId];
+      if (!building || building.condition === 'good' || state.resources.energy < BALANCE.repair.energyCost) return state;
+      return withNotice({ ...state, resources: { ...state.resources, energy: state.resources.energy - BALANCE.repair.energyCost },
+        buildings: { ...state.buildings, [action.buildingId]: { ...building, condition: BALANCE.repair.conditionAfterRepair,
+          active: building.type === 'shield' ? false : true } } }, `${building.type} repaired! Systems operational.`, 'good');
+    }
     case 'APPLY_ENVIRONMENTAL_EXPOSURE':
       return applyEnvironmentalDamage(state, action.damage);
     case 'COLLECT_RESOURCE': {
@@ -263,7 +313,7 @@ export function reduceGameState(state: GameState, action: GameAction, missions: 
       return withNotice(next, rewarded ? `Mission returned! +${awardedXp} XP` : 'Mission ended. Crew returned without supplies.', rewarded ? 'good' : 'warn');
     }
     default:
-      // Farming, shielding upgrades and incidents belong to later features.
+      // Incidents and mission scenes belong to later features.
       return state;
   }
 }

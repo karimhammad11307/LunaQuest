@@ -50,15 +50,11 @@ export interface BuildingState {
   condition: BuildingCondition;
   /** Currently powered / operating. */
   active: boolean;
-  /** Greenhouse crop growth 0–1 when type === 'greenhouse'. */
+  /** Greenhouse crop growth 0–1: seed at 0, sprout during day transition, ready at 1. */
   cropGrowth: number;
   /** Crop planted (greenhouse only). */
   cropPlanted: boolean;
-  /**
-   * Day index on which a once-per-day interaction (solar collection) was
-   * last used. Optional so Developer B's code can construct BuildingState
-   * without it.
-   */
+  /** Reserved for an optional future once-per-day manual collection mechanic. */
   lastCollectedDay?: number;
 }
 
@@ -135,7 +131,18 @@ export interface GameState {
   weather: WeatherStatus;
   status: GameStatus;
   selectedBuildingId: string | null;
-  lastDaySummary: { day: number; food: number; water: number; oxygen: number; energy: number; healthLost: number; warnings: string[] } | null;
+  lastDaySummary: {
+    day: number;
+    food: number;
+    water: number;
+    oxygen: number;
+    energy: number;
+    /** Actual solar charge stored after capacity clamping. */
+    energyProduced: number;
+    shieldEnergyUsed: number;
+    healthLost: number;
+    warnings: string[];
+  } | null;
   /** Message log entries for HUD feedback (most recent last). */
   notices: { id: number; text: string; tone: 'info' | 'good' | 'warn' }[];
 }
