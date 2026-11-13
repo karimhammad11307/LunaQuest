@@ -6,11 +6,13 @@ import type { MissionCatalog } from '../rules/gameRules';
 import { MISSION_CONFIG } from '../../game/config/gameConfig';
 
 type Listener = (state: GameState) => void;
+type TransitionListener = (state: GameState, action: GameAction) => void;
 
 /** Single state owner shared by the Phaser scene and React HUD. */
 export class GameSessionStore {
   private state: GameState;
   private listeners = new Set<Listener>();
+  private transitionListeners = new Set<TransitionListener>();
   private readonly missions: MissionCatalog;
   private destroyed = false;
 
@@ -27,6 +29,13 @@ export class GameSessionStore {
     return () => this.listeners.delete(listener);
   };
 
+  /** Action-aware notification for persistence; React's state subscription stays unchanged. */
+  subscribeTransitions = (listener: TransitionListener): (() => void) => {
+    if (this.destroyed) return () => {};
+    this.transitionListeners.add(listener);
+    return () => this.transitionListeners.delete(listener);
+  };
+
   /** Returns the current state; rejected actions retain its object identity. */
   dispatch = (action: GameAction): GameState => {
     if (this.destroyed) return this.state;
@@ -34,6 +43,7 @@ export class GameSessionStore {
     if (next !== this.state) {
       this.state = next;
       this.listeners.forEach((listener) => listener(next));
+      this.transitionListeners.forEach((listener) => listener(next, action));
     }
     return this.state;
   };
@@ -41,5 +51,6 @@ export class GameSessionStore {
   destroy(): void {
     this.destroyed = true;
     this.listeners.clear();
+    this.transitionListeners.clear();
   }
 }

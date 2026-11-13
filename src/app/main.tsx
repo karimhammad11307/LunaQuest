@@ -11,10 +11,13 @@ import type { GameAction } from '../domain/models/GameAction';
 import type { GameSceneId } from '../domain/models/types';
 import { solarYieldForDay } from '../domain/rules/survivalRules';
 import { NASAWeatherService } from '../services/NASAWeatherService';
+import { SaveService } from '../services/SaveService';
 import './style.css';
 
 const store = new GameSessionStore();
 const weatherService = new NASAWeatherService({ apiKey: import.meta.env.VITE_NASA_API_KEY });
+const saveService = new SaveService();
+const savedAtStartup = saveService.load();
 
 function Meter({ label, icon, value, color, low = false, ariaLabel }: { label: string; icon: string; value: number; color: string; low?: boolean; ariaLabel?: string }) {
   return <div className={`meter${low ? ' meter-low' : ''}`} aria-label={`${ariaLabel ?? label}: ${Math.round(value)} of 100 game units`}>
@@ -66,12 +69,20 @@ function GameContainer({ sceneId, runId, paused }: { sceneId: GameSceneId; runId
 
 function App() {
   const state = useSyncExternalStore(store.subscribe, store.getState);
+  const [sessionReady, setSessionReady] = useState(!savedAtStartup);
+  const [confirmNewGame, setConfirmNewGame] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [actionFeedback, setActionFeedback] = useState('');
   const [showWeather, setShowWeather] = useState(false);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [dismissedMissionRunId, setDismissedMissionRunId] = useState<string | null>(null);
   const weatherRequest = useRef(0);
+  useEffect(() => {
+    if (!sessionReady) return;
+    const detach = saveService.attach(store);
+    saveService.save(store.getState());
+    return detach;
+  }, [sessionReady]);
   const notice = state.notices.at(-1)?.text ?? '';
   const selected = state.selectedBuildingId;
   const building = selected ? state.buildings[selected] : null;
@@ -88,9 +99,10 @@ function App() {
     }
   };
   useEffect(() => {
+    if (!sessionReady) return;
     void loadWeather(import.meta.env.VITE_NASA_DATA_MODE === 'live' ? 'live' : 'demo');
     return () => { weatherRequest.current += 1; };
-  }, []);
+  }, [sessionReady]);
   useEffect(() => setActionFeedback(''), [selected]);
   const dispatch = (action: GameAction, rejected: string) => {
     const before = store.getState();
@@ -100,6 +112,7 @@ function App() {
   useEffect(() => {
     const onEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+      if (!sessionReady) return;
       const current = store.getState();
       if (showHelp) setShowHelp(false);
       else if (current.paused) store.dispatch({ type: 'SET_PAUSED', paused: false });
@@ -108,8 +121,21 @@ function App() {
     };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
-  }, [showHelp]);
+  }, [showHelp, sessionReady]);
   const virtualInput = (direction: string | null) => window.dispatchEvent(new CustomEvent('moonbound-input', { detail: direction }));
+  const startNewGame = () => {
+    saveService.clear();
+    store.dispatch({ type: 'RESTART_GAME' });
+    saveService.save(store.getState());
+    setSessionReady(true);
+  };
+  const continueGame = () => {
+    const restored = saveService.load();
+    if (!restored) { startNewGame(); return; }
+    store.dispatch({ type: 'LOAD_GAME', state: restored });
+    setSessionReady(true);
+  };
+  if (!sessionReady) return <main className="app-shell"><div className="game-frame"><header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div></header><div className="save-start"><div className="save-start-panel"><strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong><p>Day {savedAtStartup?.day} · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p>{confirmNewGame ? <><p>Your saved progress will be replaced.</p><button type="button" onClick={startNewGame}>Replace Save &amp; Start</button><button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></> : <><p>Your Moon Base is waiting.</p><button type="button" onClick={continueGame}>Continue Game</button><button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button><small>New Game replaces this saved mission.</small></>}</div></div></div></main>;
   return (
     <main className="app-shell"><div className="game-frame">
       <header className="masthead">

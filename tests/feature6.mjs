@@ -56,6 +56,7 @@ await page.unroute(/api\.nasa\.gov\/DONKI\//);
 await page.route(/api\.nasa\.gov\/DONKI\//, (route) => route.abort('internetdisconnected'));
 await page.reload();
 await page.waitForLoadState('networkidle');
+await page.getByRole('button', { name: 'Continue Game' }).click();
 await page.getByRole('button', { name: 'Space Weather' }).click();
 await page.getByRole('button', { name: 'Try NASA live' }).click();
 await page.getByText(/Live data unavailable: offline/).waitFor();

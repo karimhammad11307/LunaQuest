@@ -55,7 +55,7 @@ function validMissionResult(value: unknown): value is MissionResult {
     && result.educationalMessage.length <= 240;
 }
 
-function validLoadedState(value: unknown): value is GameState {
+export function validLoadedState(value: unknown): value is GameState {
   if (!value || typeof value !== 'object') return false;
   const state = value as Partial<GameState>;
   const sceneIds = ['title', 'moon-base', 'chicken-hunt', 'ice-collection', 'result'];
