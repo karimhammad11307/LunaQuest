@@ -138,11 +138,57 @@ No code change is needed in B's files for this.
 
 ---
 
-## Known limitations (intentional for Phase 1)
+## Phase 2 Implementation Status (Completed)
 
-- No gameplay entities (ship, enemies) exist yet — added in Phase 2.
-- No HUD, timer, or score display — added in Phase 3.
-- `IceCollectionScene` does not exist yet — added in Phase 4 (B9).
-- Animation frame registration is complete; Phaser `anims.create()`
-  calls are added in Phase 2 to avoid creating animations before the
-  scene is active.
+- **B3 — Spaceship Entity (`src/game/entities/Spaceship.ts`):**
+  - Smooth WASD + arrow keys movement with normalized diagonal speed.
+  - Strict boundary clamping inside 640×360 logical viewport.
+  - Fire cooldown throttling (280ms) and continuous fire on Spacebar hold.
+  - Invulnerability window (1200ms) with visual alpha flicker feedback.
+  - Health tracking (3 HP max) and destruction callback.
+
+- **B4 — AlienBird Entity (`src/game/entities/AlienBird.ts`):**
+  - Two variants: Variant A (1 HP, coral), Variant B (2 HP, purple armoured).
+  - Two deterministic patterns: Pattern A (Sine Wave with edge bouncing), Pattern B (3-phase Swoop).
+  - Deterministic wave table in `ChickenHuntCombat.ts` with 6 curated wave formations.
+  - Off-screen culling and pooling lifecycle.
+
+- **B5 — Combat & Collision (`src/game/systems/ChickenHuntCombat.ts`):**
+  - Bounded Arcade Physics projectile pool (24 lasers) with automatic off-screen recycling.
+  - Overlap detection for Player Lasers ↔ Alien Birds with instantaneous laser consumption.
+  - Overlap detection for Alien Birds ↔ Spaceship with contact damage and invulnerability protection.
+  - Food counter accumulation and impact burst visual feedback.
+
+---
+
+## Phase 3 Implementation Status (Completed)
+
+- **B6 — Collectibles & Rewards (`src/game/entities/Collectible.ts`):**
+  - 25-item Arcade Physics object pool using `arcade-food-grain` (12×12 px).
+  - Food drop creation on enemy defeat (1 food for Variant A, 2 food for Variant B).
+  - Smooth magnet attraction physics when player ship enters 75px radius.
+  - Atomic pickup prevention (`isCollected` flag ensures exactly-once banking).
+  - Floating `+1 FOOD` / `+2 FOOD` feedback text on pickup.
+  - Automatic 12-second lifetime and off-screen culling.
+
+- **B7 — Mission Timer & Failure States:**
+  - 35-second mission countdown timer with low-time visual urgency styling (< 10s turns coral).
+  - On-screen interactive `[RETURN TO BASE]` button at top right for voluntary safe early exit.
+  - Live HUD display for remaining time, local food counter, and ship hull health pips.
+  - Safe pause and resume support preserving mission time and collected cargo.
+
+- **B8 — MissionResult Emission & Exit Contract:**
+  - Single centralized mission completion coordinator with atomic state machine (`READY` -> `ACTIVE` -> `COMPLETING` -> `COMPLETED`).
+  - First-exit-wins protection against all race conditions (timer vs lethal damage vs button clicks).
+  - Full adherence to locked game-design rules:
+    - *Timer expires / Return early:* 100% of collected food banked, safe return.
+    - *Ship destroyed:* 0 food banked, repair damage applied, encouraging educational message.
+  - Exactly-once dispatch of `{ type: 'COMPLETE_MISSION', result: MissionResult }`.
+
+---
+
+## Known limitations (intentional for Phase 3)
+
+- `IceCollectionScene` — added in Phase 4 (B9).
+- SFX and Web Audio synthesis — added in Phase 5 (B11).
+- End-to-end browser integration playthrough — added in Phase 5 (B12–B14).
