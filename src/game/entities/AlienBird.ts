@@ -101,11 +101,13 @@ export class AlienBird {
     this.sprite.setDepth(8);
 
     // Trim body for fair hitboxes
-    this.sprite.body!.setSize(
-      this.sprite.width  - BIRD_CONFIG.bodyInset * 2,
-      this.sprite.height - BIRD_CONFIG.bodyInset * 2,
-    );
-    this.sprite.body!.setOffset(BIRD_CONFIG.bodyInset, BIRD_CONFIG.bodyInset);
+    if (this.sprite.body) {
+      this.sprite.body.setSize(
+        this.sprite.width  - BIRD_CONFIG.bodyInset * 2,
+        this.sprite.height - BIRD_CONFIG.bodyInset * 2,
+      );
+      this.sprite.body.setOffset(BIRD_CONFIG.bodyInset, BIRD_CONFIG.bodyInset);
+    }
 
     const hpIndex = variant === 'A' ? 0 : 1;
     this.maxHealth = BIRD_CONFIG.health[hpIndex];
@@ -156,7 +158,10 @@ export class AlienBird {
     this.sprite.setActive(true).setVisible(true);
     this.sprite.setAlpha(1);
     this.sprite.clearTint();
-    (this.sprite.body as Phaser.Physics.Arcade.Body).enable = true;
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body | undefined;
+    if (body) {
+      body.enable = true;
+    }
     this.sprite.setFrame(0); // idle frame
   }
 
@@ -171,7 +176,7 @@ export class AlienBird {
     // Brief red flash
     this.sprite.setTint(0xff4444);
     this.scene.time.delayedCall(80, () => {
-      if (this._isAlive) this.sprite.clearTint();
+      if (this._isAlive && this.sprite?.active) this.sprite.clearTint();
     });
 
     if (this.health <= 0) {
@@ -187,9 +192,14 @@ export class AlienBird {
    */
   deactivate(): void {
     this._isAlive = false;
-    this.sprite.setActive(false).setVisible(false);
-    (this.sprite.body as Phaser.Physics.Arcade.Body).enable = false;
-    (this.sprite.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+    if (this.sprite?.active) {
+      this.sprite.setActive(false).setVisible(false);
+    }
+    const body = this.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    if (body) {
+      body.enable = false;
+      body.setVelocity(0, 0);
+    }
   }
 
   /**
@@ -204,7 +214,8 @@ export class AlienBird {
     const dt = delta / 1000; // seconds
     this.timeAlive += dt;
 
-    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body | undefined;
+    if (!body) return;
 
     switch (this.pattern) {
       case 'sine-wave':
@@ -217,7 +228,9 @@ export class AlienBird {
 
     // Animate — alternate between frame 0 and 1 based on timeAlive
     const frame = Math.floor(this.timeAlive * 6) % 2;
-    this.sprite.setFrame(frame);
+    if (this.sprite.active) {
+      this.sprite.setFrame(frame);
+    }
 
     // Cull off-screen enemies
     if (this.sprite.y > viewH + Math.abs(BIRD_CONFIG.cullBelow)

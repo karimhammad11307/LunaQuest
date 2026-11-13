@@ -105,11 +105,13 @@ export class Spaceship {
 
     // ---- Trim physics body to actual visible ship hull ----
     // The 32×32 sprite has empty corner pixels; shrink body to avoid unfair hits.
-    this.sprite.body!.setSize(
-      this.sprite.width - SHIP_CONFIG.bodyInsetX * 2,
-      this.sprite.height - SHIP_CONFIG.bodyInsetY * 2,
-    );
-    this.sprite.body!.setOffset(SHIP_CONFIG.bodyInsetX, SHIP_CONFIG.bodyInsetY);
+    if (this.sprite.body) {
+      this.sprite.body.setSize(
+        this.sprite.width - SHIP_CONFIG.bodyInsetX * 2,
+        this.sprite.height - SHIP_CONFIG.bodyInsetY * 2,
+      );
+      this.sprite.body.setOffset(SHIP_CONFIG.bodyInsetX, SHIP_CONFIG.bodyInsetY);
+    }
 
     // ---- Animations (defined once; re-used every restart) ----
     this.ensureAnimations(scene);
@@ -194,8 +196,13 @@ export class Spaceship {
    */
   pause(): void {
     this.isActive = false;
-    (this.sprite.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
-    this.sprite.setFrame(SHIP_CONFIG.idleFrame);
+    const body = this.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    if (body) {
+      body.setVelocity(0, 0);
+    }
+    if (this.sprite?.active) {
+      this.sprite.setFrame(SHIP_CONFIG.idleFrame);
+    }
   }
 
   /**
@@ -224,7 +231,7 @@ export class Spaceship {
       if (this.spaceKey) this.scene.input.keyboard.removeKey(this.spaceKey);
     }
 
-    if (this.sprite.active) this.sprite.destroy();
+    if (this.sprite?.active) this.sprite.destroy();
   }
 
   // =========================================================================
@@ -251,7 +258,9 @@ export class Spaceship {
   private handleMovement(): void {
     if (!this.cursors || !this.wasd) return;
 
-    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    const body = this.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+    if (!body) return;
+
     let vx = 0;
     let vy = 0;
 

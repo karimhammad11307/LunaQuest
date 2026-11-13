@@ -575,7 +575,7 @@ export class ChickenHuntScene extends Phaser.Scene {
 
     // Destroy starfield
     for (const layer of this.starLayers) {
-      if (layer.tileSprite.active) layer.tileSprite.destroy();
+      if (layer?.tileSprite?.active) layer.tileSprite.destroy();
     }
     this.starLayers = [];
 
@@ -588,7 +588,7 @@ export class ChickenHuntScene extends Phaser.Scene {
 
     // Deactivate collectibles
     for (const c of this.collectibles) {
-      c.deactivate();
+      if (c) c.deactivate();
     }
     this.collectibles = [];
     if (this.collectibleGroup?.active) {

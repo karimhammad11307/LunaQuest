@@ -50,6 +50,33 @@ export class GameSessionStore {
         };
         break;
       }
+      case 'COMPLETE_MISSION': {
+        const foodAdded = action.result.collectedResources.food ?? 0;
+        const damage = action.result.healthDamage ?? 0;
+        this.noticeId += 1;
+        this.state = {
+          ...this.state,
+          resources: {
+            ...this.state.resources,
+            food: Math.min(100, this.state.resources.food + foodAdded),
+          },
+          astronaut: {
+            ...this.state.astronaut,
+            health: Math.max(0, this.state.astronaut.health - damage),
+          },
+          notices: trimNotices([
+            ...this.state.notices,
+            {
+              id: this.noticeId,
+              text: action.result.returnedSafely
+                ? `Mission complete! Banked +${foodAdded} food. (+${action.result.xpEarned} XP)`
+                : `Ship took damage! Returned to base.`,
+              tone: action.result.success ? 'good' : 'warning',
+            },
+          ]),
+        };
+        break;
+      }
       case 'LOAD_GAME':
         this.state = action.state;
         break;

@@ -213,14 +213,16 @@ export class ChickenHuntCombat {
     // Freeze all active bird bodies
     for (const bird of this.birds) {
       if (bird.isAlive) {
-        (bird.sprite.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+        const body = bird.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
+        if (body) body.setVelocity(0, 0);
       }
     }
     // Also freeze active lasers
-    this.laserGroup.getChildren().forEach((child) => {
+    this.laserGroup?.getChildren().forEach((child) => {
       const laser = child as Phaser.Physics.Arcade.Image;
       if (laser.active) {
-        (laser.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+        const body = laser.body as Phaser.Physics.Arcade.Body | undefined;
+        if (body) body.setVelocity(0, 0);
       }
     });
   }
@@ -234,10 +236,11 @@ export class ChickenHuntCombat {
       this.waveTimer.paused = false;
     }
     // Restore velocities for active lasers
-    this.laserGroup.getChildren().forEach((child) => {
+    this.laserGroup?.getChildren().forEach((child) => {
       const laser = child as Phaser.Physics.Arcade.Image;
       if (laser.active) {
-        (laser.body as Phaser.Physics.Arcade.Body).setVelocityY(COMBAT_CONFIG.laserSpeedY);
+        const body = laser.body as Phaser.Physics.Arcade.Body | undefined;
+        if (body) body.setVelocityY(COMBAT_CONFIG.laserSpeedY);
       }
     });
   }
@@ -298,8 +301,11 @@ export class ChickenHuntCombat {
 
     laser.setPosition(sx, sy);
     laser.setActive(true).setVisible(true);
-    (laser.body as Phaser.Physics.Arcade.Body).enable = true;
-    (laser.body as Phaser.Physics.Arcade.Body).setVelocityY(COMBAT_CONFIG.laserSpeedY);
+    const body = laser.body as Phaser.Physics.Arcade.Body | undefined;
+    if (body) {
+      body.enable = true;
+      body.setVelocityY(COMBAT_CONFIG.laserSpeedY);
+    }
   }
 
   /**
@@ -312,8 +318,11 @@ export class ChickenHuntCombat {
       const laser = child as Phaser.Physics.Arcade.Image;
       if (laser.active && (laser.y < -20 || laser.y > this.viewH + 20)) {
         laser.setActive(false).setVisible(false);
-        (laser.body as Phaser.Physics.Arcade.Body).enable = false;
-        (laser.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+        const body = laser.body as Phaser.Physics.Arcade.Body | undefined;
+        if (body) {
+          body.enable = false;
+          body.setVelocity(0, 0);
+        }
       }
     });
   }
@@ -406,8 +415,11 @@ export class ChickenHuntCombat {
 
         // Recycle laser immediately
         laser.setActive(false).setVisible(false);
-        (laser.body as Phaser.Physics.Arcade.Body).enable = false;
-        (laser.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+        const body = laser.body as Phaser.Physics.Arcade.Body | undefined;
+        if (body) {
+          body.enable = false;
+          body.setVelocity(0, 0);
+        }
 
         // Find the AlienBird wrapper for this sprite
         const bird = this.birds.find(b => b.sprite === birdSprite);
