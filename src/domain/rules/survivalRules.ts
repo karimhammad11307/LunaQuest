@@ -71,7 +71,7 @@ export function createInitialState(): GameState {
     status: 'playing',
     notices: [
       notice('Welcome to Moonbound! Walk with WASD or arrow keys.', 'info'),
-      notice('Press E near a building to interact. Watch suit oxygen!', 'info'),
+      notice('Press E near a building to interact. Visit all five!', 'info'),
     ],
   };
 }

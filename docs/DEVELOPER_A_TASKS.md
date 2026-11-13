@@ -4,6 +4,12 @@
 
 ## Ownership boundaries
 
+### Feature 1 progress (verified locally)
+
+The first playable Moon Base is implemented on `feat/base-survival`: Phaser boot/base scenes, individually generated pixel textures, the five separate building objects, astronaut movement and animation, static collisions, contextual interactions, and a React HUD subscribed to the shared state. A minimal `GameSessionStore` supports movement and interaction notices only. The existing survival-rule tests remain intact. `npm run build`, `npm test` (four starter tests), and `node tests/feature1.mjs` passed; the browser check covered five building interactions and collision stops, walk/idle frames, HUD values, and desktop/mobile screenshots. Art source and licensing are in `src/assets/manifest.json`.
+
+**Remaining under A1:** finish the pure reducer, action validation, mission idempotency and shared contract freeze for Developer B. **Remaining under A5:** building economy and resource actions. A6 onward are still future tasks. Do not mark those complete based on Feature 1.
+
 Developer A owns `src/domain/**`, `src/game/config/**`, React shell `src/app/**`, base scenes/entities, NASA/Save services, base assets and deployment. Specific primary paths:
 
 ```text

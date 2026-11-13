@@ -9,9 +9,11 @@ Use the four documents in `docs/` as the authoritative planning set:
 - [DEVELOPER_A_TASKS.md](docs/DEVELOPER_A_TASKS.md) — base, survival and integration ownership.
 - [DEVELOPER_B_TASKS.md](docs/DEVELOPER_B_TASKS.md) — arcade and mission ownership.
 
+The [Developer A implementation steps](docs/IMPLEMENTATION_A_STEPS.md) provide an execution checklist; MASTER_PLAN remains authoritative.
+
 ## Current status
 
-The feature branch contains starter TypeScript game contracts, centralized configuration, partial pure survival rules, a React bootstrap and starter tests. It is not yet a playable game. Phaser is installed but no Phaser gameplay scenes exist. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`; do not use it as the Moonbound source of truth.
+Feature 1 now has a playable Phaser Moon Base: original procedural pixel terrain and separate buildings, animated four-direction astronaut movement, Arcade Physics collisions, five contextual building interactions, React HUD backed by the shared `GameSessionStore`, and touch controls. Resource economy, survival, missions, events, NASA integration, and save/resume remain unimplemented. The old Mars Commander prototype is preserved on `backup/mars-commander-codex`; do not use it as the Moonbound source of truth.
 
 ## Project guardrails
 

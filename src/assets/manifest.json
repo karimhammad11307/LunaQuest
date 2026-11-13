@@ -1,0 +1,19 @@
+{
+  "feature": "Moon Base / Feature 1",
+  "license": "Original procedural pixel art authored for this repository; no third-party image or audio assets",
+  "renderer": "src/game/art/pixelArt.ts",
+  "palette": "src/game/config/palette.ts",
+  "logicalResolution": "640x360",
+  "textures": [
+    { "keys": ["ground-a", "ground-b"], "size": "32x32", "purpose": "Lunar terrain tiles" },
+    { "key": "crater", "size": "52x27", "purpose": "Separate terrain prop" },
+    { "key": "rock", "size": "26x22", "purpose": "Separate collidable terrain prop" },
+    { "key": "bld-habitat", "size": "112x86", "purpose": "Habitat with illuminated airlock" },
+    { "key": "bld-greenhouse", "size": "108x80", "purpose": "Glass dome and crops" },
+    { "key": "bld-solar", "size": "100x74", "purpose": "Solar panel array" },
+    { "key": "bld-shield", "size": "104x80", "purpose": "Reinforced radiation shelter" },
+    { "key": "bld-landingPad", "size": "116x68", "purpose": "Landing platform and parked spacecraft" },
+    { "keys": ["astro-down-0", "astro-down-1", "astro-up-0", "astro-up-1", "astro-left-0", "astro-left-1", "astro-right-0", "astro-right-1"], "size": "26x32", "frameRate": "idle 2 fps; walk 7 fps", "purpose": "Four-direction astronaut idle and walk frames" }
+  ],
+  "notes": "Each building and character frame is an independent Phaser canvas texture. The ground is assembled from repeating tiles, separate crater and rock props, and pixel-snapped path and sky graphics. Future features should preserve scale, outline, palette, and per-object rendering."
+}
