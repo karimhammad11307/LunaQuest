@@ -1,6 +1,10 @@
 {
   "feature": "Moon Base / Feature 1",
   "license": "Original procedural pixel art authored for this repository; no third-party image or audio assets",
+  "styleReference": {
+    "url": "https://stablediffusionweb.com/prompts/sprite-for-an-astronaut-for-top-down-2d-game",
+    "usage": "Visual direction only: top-down astronaut, crisp outlines, shaded pixels, and playful space colors. No image or pixels copied into the game."
+  },
   "renderer": "src/game/art/pixelArt.ts",
   "palette": "src/game/config/palette.ts",
   "logicalResolution": "640x360",
