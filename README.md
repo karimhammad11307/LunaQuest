@@ -1,6 +1,6 @@
 # Moonbound: Survival Mission
 
-Moonbound is a top-down 3/4 pixel-art lunar survival game for children, built with Phaser 3, TypeScript and a lightweight React shell for the NASA Space Apps Challenge 2026. The playable Moon Base has five interactive buildings, a five-day survival loop, greenhouse/solar/shield systems, a scripted solar storm and an oxygen leak. Chicken Hunt launches from the Landing Pad and returns through the shared mission reward rules. Browser-local save/resume is available; Ice Collection and deployment remain unimplemented.
+Moonbound is a top-down 3/4 pixel-art lunar survival game for children, built with Phaser 3, TypeScript and a lightweight React shell for the NASA Space Apps Challenge 2026. The playable Moon Base has five interactive buildings, a five-day survival loop, greenhouse/solar/shield systems, a scripted solar storm and an oxygen leak. Chicken Hunt launches from the Landing Pad; food collected there enters storage on a safe return, then can be eaten at the Habitat to restore HP. Animated Earth water pods arrive on Days 2 and 4. Seven learning signs explain the base and mission. Browser-local save/resume is available; Lunar Ice Collection is deferred and deployment remains open.
 
 - [Project history and verified status](docs/PROJECT_HISTORY.md)
 - [Master game and engineering plan](docs/MASTER_PLAN.md)
@@ -14,16 +14,16 @@ npm install
 npm run dev
 ```
 
-Open the local Vite URL. Move with **WASD or arrow keys**, approach a building and press **E**. Click or tap a nearby building to interact. At the Landing Pad, launch **Chicken Hunt**; use WASD/arrows to fly, Space to fire and the in-scene button to return. Open **Space Weather** in the bottom status strip to inspect NASA observation context; the default is a clearly labeled historical demo example. All game resource, HP and hazard values are illustrative.
+Open the local Vite URL. Move with **WASD or arrow keys**, approach a building, learning sign or Earth pod, and press **E**. Click or tap a nearby object to interact. At the Landing Pad, launch **Chicken Hunt**; use WASD/arrows to fly, Space to fire and the in-scene button to return. Collect the Earth pods near the pad on Days 2 and 4 to add 25 water each. Each sign opens short **What / Why / Your Mission** guidance and pauses survival until closed. Open **Space Weather** in the bottom status strip to inspect NASA observation context; the default is a clearly labeled historical demo example. The two-day delivery schedule and all game resource, HP and hazard values are illustrative.
 
-Progress saves automatically in this browser. On a later visit, choose **Continue Game** or **New Game**. New Game asks before replacing the save. Refreshing during Chicken Hunt returns to the Moon Base without that run's rewards; an interrupted emergency restarts its warning without undoing damage. No offline time is simulated. If browser storage is blocked or full, play continues but progress cannot be retained.
+Progress saves automatically in this browser, including collected Earth delivery IDs. On a later visit, choose **Continue Game** or **New Game**. New Game asks before replacing the save. The version-2 save format migrates valid version-1 saves. Refreshing during Chicken Hunt returns to the Moon Base without that run's rewards; an interrupted emergency restarts its warning without undoing damage. No offline time is simulated. If browser storage is blocked or full, play continues but progress cannot be retained.
 
 ```sh
 npm run build
 npm test
 ```
 
-With the dev server running on port 5173, browser checks are `node tests/feature1.mjs`, `node tests/feature3.mjs`, `node tests/feature4.mjs`, `node tests/healthFoodAudit.mjs`, `node tests/feature5.mjs`, `node tests/feature6.mjs`, `node tests/feature7.mjs`, and `node tests/merge-chicken-hunt.mjs`. Use `MOONBOUND_URL` if Vite runs on another port. Screenshots go to ignored `artifacts/`.
+With the dev server running on port 5173, browser checks are `node tests/feature1.mjs`, `node tests/feature3.mjs`, `node tests/feature4.mjs`, `node tests/healthFoodAudit.mjs`, `node tests/feature5.mjs`, `node tests/feature6.mjs`, `node tests/feature7.mjs`, `node tests/merge-chicken-hunt.mjs`, and `node tests/feature8.mjs`. Use `MOONBOUND_URL` if Vite runs on another port. Screenshots go to ignored `artifacts/`.
 
 ## NASA DONKI configuration
 

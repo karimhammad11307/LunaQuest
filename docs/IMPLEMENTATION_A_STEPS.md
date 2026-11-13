@@ -1,10 +1,12 @@
 # Implementation A Steps
 
-This is Developer A's ordered implementation checklist. The [Master Plan](MASTER_PLAN.md) is the source of truth for game requirements; the [Developer A task plan](DEVELOPER_A_TASKS.md) contains ownership, dependencies, estimates, and acceptance criteria. This file describes planned work and does not imply that these features are already implemented.
+This is Developer A's ordered implementation checklist. The [Master Plan](MASTER_PLAN.md) is the source of truth for game requirements; the [Developer A task plan](DEVELOPER_A_TASKS.md) contains ownership, dependencies, estimates, and acceptance criteria. Check [ImplementedFeatureA.md](ImplementedFeatureA.md) for verified completion; this checklist itself does not establish status.
 
 **Feature 1 checkpoint:** the Phaser base world, astronaut movement/collision/animation, five contextual building interactions, and shared-state HUD were implemented and browser-verified. At that checkpoint, A1's reducer/contract work and building economy were pending. See the progress note in the Developer A task plan.
 
 **Feature 2 checkpoint:** the GameSessionStore, pure resource/action rules and run-ID mission contract are implemented and verified. The next Developer A work is building economy and the day/survival loop. Evidence is in [ImplementedFeatureA.md](ImplementedFeatureA.md).
+
+**Feature 8 checkpoint:** A1–A12's current MVP scope has been implemented and verified through a full Chromium five-day campaign. Chicken Hunt is the required mission; Day 2/4 Earth pods supply water; seven learning signs explain the game. Ice Collection is deferred. A13 accessibility/visual QA and A14 deployment/demo delivery remain separate gates. See [ImplementedFeatureA.md](ImplementedFeatureA.md).
 
 ## 1. A1 — Freeze the shared contract and build the game store
 
@@ -66,14 +68,16 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 
 **Gate:** the game remains playable offline and saves can be loaded or safely rejected.
 
-## 8. A12 — Integrate Developer B's missions
+## 8. A12 — Verify Chicken Hunt and add Earth cargo/learning
 
-- Register the mission scenes and enforce launch requirements/costs centrally.
+- Register Chicken Hunt and enforce its launch requirements/cost centrally.
 - Receive and validate the shared `MissionResult` contract.
 - Apply resources, damage, and XP exactly once, return to the base, and persist the resulting state.
+- Schedule collectible Earth water pods on Days 2 and 4; award 25 water once per pod through typed domain rules and persist their IDs.
+- Add seven player-opened WHAT/WHY/YOUR MISSION learning signs and verify the five-day water/food loop.
 - Keep mission scene internals in Developer B-owned files.
 
-**Gate:** mission success, failure, duplicate completion, return, and save behavior work through the shared store.
+**Gate:** Chicken Hunt success, failure, duplicate completion, return and save behavior work through the shared store; both Earth pods and all seven learning locations work. Ice Collection is a future enhancement.
 
 ## 9. A13–A14 — Verify, polish, and deliver
 
