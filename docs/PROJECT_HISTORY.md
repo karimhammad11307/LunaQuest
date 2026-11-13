@@ -115,6 +115,20 @@ This documentation-only consolidation replaces `doc/PLAN.md`, `doc/PLAN_DEV_A.md
 
 **Decisions and limits:** Day 1 is the first playable day; each `ADVANCE_DAY` completes one day, and victory follows the fifth completed day while HP remains above zero. Daily resource shortage causes gradual HP penalties; zero HP is the terminal defeat condition. Day advance is available in the habitat. Resource amounts are illustrative game units, not NASA measurements. Initial supplies permit five-day victory without missions, but replenishment gameplay awaits Developer B integration. Greenhouse/solar production, radiation incidents, NASA DONKI and persistence remain unimplemented. No Developer B-owned mission files were changed.
 
-## Current repository status after Feature 3
+## Repository status after Feature 3 checkpoint
 
-The current branch is `building-survival`. The playable Phaser Moon Base, shared store and exactly-once mission reward contract from Features 1–2 remain. Feature 3 adds the functional survival loop described above. The next Developer A work is Feature 4 production/solar mechanics; Developer B missions remain separate. The code implementation is committed at `836f340`; the documentation checkpoint commit is recorded in the final task report.
+At that checkpoint, the branch was `building-survival`. The playable Phaser Moon Base, shared store and exactly-once mission reward contract from Features 1–2 remained. Feature 3 added the functional survival loop described above. The next Developer A work then was Feature 4 production/solar mechanics; Developer B missions remained separate. The code implementation was committed at `836f340`; its documentation checkpoint was reported in that task's final response.
+
+## 2026-11-13 — Feature 4: greenhouse, solar energy and shields
+
+**Request and Git:** The user requested Developer A tasks A7–A8 and explicitly retained branch management. Codex found a clean checkout on `Greenhouse,-Solar-Energy-&-Shields`, made no branch changes, and committed the verified implementation as `290288b` (`feat: add greenhouse solar shields and repairs`). No merge or push occurred.
+
+**Implemented:** The Greenhouse plants for water/energy, grows from seed to ready on one day advance with a brief sprout visual, then harvests bounded food/base oxygen and XP once per crop without restoring HP. Solar production is calculated in the pure day rule once per completed day, capped by battery capacity, halved when damaged, and absent when broken/inactive. Shield activation and day upkeep spend energy; powered outside shielding is integrated with the Feature 3 environmental-damage rule. Power loss or damage switches the shield off. Selected damaged/broken buildings can be repaired for energy, with repeat/shortage rejection. Phaser now renders separate crop stages, status lamps, solar glow, shield pulse, repair sparks and floating resource feedback. React retains the compact building panels and displays costs, condition, production and XP. No Developer B-owned files or mission contract shape changed.
+
+**Verification:** `npm run build` passed. `npm test` passed 34 tests in four files. The existing Feature 1 and Feature 3 Chromium scripts passed on the committed implementation, as did new `tests/feature4.mjs` for planting, growth sprites, harvest, solar output/repair, shield protection and power failure. Four Feature 4 screenshots were captured and visually inspected under ignored `artifacts/`. `git diff --cached --check` passed before commit.
+
+**Decisions and limits:** All amounts are illustrative game units. The simplified daily sequence spends base life-support energy, charges the battery from an assumed illuminated workday, then charges shield upkeep; missing morning life-support power can still harm health. The sprout is a short visual transition within the one-day crop cycle. A repaired shield remains off until activated. Building damage is reachable through test fixtures; normal damage events are Feature 5 work. Solar-storm decisions, missions, NASA DONKI and save/resume remain unimplemented.
+
+## Current repository status after Feature 4
+
+The current branch is `Greenhouse,-Solar-Energy-&-Shields`. Features 1–4 are implemented locally with the shared `GameSessionStore` and an unchanged `MissionResult` contract. Feature 4 implementation is committed at `290288b`. Feature 5 incidents and later NASA/persistence/integration work remain; Developer B mission scenes remain separate. The documentation checkpoint commit is reported in the final task response.
