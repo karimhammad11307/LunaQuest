@@ -106,6 +106,13 @@ export interface WeatherStatus {
   riskLevel: 'low' | 'moderate' | 'high';
   /** True when data comes from NASA DONKI, false when demo fixture. */
   isRealData: boolean;
+  /** The latest normalized DONKI record, if one exists in the bounded query window. */
+  latestEventType: import('./SpaceWeather').DonkiEventType | null;
+  observationCount: number;
+  /** UTC time when the service last fetched or loaded the source report. */
+  checkedAt: string | null;
+  fallbackReason: 'offline' | 'timeout' | 'rate-limit' | 'http-error' | 'invalid-response' | null;
+  partial: boolean;
 }
 
 export type EmergencyType = 'solar-storm' | 'oxygen-leak';

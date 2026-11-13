@@ -128,6 +128,11 @@ function validLoadedState(value: unknown): value is GameState {
     && (state.weather.observedAt === null || typeof state.weather.observedAt === 'string')
     && (state.weather.riskLevel === 'low' || state.weather.riskLevel === 'moderate' || state.weather.riskLevel === 'high')
     && typeof state.weather.isRealData === 'boolean'
+    && (state.weather.latestEventType === null || ['FLR', 'CME', 'SEP', 'notification'].includes(state.weather.latestEventType))
+    && Number.isInteger(state.weather.observationCount) && numberIn(state.weather.observationCount, 0, 400)
+    && (state.weather.checkedAt === null || (typeof state.weather.checkedAt === 'string' && Number.isFinite(Date.parse(state.weather.checkedAt))))
+    && (state.weather.fallbackReason === null || ['offline', 'timeout', 'rate-limit', 'http-error', 'invalid-response'].includes(state.weather.fallbackReason))
+    && typeof state.weather.partial === 'boolean'
     && (state.status === 'playing' || state.status === 'victory' || state.status === 'defeat')
     && typeof state.paused === 'boolean'
     && (state.selectedBuildingId === null || (typeof state.selectedBuildingId === 'string' && !!state.buildings[state.selectedBuildingId]))
@@ -156,6 +161,20 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
   if (!action || typeof action !== 'object' || typeof action.type !== 'string') return state;
   if (action.type === 'LOAD_GAME') return validLoadedState(action.state) ? action.state : state;
   if (action.type === 'RESTART_GAME') return createInitialState();
+  if (action.type === 'SET_SPACE_WEATHER') {
+    const weather = action.weather;
+    if (!weather || !['live', 'cached', 'demo'].includes(weather.source)
+      || typeof weather.label !== 'string' || !weather.label.trim() || weather.label.length > 100
+      || (weather.observedAt !== null && (typeof weather.observedAt !== 'string' || !Number.isFinite(Date.parse(weather.observedAt))))
+      || !['low', 'moderate', 'high'].includes(weather.riskLevel)
+      || typeof weather.isRealData !== 'boolean' || weather.isRealData !== (weather.source !== 'demo')
+      || (weather.latestEventType !== null && !['FLR', 'CME', 'SEP', 'notification'].includes(weather.latestEventType))
+      || !Number.isInteger(weather.observationCount) || !numberIn(weather.observationCount, 0, 400)
+      || (weather.checkedAt !== null && (typeof weather.checkedAt !== 'string' || !Number.isFinite(Date.parse(weather.checkedAt))))) return state;
+    if (weather.fallbackReason !== null && !['offline', 'timeout', 'rate-limit', 'http-error', 'invalid-response'].includes(weather.fallbackReason)) return state;
+    if (typeof weather.partial !== 'boolean') return state;
+    return { ...state, weather };
+  }
   if (action.type === 'DISMISS_NOTICE') {
     if (!state.notices.some((entry) => entry.id === action.noticeId)) return state;
     return { ...state, notices: state.notices.filter((entry) => entry.id !== action.noticeId) };

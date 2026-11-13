@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import Phaser from 'phaser';
 import { GameSessionStore } from '../domain/store/GameSessionStore';
@@ -8,9 +8,11 @@ import { VIEW } from '../game/config/gameConfig';
 import { BALANCE } from '../game/config/balance';
 import type { GameAction } from '../domain/models/GameAction';
 import { solarYieldForDay } from '../domain/rules/survivalRules';
+import { NASAWeatherService } from '../services/NASAWeatherService';
 import './style.css';
 
 const store = new GameSessionStore();
+const weatherService = new NASAWeatherService({ apiKey: import.meta.env.VITE_NASA_API_KEY });
 
 function Meter({ label, icon, value, color, low = false, ariaLabel }: { label: string; icon: string; value: number; color: string; low?: boolean; ariaLabel?: string }) {
   return <div className={`meter${low ? ' meter-low' : ''}`} aria-label={`${ariaLabel ?? label}: ${Math.round(value)} of 100 game units`}>
@@ -43,11 +45,27 @@ function App() {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const [showHelp, setShowHelp] = useState(false);
   const [actionFeedback, setActionFeedback] = useState('');
+  const [showWeather, setShowWeather] = useState(false);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const weatherRequest = useRef(0);
   const notice = state.notices.at(-1)?.text ?? '';
   const selected = state.selectedBuildingId;
   const building = selected ? state.buildings[selected] : null;
   const indoors = state.astronaut.location !== 'outside';
   const emergency = state.activeEvent;
+  const loadWeather = async (mode: 'live' | 'demo') => {
+    const request = ++weatherRequest.current;
+    setWeatherLoading(true);
+    const weather = await weatherService.load(mode);
+    if (request === weatherRequest.current) {
+      store.dispatch({ type: 'SET_SPACE_WEATHER', weather });
+      setWeatherLoading(false);
+    }
+  };
+  useEffect(() => {
+    void loadWeather(import.meta.env.VITE_NASA_DATA_MODE === 'live' ? 'live' : 'demo');
+    return () => { weatherRequest.current += 1; };
+  }, []);
   useEffect(() => setActionFeedback(''), [selected]);
   const dispatch = (action: GameAction, rejected: string) => {
     const before = store.getState();
@@ -85,6 +103,19 @@ function App() {
         <Meter label="Health" icon="✚" value={state.astronaut.health} color="#FF6B81" low={state.astronaut.health <= BALANCE.warnings.health} />
       </div>
       <div className="canvas-wrap"><GameContainer />
+        {showWeather && <aside className="weather-panel" aria-label="NASA space weather information">
+          <div className="panel-head"><strong>☀ SPACE WEATHER</strong><button type="button" aria-label="Close space weather" onClick={() => setShowWeather(false)}>×</button></div>
+          <p className="weather-source">{state.weather.source === 'live' ? '● LIVE · NASA DONKI' : state.weather.source === 'cached' ? '◌ CACHED · NASA DONKI' : '◇ DEMO · HISTORICAL EXAMPLE'}</p>
+          <p className="weather-message">{state.weather.label}</p>
+          <p><b>NASA Observation:</b> {state.weather.source === 'demo' ? 'Historical training example' : state.weather.latestEventType ? ({ FLR: 'Solar flare', CME: 'Coronal mass ejection', SEP: 'Solar energetic particles', notification: 'Space weather notice' } as const)[state.weather.latestEventType] : 'No recent record in this query'}</p>
+          <p><b>Observed:</b> {state.weather.observedAt ? new Date(state.weather.observedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }) + ' UTC' : 'None in the last 7 days'}</p>
+          <p><b>Game Risk:</b> {({ low: 'Normal', moderate: 'Elevated', high: 'High' } as const)[state.weather.riskLevel]} <small>(simplified game category)</small></p>
+          {state.weather.partial && <p className="weather-disclaimer">Some DONKI sources were unavailable. This game category uses only the records received.</p>}
+          {state.weather.source === 'demo' && <p className="weather-disclaimer">This 2017 example is not current NASA activity. {state.weather.fallbackReason ? `Live data unavailable: ${state.weather.fallbackReason.replace('-', ' ')}.` : ''}</p>}
+          <p className="weather-disclaimer">DONKI reports solar activity, not radiation dose at this Moon Base. The storm is a scripted game event.</p>
+          <div className="weather-actions"><button type="button" disabled={weatherLoading} onClick={() => void loadWeather('live')}>{weatherLoading ? 'Checking…' : 'Try NASA live'}</button><button type="button" disabled={weatherLoading} onClick={() => void loadWeather('demo')}>Use demo</button></div>
+          <a href="https://api.nasa.gov/" target="_blank" rel="noreferrer">NASA Open APIs ↗</a>
+        </aside>}
         {emergency && state.status === 'playing' && <aside className={`emergency-panel emergency-${emergency.type}`} role="alert" aria-label="Space emergency">
           <strong>{emergency.type === 'solar-storm' ? '☀ SOLAR STORM' : '◉ OXYGEN LEAK'}</strong>
           {emergency.phase === 'warning' && <span className="emergency-countdown">{Math.ceil(emergency.remainingSeconds)}s WARNING</span>}
@@ -140,7 +171,7 @@ function App() {
         </div>
         <button className="touch-action" type="button" onClick={() => virtualInput('interact')}>Interact</button>
       </div>
-      <footer className="status-strip"><span className="status-pip" /><span role="status" aria-live="polite">{notice}</span><span className="status-hint">WASD / arrows to move · E to interact</span></footer>
+      <footer className="status-strip"><span className="status-pip" /><span role="status" aria-live="polite">{notice}</span><button className="weather-toggle" type="button" onClick={() => setShowWeather(!showWeather)} aria-expanded={showWeather}>☀ Space Weather</button><span className="status-hint">WASD / arrows to move · E to interact</span></footer>
     </div><p className="demo-note">Illustrative game units and simulated hazards, not NASA measurements or a local radiation forecast. Solar output assumes a simplified illuminated workday.</p>
     </main>
   );

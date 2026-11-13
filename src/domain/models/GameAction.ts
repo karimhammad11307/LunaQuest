@@ -5,12 +5,13 @@
  * mutates state in response. Minigames never touch resources directly:
  * a minigame emits COMPLETE_MISSION with a MissionResult exactly once.
  */
-import type { AstronautState, MissionResult, MissionType, GameState, ResourceName, Resources } from './types';
+import type { AstronautState, MissionResult, MissionType, GameState, ResourceName, Resources, WeatherStatus } from './types';
 
 export type GameAction =
   /** Internal clock tick from the scene update loop. */
   | { type: 'TICK'; deltaSeconds: number }
   | { type: 'SET_PAUSED'; paused: boolean }
+  | { type: 'SET_SPACE_WEATHER'; weather: WeatherStatus }
   | { type: 'MOVE_PLAYER'; x: number; y: number }
   | { type: 'INTERACT_BUILDING'; buildingId: string }
   | { type: 'CLOSE_BUILDING' }
