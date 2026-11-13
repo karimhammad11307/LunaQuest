@@ -38,7 +38,7 @@ export type GameAction =
   | { type: 'HARVEST_CROP' }
   | { type: 'ACTIVATE_SHIELD'; active: boolean }
   | { type: 'REPAIR_BUILDING'; buildingId: string }
-  | { type: 'RESOLVE_EVENT'; eventId: string; choiceId: string }
+  | { type: 'RESOLVE_EVENT'; eventId: string; choiceId: 'ignore' | 'isolate' }
   | { type: 'RESTART_GAME' }
   | { type: 'LOAD_GAME'; state: GameState }
   | { type: 'DISMISS_NOTICE'; noticeId: number };

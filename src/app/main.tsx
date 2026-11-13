@@ -47,6 +47,7 @@ function App() {
   const selected = state.selectedBuildingId;
   const building = selected ? state.buildings[selected] : null;
   const indoors = state.astronaut.location !== 'outside';
+  const emergency = state.activeEvent;
   useEffect(() => setActionFeedback(''), [selected]);
   const dispatch = (action: GameAction, rejected: string) => {
     const before = store.getState();
@@ -84,17 +85,32 @@ function App() {
         <Meter label="Health" icon="✚" value={state.astronaut.health} color="#FF6B81" low={state.astronaut.health <= BALANCE.warnings.health} />
       </div>
       <div className="canvas-wrap"><GameContainer />
+        {emergency && state.status === 'playing' && <aside className={`emergency-panel emergency-${emergency.type}`} role="alert" aria-label="Space emergency">
+          <strong>{emergency.type === 'solar-storm' ? '☀ SOLAR STORM' : '◉ OXYGEN LEAK'}</strong>
+          {emergency.phase === 'warning' && <span className="emergency-countdown">{Math.ceil(emergency.remainingSeconds)}s WARNING</span>}
+          {emergency.phase === 'danger' && <span className="emergency-countdown">{emergency.type === 'solar-storm' ? `${Math.ceil(emergency.remainingSeconds)}s STORM` : 'AIR ESCAPING'}</span>}
+          <p>{emergency.type === 'solar-storm'
+            ? 'Run to the shelter and press E, or switch on its shield. Stay inside the habitat to avoid damage.'
+            : 'Go to the habitat and repair the leak, or isolate the section from inside.'}</p>
+          {emergency.type === 'oxygen-leak' && <p className="emergency-costs">Repair: −{BALANCE.repair.energyCost} energy · Isolate: −{BALANCE.emergencies.leak.isolateEnergyCost} energy, −{BALANCE.emergencies.leak.isolateOxygenCost} O₂; greenhouse needs repair.</p>}
+          {emergency.type === 'oxygen-leak' && state.astronaut.location === 'habitat' && <button type="button" onClick={() => dispatch({ type: 'RESOLVE_EVENT', eventId: emergency.id, choiceId: 'isolate' }, 'Need energy and base oxygen to isolate.')}>Isolate section</button>}
+          {!emergency.ignored && <button className="ignore-event" type="button" onClick={() => dispatch({ type: 'RESOLVE_EVENT', eventId: emergency.id, choiceId: 'ignore' }, 'Decision unavailable.')}>Keep exploring</button>}
+          {emergency.ignored && <small>Hazard continues until you respond.</small>}
+          {actionFeedback && <small className="action-feedback" role="status">{actionFeedback}</small>}
+        </aside>}
+        {!emergency && state.lastEventOutcome && state.status === 'playing' && <div className="event-outcome" role="status"><strong>{state.lastEventOutcome.message}{state.lastEventOutcome.xpEarned ? ` +${state.lastEventOutcome.xpEarned} XP` : ''}</strong><span>{state.lastEventOutcome.takeaway}</span></div>}
         {selected && building && state.status === 'playing' && <aside className="building-panel" aria-label={`${building.type} controls`}>
           <div className="panel-head"><strong>{({ habitat: 'HABITAT', greenhouse: 'GREENHOUSE', solar: 'SOLAR ARRAY', shield: 'RADIATION SHELTER', landingPad: 'LANDING PAD' } as Record<string, string>)[selected]}</strong><button type="button" aria-label="Close building controls" onClick={() => { store.dispatch({ type: 'CLOSE_BUILDING' }); setActionFeedback(''); }}>×</button></div>
           <p className={`building-condition condition-${building.condition}`}>STATUS: {building.condition === 'good' ? 'OPERATIONAL' : building.condition.toUpperCase()}</p>
           {selected === 'habitat' && <>
+            {emergency?.type === 'oxygen-leak' && <p className="emergency-building-note">Oxygen is leaking! Repair this habitat or isolate the section.</p>}
             <p>{indoors ? 'Inside your safe home.' : 'Step inside to eat, rest and refill.'}</p>
             {state.astronaut.location === 'outside' ? <button type="button" onClick={() => dispatch({ type: 'ENTER_HABITAT' }, 'Move closer to the habitat.')}>Enter Habitat</button> : <>
               <button type="button" onClick={() => dispatch({ type: 'REFILL_SUIT_OXYGEN' }, 'Suit full or base oxygen empty!')}>Refill Suit O₂ <small>uses base O₂</small></button>
               <button type="button" onClick={() => dispatch({ type: 'EAT_FOOD' }, 'Need food and missing health to eat.')}>Eat Food <small>−{BALANCE.habitat.eatFoodCost} food · +{BALANCE.habitat.eatHealAmount} HP</small></button>
               <button type="button" onClick={() => dispatch({ type: 'REST_AT_HABITAT' }, 'Need supplies and missing health to rest.')}>Rest / Recover <small>−{BALANCE.habitat.healFoodCost} food · −{BALANCE.habitat.healWaterCost} water · −{BALANCE.habitat.healEnergyCost} energy</small></button>
               <p className="day-forecast">Next day: −{BALANCE.daily.food} food · −{BALANCE.daily.water} water · −{BALANCE.daily.oxygen} base O₂ · −{BALANCE.daily.energy} energy. Solar may recharge the battery.</p>
-              <button className="advance-button" type="button" onClick={() => dispatch({ type: 'ADVANCE_DAY' }, 'Cannot advance the day now.')}>Advance Day →</button>
+              <button className="advance-button" type="button" onClick={() => dispatch({ type: 'ADVANCE_DAY' }, emergency ? 'Resolve the emergency before advancing.' : 'Cannot advance the day now.')}>Advance Day →</button>
               <button type="button" onClick={() => dispatch({ type: 'LEAVE_HABITAT' }, 'Already outside.')}>Leave Habitat</button>
             </>}
             <p className="science-note">The habitat uses stored oxygen and power to keep the crew safe.</p>
@@ -107,7 +123,7 @@ function App() {
             <p className="science-note">Plants need water, light and power. Harvested food fills storage; eat at the habitat to heal.</p>
           </>}
           {selected === 'solar' && <><p>Stored energy: {Math.round(state.resources.energy)} / 100</p><p className="production-status">Next day: +{solarYieldForDay(building)} energy in simplified daylight.</p><p>Last day: +{state.lastDaySummary?.energyProduced ?? 0} energy stored.</p><p className="science-note">Damaged panels make less power; broken panels make none. Battery capacity is 100.</p></>}
-          {selected === 'shield' && <><p>{state.astronaut.location === 'shelter' ? 'Protected inside the shelter.' : 'A safe place during outside hazards.'}</p><p className="shield-status">SHIELD: {building.active && state.resources.energy > 0 ? 'ACTIVE' : 'OFF'}</p><button type="button" onClick={() => dispatch({ type: 'ACTIVATE_SHIELD', active: !building.active }, 'Not enough energy or shield needs repair!')}>{building.active ? 'Switch Shield Off' : 'Activate Shield'} <small>{building.active ? 'no energy refund' : `−${BALANCE.shield.activationEnergy} energy · −${BALANCE.shield.dailyEnergyUpkeep} per day`}</small></button>{state.astronaut.location === 'shelter' ? <button type="button" onClick={() => dispatch({ type: 'LEAVE_SHELTER' }, 'Already outside.')}>Leave Shelter</button> : <button type="button" onClick={() => dispatch({ type: 'ENTER_SHELTER' }, 'Move closer to the shelter.')}>Enter Shelter</button>}<p className="science-note">A powered shield protects outdoors; the shelter provides cover while powered. Solar hazard events arrive later.</p></>}
+          {selected === 'shield' && <><p>{state.astronaut.location === 'shelter' ? 'Protected inside the shelter.' : 'A safe place during outside hazards.'}</p><p className="shield-status">SHIELD: {building.active && state.resources.energy > 0 ? 'ACTIVE' : 'OFF'}</p><button type="button" onClick={() => dispatch({ type: 'ACTIVATE_SHIELD', active: !building.active }, 'Not enough energy or shield needs repair!')}>{building.active ? 'Switch Shield Off' : 'Activate Shield'} <small>{building.active ? 'no energy refund' : `−${BALANCE.shield.activationEnergy} energy · −${BALANCE.shield.dailyEnergyUpkeep} per day`}</small></button>{state.astronaut.location === 'shelter' ? <button type="button" onClick={() => dispatch({ type: 'LEAVE_SHELTER' }, 'Already outside.')}>Leave Shelter</button> : <button type="button" onClick={() => dispatch({ type: 'ENTER_SHELTER' }, 'Move closer to the shelter.')}>Enter Shelter</button>}<p className="science-note">Shelter and the powered shield protect against simulated radiation. The shield covers the nearby base only.</p></>}
           {selected === 'landingPad' && <><p>Supply missions are preparing for launch.</p><button type="button" disabled>Chicken Hunt · Coming Soon</button><button type="button" disabled>Ice Collection · Coming Soon</button><p className="science-note">Mission rewards will return through the shared mission result system.</p></>}
           {building.condition !== 'good' && <button className="repair-button" type="button" onClick={() => dispatch({ type: 'REPAIR_BUILDING', buildingId: selected }, 'Need energy to repair.')}>Repair {building.type} <small>−{BALANCE.repair.energyCost} energy</small></button>}
           {actionFeedback && <p className="action-feedback" role="alert">{actionFeedback}</p>}
@@ -125,7 +141,7 @@ function App() {
         <button className="touch-action" type="button" onClick={() => virtualInput('interact')}>Interact</button>
       </div>
       <footer className="status-strip"><span className="status-pip" /><span role="status" aria-live="polite">{notice}</span><span className="status-hint">WASD / arrows to move · E to interact</span></footer>
-    </div><p className="demo-note">Illustrative game units, not NASA measurements. Solar output assumes a simplified illuminated workday. Supply missions arrive later.</p>
+    </div><p className="demo-note">Illustrative game units and simulated hazards, not NASA measurements or a local radiation forecast. Solar output assumes a simplified illuminated workday.</p>
     </main>
   );
 }

@@ -63,6 +63,9 @@ export function createInitialState(): GameState {
     completedMissionRunIds: [],
     lastMissionResult: null,
     activeEventId: null,
+    activeEvent: null,
+    completedEventIds: [],
+    lastEventOutcome: null,
     xp: 0,
     awardedRewardIds: [],
     weather: {
@@ -136,11 +139,13 @@ export function applyEnvironmentalDamage(state: GameState, damage: number): Game
     || !Number.isFinite(damage) || damage <= 0 || damage > 100) return state;
   const { location } = state.astronaut;
   const shieldPowered = state.buildings.shield.active && state.buildings.shield.condition === 'good' && state.resources.energy > 0;
+  const shieldSite = BUILDING_LAYOUT.find((building) => building.id === 'shield')!;
+  const shieldDistance = Math.hypot(state.astronaut.position.x - shieldSite.x, state.astronaut.position.y - shieldSite.y);
   const protectedHere = location === 'shelter'
     ? state.resources.energy > 0 && state.buildings.shield.condition !== 'broken'
     : location === 'habitat'
       ? state.resources.energy > 0 && state.resources.oxygen > 0 && state.buildings.habitat.condition !== 'broken'
-      : shieldPowered;
+      : shieldPowered && shieldDistance <= BALANCE.emergencies.storm.shieldRadius;
   if (protectedHere) return state;
   const health = clamp(state.astronaut.health - damage);
   return { ...state, astronaut: { ...state.astronaut, health }, status: health === 0 ? 'defeat' : 'playing', scene: health === 0 ? 'result' : state.scene };

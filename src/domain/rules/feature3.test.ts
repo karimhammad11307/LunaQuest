@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../../game/config/balance';
 import { MISSION_CONFIG } from '../../game/config/gameConfig';
 import { reduceGameState } from './gameRules';
-import { createInitialState } from './survivalRules';
+import { advanceSurvivalDay, createInitialState } from './survivalRules';
 import type { GameState, MissionResult } from '../models/types';
 
 const habitat = (state: GameState = createInitialState()) => reduceGameState(
@@ -94,7 +94,8 @@ describe('Feature 3 survival and building actions', () => {
   it('advances full days with costs, summaries and five-day victory', () => {
     let state = habitat();
     for (let n = 1; n <= 5; n++) {
-      state = reduceGameState(state, { type: 'ADVANCE_DAY' });
+      // Exercise the underlying daily economy independently of Feature 5's event gate.
+      state = advanceSurvivalDay(state);
       expect(state.daysSurvived).toBe(n);
       expect(state.lastDaySummary?.day).toBe(n);
       expect(state.resources.food).toBe(55 - n * BALANCE.daily.food);

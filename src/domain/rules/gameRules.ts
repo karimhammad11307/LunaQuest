@@ -4,6 +4,7 @@ import { BALANCE } from '../../game/config/balance';
 import { BUILDING_LAYOUT, MISSION_CONFIG, WORLD } from '../../game/config/gameConfig';
 import type { MissionSpec } from '../../game/config/gameConfig';
 import { advanceSurvivalDay, applyEnvironmentalDamage, clamp, createInitialState, tickSurvival, trimNotices } from './survivalRules';
+import { EMERGENCY_CATALOG, repairOxygenLeak, resolveEmergency, tickEmergency, triggerEmergency } from './eventRules';
 
 export type MissionCatalog = Record<MissionType, Pick<MissionSpec, 'available' | 'energyCost'>>;
 const resources: ResourceName[] = ['food', 'water', 'oxygen', 'energy'];
@@ -99,6 +100,28 @@ function validLoadedState(value: unknown): value is GameState {
     && (state.activeMission === null) === (state.missionProgress === null)
     && (state.lastMissionResult === null || (validMissionResult(state.lastMissionResult) && state.completedMissionRunIds.includes(state.lastMissionResult.runId)))
     && (state.activeEventId === null || typeof state.activeEventId === 'string')
+    && Array.isArray(state.completedEventIds)
+    && state.completedEventIds.every((id) => validRunId(id) && Object.hasOwn(EMERGENCY_CATALOG, id))
+    && new Set(state.completedEventIds).size === state.completedEventIds.length
+    && (state.activeEvent === null || (!!state.activeEvent
+      && state.activeEvent.id === state.activeEventId
+      && Object.hasOwn(EMERGENCY_CATALOG, state.activeEvent.id)
+      && EMERGENCY_CATALOG[state.activeEvent.id as keyof typeof EMERGENCY_CATALOG].type === state.activeEvent.type
+      && (state.activeEvent.type === 'solar-storm' || state.activeEvent.type === 'oxygen-leak')
+      && (state.activeEvent.phase === 'warning' || state.activeEvent.phase === 'danger')
+      && numberIn(state.activeEvent.remainingSeconds, 0, 60)
+      && numberIn(state.activeEvent.pulseSeconds, 0, 1)
+      && typeof state.activeEvent.tookDamage === 'boolean'
+      && typeof state.activeEvent.ignored === 'boolean'
+      && !state.completedEventIds.includes(state.activeEvent.id)))
+    && (state.activeEvent === null) === (state.activeEventId === null)
+    && (state.lastEventOutcome === null || (!!state.lastEventOutcome
+      && state.completedEventIds.includes(state.lastEventOutcome.id)
+      && ['shelter', 'shield', 'ignore', 'repair', 'isolate', 'habitat'].includes(state.lastEventOutcome.choice)
+      && Number.isInteger(state.lastEventOutcome.xpEarned)
+      && numberIn(state.lastEventOutcome.xpEarned, 0, 100)
+      && typeof state.lastEventOutcome.message === 'string'
+      && typeof state.lastEventOutcome.takeaway === 'string'))
     && !!state.weather
     && (state.weather.source === 'live' || state.weather.source === 'cached' || state.weather.source === 'demo' || state.weather.source === 'loading')
     && typeof state.weather.label === 'string'
@@ -146,7 +169,7 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
 
   switch (action.type) {
     case 'TICK':
-      return numberIn(action.deltaSeconds, Number.MIN_VALUE, 5) ? tickSurvival(state, action.deltaSeconds) : state;
+      return numberIn(action.deltaSeconds, Number.MIN_VALUE, 5) ? tickEmergency(tickSurvival(state, action.deltaSeconds), action.deltaSeconds) : state;
     case 'MOVE_PLAYER': {
       if (state.astronaut.location !== 'outside') return state;
       if (!numberIn(action.x, 0, WORLD.width) || !numberIn(action.y, 0, WORLD.height)) return state;
@@ -195,7 +218,7 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
         astronaut: { ...state.astronaut, health: clamp(state.astronaut.health + h.healAmount), thermalSafety: BALANCE.thermalRecoveryOnRest } }, 'Rest complete! Health and thermal safety improved.', 'good');
     }
     case 'ADVANCE_DAY':
-      return advanceSurvivalDay(state);
+      return state.activeEvent ? state : triggerEmergency(advanceSurvivalDay(state));
     case 'PLANT_CROP': {
       const greenhouse = state.buildings.greenhouse;
       const cost = BALANCE.greenhouse;
@@ -230,6 +253,7 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
     }
     case 'REPAIR_BUILDING': {
       if (state.activeMission || typeof action.buildingId !== 'string' || state.selectedBuildingId !== action.buildingId) return state;
+      if (action.buildingId === 'habitat' && state.activeEvent?.type === 'oxygen-leak') return repairOxygenLeak(state);
       const building = state.buildings[action.buildingId];
       if (!building || building.condition === 'good' || state.resources.energy < BALANCE.repair.energyCost) return state;
       return withNotice({ ...state, resources: { ...state.resources, energy: state.resources.energy - BALANCE.repair.energyCost },
@@ -238,6 +262,8 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
     }
     case 'APPLY_ENVIRONMENTAL_EXPOSURE':
       return applyEnvironmentalDamage(state, action.damage);
+    case 'RESOLVE_EVENT':
+      return resolveEmergency(state, action.eventId, action.choiceId);
     case 'COLLECT_RESOURCE': {
       if (state.activeMission) return state;
       if (!resources.includes(action.resource) || !numberIn(action.amount, Number.MIN_VALUE, 100)) return state;
@@ -270,7 +296,7 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
       return { ...state, astronaut, status: astronaut.health === 0 ? 'defeat' : state.status };
     }
     case 'START_MISSION': {
-      if (state.activeMission || !validRunId(action.runId) || state.completedMissionRunIds.includes(action.runId)) return state;
+      if (state.activeEvent || state.activeMission || !validRunId(action.runId) || state.completedMissionRunIds.includes(action.runId)) return state;
       if (!Object.prototype.hasOwnProperty.call(missions, action.mission)) return state;
       const spec = missions[action.mission];
       if (!spec.available || !numberIn(spec.energyCost, 0, 100) || state.resources.energy < spec.energyCost) return state;

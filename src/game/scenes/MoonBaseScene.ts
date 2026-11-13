@@ -18,6 +18,9 @@ export class MoonBaseScene extends Phaser.Scene {
   private survivalTime = 0;
   private previousStatus: 'playing' | 'victory' | 'defeat' = 'playing';
   private previousState!: GameState;
+  private hazardTint!: Phaser.GameObjects.Rectangle;
+  private hazardBadge!: Phaser.GameObjects.Text;
+  private leakBadge!: Phaser.GameObjects.Text;
   private unsubscribeStore?: () => void;
 
   constructor(store: GameSessionStore) {
@@ -72,6 +75,20 @@ export class MoonBaseScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.astronaut, true, 0.08, 0.08);
     this.cameras.main.setDeadzone(80, 45);
     this.drawSkyOverlay();
+    this.hazardTint = this.add.rectangle(0, 0, VIEW.width, VIEW.height, 0xff6b48, 0)
+      .setOrigin(0).setScrollFactor(0).setDepth(2502).setVisible(false);
+    this.hazardBadge = this.add.text(VIEW.width / 2, 27, '', {
+      fontFamily: 'monospace', fontSize: '11px', fontStyle: 'bold', color: '#FFF2D5',
+      backgroundColor: '#8A3048', padding: { x: 8, y: 3 },
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2600).setVisible(false);
+    this.hazardBadge.setResolution(2);
+    const habitat = this.buildings.find((building) => building.entry.id === 'habitat')!;
+    this.leakBadge = this.add.text(habitat.x, habitat.y - 60, 'O₂ LEAK!', {
+      fontFamily: 'monospace', fontSize: '11px', fontStyle: 'bold', color: '#FFFFFF',
+      backgroundColor: '#A13D55', padding: { x: 5, y: 3 },
+    }).setOrigin(0.5).setDepth(habitat.depth + 65).setVisible(false);
+    this.leakBadge.setResolution(2);
+    this.renderEmergency(this.previousState);
     this.showMessage('Walk with WASD or arrows. Visit a building!', 3600);
   }
 
@@ -161,6 +178,8 @@ export class MoonBaseScene extends Phaser.Scene {
 
   private activate(building: Building): void {
     this.store.dispatch({ type: 'INTERACT_BUILDING', buildingId: building.entry.id });
+    if (building.entry.id === 'shield' && this.store.getState().activeEvent?.type === 'solar-storm'
+      && this.store.getState().astronaut.location === 'outside') this.store.dispatch({ type: 'ENTER_SHELTER' });
     const latest = this.store.getState().notices.at(-1);
     this.showMessage(latest?.text ?? `${building.entry.label} ready!`);
     this.cameras.main.flash(120, 78, 220, 229, false);
@@ -176,6 +195,11 @@ export class MoonBaseScene extends Phaser.Scene {
   private onStoreState = (state: GameState): void => {
     const before = this.previousState;
     this.previousState = state;
+    if (before.activeEvent !== state.activeEvent || before.status !== state.status) this.renderEmergency(state);
+    if (before.activeEvent?.id !== state.activeEvent?.id && state.activeEvent) {
+      this.showMessage(state.activeEvent.type === 'solar-storm' ? 'SOLAR STORM! RUN TO SHELTER!' : 'O₂ LEAK! REPAIR THE HABITAT!', 3500);
+      this.cameras.main.flash(220, 255, 104, 77, false);
+    }
     for (const building of this.buildings) {
       if (before.buildings[building.entry.id] !== state.buildings[building.entry.id]
         || (building.entry.id === 'shield' && before.resources.energy !== state.resources.energy)) {
@@ -183,6 +207,20 @@ export class MoonBaseScene extends Phaser.Scene {
       }
     }
     if (before.status !== 'playing' || state.status !== 'playing') return;
+    if (state.activeEvent?.phase === 'danger' && before.astronaut.health - state.astronaut.health >= 1.5) {
+      this.floatAt(this.astronaut.x, this.astronaut.y - 30, `-${Math.round(before.astronaut.health - state.astronaut.health)} HP`, '#FF8D63');
+      this.cameras.main.shake(90, 0.003);
+    }
+    if (state.activeEvent?.type === 'oxygen-leak' && state.activeEvent.phase === 'danger'
+      && Math.floor(before.resources.oxygen) > Math.floor(state.resources.oxygen)) {
+      const habitat = this.buildings.find((building) => building.entry.id === 'habitat')!;
+      this.floatAt(habitat.x, habitat.y - 55, '-1 BASE O₂', '#4EDCE5');
+    }
+    if (before.activeEvent && !state.activeEvent && state.lastEventOutcome) {
+      const target = this.buildings.find((building) => building.entry.id === (before.activeEvent?.type === 'oxygen-leak' ? 'habitat' : 'shield'))!;
+      this.pixelBurst(target, state.lastEventOutcome.xpEarned ? 0x80e5a0 : 0xff8d63);
+      this.showMessage(state.lastEventOutcome.message, 3600);
+    }
     const greenhouse = this.buildings.find((building) => building.entry.id === 'greenhouse')!;
     const solar = this.buildings.find((building) => building.entry.id === 'solar')!;
     const shield = this.buildings.find((building) => building.entry.id === 'shield')!;
@@ -208,7 +246,7 @@ export class MoonBaseScene extends Phaser.Scene {
       const id = building.entry.id;
       if (before.buildings[id].condition !== 'good' && state.buildings[id].condition === 'good') {
         this.pixelBurst(building, 0xffd75e);
-        this.floatText(building, 'REPAIRED!', '#FFD75E');
+        this.floatText(building, id === 'habitat' && state.lastEventOutcome?.choice === 'isolate' ? 'SEALED!' : 'REPAIRED!', '#FFD75E');
       }
     }
   };
@@ -230,6 +268,26 @@ export class MoonBaseScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(building.depth + 50);
     label.setResolution(2);
     this.tweens.add({ targets: label, y: label.y - 20, alpha: 0, duration: 1050, onComplete: () => label.destroy() });
+  }
+
+  private floatAt(x: number, y: number, value: string, color: string): void {
+    const label = this.add.text(x, y, value, { fontFamily: 'monospace', fontSize: '10px',
+      fontStyle: 'bold', color, backgroundColor: C.outline, padding: { x: 4, y: 2 } })
+      .setOrigin(0.5).setDepth(3000);
+    label.setResolution(2);
+    this.tweens.add({ targets: label, y: y - 18, alpha: 0, duration: 850, onComplete: () => label.destroy() });
+  }
+
+  private renderEmergency(state: GameState): void {
+    const event = state.status === 'playing' ? state.activeEvent : null;
+    this.hazardTint.setVisible(!!event).setAlpha(event ? event.phase === 'danger' ? 0.14 : 0.06 : 0);
+    this.hazardTint.setFillStyle(event?.type === 'oxygen-leak' ? 0x4edce5 : 0xff6b48);
+    this.hazardBadge.setVisible(!!event).setText(event
+      ? event.type === 'solar-storm'
+        ? `☀ ${event.phase === 'warning' ? 'STORM IN' : 'STORM'} ${Math.ceil(event.remainingSeconds)}s`
+        : event.phase === 'warning' ? `O₂ LEAK IN ${Math.ceil(event.remainingSeconds)}s` : 'O₂ LEAK ACTIVE!'
+      : '');
+    this.leakBadge.setVisible(event?.type === 'oxygen-leak');
   }
 
   private isNear(building: Building): boolean {

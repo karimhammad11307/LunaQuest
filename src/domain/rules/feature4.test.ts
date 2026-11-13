@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../../game/config/balance';
 import type { GameState } from '../models/types';
 import { reduceGameState } from './gameRules';
-import { createInitialState, solarYieldForDay } from './survivalRules';
+import { advanceSurvivalDay, createInitialState, solarYieldForDay } from './survivalRules';
 
 const select = (state: GameState, buildingId: string) => reduceGameState(state, { type: 'INTERACT_BUILDING', buildingId });
 const habitat = (state: GameState) => reduceGameState(select(state, 'habitat'), { type: 'ENTER_HABITAT' });
@@ -75,7 +75,7 @@ describe('Feature 4 greenhouse, solar and shield rules', () => {
     const full = afterDay({ ...createInitialState(), resources: { ...createInitialState().resources, energy: 100 } });
     expect(full.resources.energy).toBe(100);
     expect(full.lastDaySummary?.energyProduced).toBe(BALANCE.daily.energy);
-    const second = reduceGameState(day, { type: 'ADVANCE_DAY' });
+    const second = advanceSurvivalDay(day);
     expect(second.daysSurvived).toBe(2);
     expect(second.lastDaySummary?.energyProduced).toBe(BALANCE.solarDailyYield);
   });

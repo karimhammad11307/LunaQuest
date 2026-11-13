@@ -27,7 +27,15 @@ state = await page.evaluate(() => window.__moonboundStore.getState());
 if (state.daysSurvived !== 1 || state.resources.food !== 38 || !state.lastDaySummary) throw new Error('Day advancement did not apply costs');
 mkdirSync('artifacts', { recursive: true });
 await page.screenshot({ path: 'artifacts/feature3-habitat.png', fullPage: true });
-for (let i = 1; i < 5; i++) await page.getByRole('button', { name: 'Advance Day' }).click();
+// Feature 5 now gates the day loop with two scripted hazards. Resolve them so
+// this earlier regression still checks the five-day survival result.
+await page.evaluate(() => {
+  const store = window.__moonboundStore;
+  for (let i = 0; i < 36; i++) store.dispatch({ type: 'TICK', deltaSeconds: 1 });
+});
+await page.getByRole('button', { name: 'Advance Day' }).click();
+await page.getByRole('button', { name: /Repair habitat/ }).click();
+for (let i = 2; i < 5; i++) await page.getByRole('button', { name: 'Advance Day' }).click();
 await page.getByText('MISSION COMPLETE!', { exact: true }).waitFor();
 state = await page.evaluate(() => window.__moonboundStore.getState());
 if (state.status !== 'victory' || state.daysSurvived !== 5) throw new Error('Victory did not follow five complete days');

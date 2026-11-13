@@ -45,6 +45,15 @@ export const BALANCE = {
     damagePerDay: 6,
   },
 
+  /** Scripted, illustrative hazards. Durations are real play seconds; damage and losses are game units. */
+  emergencies: {
+    storm: { id: 'solar-day-2', triggerAfterDays: 1, warningSeconds: 24, dangerSeconds: 12,
+      damagePerPulse: 3, exposurePerPulse: 5, pulseSeconds: 1, shieldRadius: 260, xp: 15 },
+    leak: { id: 'oxygen-leak-day-3', triggerAfterDays: 2, warningSeconds: 8,
+      oxygenLossPerPulse: 1, pulseSeconds: 1, criticalOxygen: 10, criticalHpLossPerPulse: 2,
+      isolateEnergyCost: 4, isolateOxygenCost: 5, repairXp: 15, isolateXp: 8 },
+  },
+
   greenhouse: {
     waterCost: 10,
     energyCost: 4,

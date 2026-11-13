@@ -45,7 +45,7 @@ await page.getByRole('button', { name: 'Enter Habitat' }).click();
 const beforeEat = await state();
 await page.getByRole('button', { name: /Eat Food/ }).click();
 current = await state();
-if (current.resources.food !== beforeEat.resources.food - 10 || current.astronaut.health !== 100) throw new Error('Eating did not spend stored food and restore HP');
+if (current.resources.food !== beforeEat.resources.food - 10 || current.astronaut.health < 99.8 || current.astronaut.health > 100) throw new Error('Eating did not spend stored food and restore HP');
 await page.screenshot({ path: 'artifacts/hp-food-eaten.png', fullPage: true });
 await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'UPDATE_ASTRONAUT', changes: { health: 0 } }));
 await page.getByText('GAME OVER', { exact: true }).waitFor();

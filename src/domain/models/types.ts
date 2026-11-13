@@ -108,6 +108,28 @@ export interface WeatherStatus {
   isRealData: boolean;
 }
 
+export type EmergencyType = 'solar-storm' | 'oxygen-leak';
+export type EmergencyChoice = 'shelter' | 'shield' | 'ignore' | 'repair' | 'isolate' | 'habitat';
+
+/** Runtime countdowns live in the shared domain state, never in a scene timer. */
+export interface EmergencyState {
+  id: string;
+  type: EmergencyType;
+  phase: 'warning' | 'danger';
+  remainingSeconds: number;
+  pulseSeconds: number;
+  tookDamage: boolean;
+  ignored: boolean;
+}
+
+export interface EmergencyOutcome {
+  id: string;
+  choice: EmergencyChoice;
+  xpEarned: number;
+  message: string;
+  takeaway: string;
+}
+
 export interface GameState {
   day: number;
   /** Completed survival turns; victory follows the fifth completed turn. */
@@ -125,6 +147,9 @@ export interface GameState {
   completedMissionRunIds: string[];
   lastMissionResult: MissionResult | null;
   activeEventId: string | null;
+  activeEvent: EmergencyState | null;
+  completedEventIds: string[];
+  lastEventOutcome: EmergencyOutcome | null;
   xp: number;
   /** Idempotency keys for non-mission XP awards (tutorials and future events). */
   awardedRewardIds: string[];
