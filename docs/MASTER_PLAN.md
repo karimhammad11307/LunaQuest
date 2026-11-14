@@ -37,7 +37,7 @@ The MVP has one explorable Moon Base Phaser scene, one Chicken Hunt Phaser scene
 - WASD or arrow keys move; diagonal speed is normalized. `E` interacts with the nearest highlighted object. Pointer/tap can move/interact where practical; prioritize desktop playability for MVP.
 - `Space` fires in Chicken Hunt; `Esc` pauses or closes a learning panel. Give an on-screen control reminder and large contextual action.
 - Explain a single objective at a time with brief prompts (“Find food!”, “Oxygen is low!”, “Return to the airlock!”). Preview costs/results. Show a friendly reason when an action is unavailable.
-- No accounts, long text dialogs, dashboard-like page navigation or hover-only actions. Pause is available; a mute control is needed only if audio is added.
+- No accounts, long text dialogs, dashboard-like page navigation or hover-only actions. Pause and persistent music/SFX controls are available.
 
 ### Resources and survival
 
@@ -70,9 +70,13 @@ XP rewards come from validated mission results and once-only survival actions/ev
 
 **Feature 9 (implemented):** remove automatic five-day victory, show completed days/score and an independently saved personal record, and keep existing defeat mechanics. Day consumption, greenhouse, solar and once-only mission rewards remain unchanged. A save from the former five-day version stays valid through explicit v1/v2 migration; old terminal victories remain terminal results.
 
-**Feature 10 (Developer A, future):** design a sustainable long-term water and resource economy. Decide and implement repeat Earth resupply or a scientifically framed recovery source, with stable delivery IDs, bounded storage, clear costs/risks and save migration. Balance repeated days without free unlimited supplies. The present Day 2/4 pods are retained until this feature exists; normal play can eventually run out of water.
+**Feature 10 (implemented):** make the configured Chicken Hunt launch charge unmistakable and add one shared retro audio system. The Landing Pad previews the exact six-Energy charge; a successful launch shows the before/after Energy values in a banner, notice and HUD. The existing reducer still charges once, with no flight/shooting drain or return/failure refund. `AudioService` coordinates React settings, domain transitions and Phaser cues; `WebAudioSynth` makes original base and arcade chiptunes plus short game effects without external recordings. Music/SFX on/off, separate volumes and Mute All persist independently from the survival save. Audio unlocks after a player gesture, pauses on game pause/hidden tab and gracefully degrades without Web Audio.
 
-**Feature 11 (Developer A, future):** add recurring emergencies and gradual difficulty scaling only after the long-term economy is verified. Keep one active incident at a time, prevent reward farming with unique IDs, provide child-friendly response windows, and test pause/restore/terminal safety. Current solar storm and oxygen leak remain scripted one-time events.
+**Feature 11 (planned):** final gameplay polish and QA. Review desktop/mobile play, child readability, keyboard/pointer accessibility, visual and audio feedback, regressions and known balance limits. Do not add difficulty scaling or recurring incidents.
+
+**Feature 12 (planned):** Vercel deployment and hackathon demo. Verify the public build and offline mode, prepare the three-minute demonstration and five-slide presentation, and document limitations and asset provenance.
+
+The Day 2/4 water pods remain the only scheduled deliveries. Post-Day-4 water sustainability is a known limitation of the current endless mode; no expanded supply economy is committed to Features 10–12.
 
 ## Missions
 
@@ -93,7 +97,7 @@ Mission scenes own moment-to-moment input/timing/collision only. Before launch, 
 - **Entry requirements:** reach the separately rendered pod near the Landing Pad after its scheduled arrival; no mission fee or scene transition.
 - **Controls/objective:** walk near a pod, press E or tap it, and collect 25 water. Each delivery has a stable ID and is collectible once.
 - **Schedule:** Days 2 and 4 only in the current implementation. A missed pod remains available on later days; active missions cannot collect pods. New Game/Restart clears the delivery ledger; Save/Continue keeps it.
-- **Balance:** starting water 40 and daily cost 9 create a shortfall without resupply. Two pods add 50 total, supporting early survival and optional greenhouse planting at 10 water per crop. Capacity 100 still applies; a full tank prevents collection until space is available. **There are currently no further deliveries after Day 4. Long-term water sustainability is not yet balanced for endless play; Feature 10 owns that economy.**
+- **Balance:** starting water 40 and daily cost 9 create a shortfall without resupply. Two pods add 50 total, supporting early survival and optional greenhouse planting at 10 water per crop. Capacity 100 still applies; a full tank prevents collection until space is available. **There are currently no further deliveries after Day 4. Long-term water sustainability is a known limitation of endless play; it is not addressed by the current roadmap.**
 - **Science:** cargo delivery is a game simplification. Sending water from Earth is difficult and expensive; recycling and possible local resources matter for real exploration. Do not imply an actual two-day lunar cargo schedule.
 
 ### Lunar Ice Collection (deferred enhancement)
@@ -152,13 +156,13 @@ Required original sprite sheets/assets: astronaut idle + walk in four directions
 
 Frame-based idle/walk, footprints/dust puffs, solar glint, crop stages, habitat lights, shield pulse, alert flash, repair/build burst, pickup bounce/shine, floating resource/XP text and brief scene transitions. Arcade has ship thrust, readable enemy motion, laser, damage flash, small explosion and pickups. Animate resource meters only after domain updates; avoid per-frame React churn. Effects are short and interruptible.
 
-Original lightweight cues: UI tick, footsteps, pickup, plant/growth, repair, alarm, shield hum, low oxygen, launch/return, success/failure. Mute control; all critical cues also have text/icon feedback. No copyrighted music. Avoid rapid flashing; reduced-motion disables repeated pulses, shake and nonessential particles.
+Feature 10 uses original browser-synthesized retro audio: a gentle 32-step Moon Base loop, a faster 32-step Chicken Hunt loop, and square/triangle/sawtooth electronic cues for footsteps, buildings, food and water, laser/combat/pickup, launch/return, UI, success/defeat and both scripted emergencies. A single service changes tracks without overlap, lowers music during emergencies, stops hazard ambience when an incident resolves, and does not replay a restored warning alarm. React exposes separate Music and Sound Effects toggles/volumes plus Mute All; preferences are stored in `moonbound.audio.v1`, apart from GameState and SaveService. The synthesizer unlocks only after a player gesture and tolerates blocked or unavailable Web Audio. No external audio files, copyrighted melodies or hotlinked samples are used; provenance is in `src/assets/manifest.json`. Every critical cue also has text/icon feedback. Avoid rapid flashing; reduced-motion disables repeated pulses, shake and nonessential particles.
 
 ### HUD and accessibility
 
 Keep the game world dominant. Compact HUD: large icon + label + number + meter for food, water, base O₂ and energy; health and suit O₂ during EVA; current day, completed days, current score and personal best; pause/help. There is no `/5` day limit. Color is never the only status signal. Context prompt sits by highlighted target. Prominent base Rest/Advance Day action shows forecast before daily costs. Event overlay presents two/three large choices with costs and plain-language consequence. Game Over shows final score, best days, best score and Try Again.
 
-Support keyboard and pointer/touch, visible focus, semantic labeled DOM controls, accessible status announcements without flooding, ≥44 CSS px targets where practical, readable type, zoom/reflow, contrast, pause and reduced motion. No hover-only information or timed decision without a clear warning/accessible alternative. Test at 320 CSS px width. Add mute if sound is implemented; do not promise unavailable sound/read-aloud features.
+Support keyboard and pointer/touch, visible focus, semantic labeled DOM controls, accessible status announcements without flooding, ≥44 CSS px targets where practical, readable type, zoom/reflow, contrast, pause and reduced motion. No hover-only information or timed decision without a clear warning/accessible alternative. Test at 320 CSS px width. Keep audio optional and independently adjustable; do not promise unavailable read-aloud features.
 
 ## Technology and architecture
 

@@ -8,7 +8,9 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 
 **Feature 8 checkpoint:** A1–A12's current MVP scope has been implemented and verified through a full Chromium five-day campaign. Chicken Hunt is the required mission; Day 2/4 Earth pods supply water; seven learning signs explain the game. Ice Collection is deferred. A13 accessibility/visual QA and A14 deployment/demo delivery remain separate gates. See [ImplementedFeatureA.md](ImplementedFeatureA.md).
 
-**Feature 9 checkpoint:** The earlier five-day victory has been replaced by endless progression at `faacbe4`. Current day equals completed days plus one; the run score prioritizes completed days, and the personal record survives restart. Save schema v3 migrates valid v1/v2 sessions. A16 long-term water supply and A17 recurring incidents remain future work. A13/A14 are still open. See [ImplementedFeatureA.md](ImplementedFeatureA.md).
+**Feature 9 checkpoint:** The earlier five-day victory has been replaced by endless progression at `faacbe4`. Current day equals completed days plus one; the run score prioritizes completed days, and the personal record survives restart. Save schema v3 migrates valid v1/v2 sessions. The then-proposed long-term water and recurring-incident tasks were superseded by the user's Feature 10 scope decision. See [ImplementedFeatureA.md](ImplementedFeatureA.md).
+
+**Feature 10 checkpoint:** A16 implementation `9dc6ca2` made the configured six-Energy Chicken Hunt charge visible and added one original procedural retro audio system with Moon Base/arcade music, action and emergency cues, and independent persistent music/SFX controls. Build, 149 Vitest cases and 11 Chromium scripts passed. Feature 11 is A13 final gameplay polish/QA; Feature 12 is A14 Vercel/demo. No recurring incidents or difficulty scaling are planned.
 
 ## 1. A1 — Freeze the shared contract and build the game store
 
@@ -76,7 +78,7 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 - Receive and validate the shared `MissionResult` contract.
 - Apply resources, damage, and XP exactly once, return to the base, and persist the resulting state.
 - Schedule collectible Earth water pods on Days 2 and 4; award 25 water once per pod through typed domain rules and persist their IDs.
-- Add seven player-opened WHAT/WHY/YOUR MISSION learning signs and verify the initial five-day water/food loop. Longer-run water balance belongs to A16.
+- Add seven player-opened WHAT/WHY/YOUR MISSION learning signs and verify the initial five-day water/food loop. Post-Day-4 water sustainability remains a documented endless-play limitation.
 - Keep mission scene internals in Developer B-owned files.
 
 **Gate:** Chicken Hunt success, failure, duplicate completion, return and save behavior work through the shared store; both Earth pods and all seven learning locations work. Ice Collection is a future enhancement.
@@ -90,25 +92,33 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 
 **Gate:** no day cap; longer survival always ranks higher; a terminal save cannot resume as active play.
 
-## 10. A16–A17 — Future endless balance
+## 10. A16 — Retro audio and launch-cost visibility (implemented)
 
-- A16: add a repeatable, bounded post-Day-4 water/resource economy through domain actions and saved unique IDs.
-- A17: add recurring, non-overlapping incidents and measured difficulty with once-only rewards and pause/restore safety.
+- Show Chicken Hunt's configured six-Energy launch cost and immediate before/after Energy in the Landing Pad, mission banner, HUD and notice.
+- Use one AudioService across the React shell and Phaser scenes, with original procedural base/arcade chiptunes and short cues for buildings, combat, emergencies, pickups and outcomes.
+- Persist separate music/SFX toggles and volumes plus mute outside the survival save. Unlock after a user gesture; pause and hidden tabs stop playback.
+- Verify charge once, no refund, refresh safety, audio transitions, controls and browser behavior.
 
-**Gate:** long-run play is sustainable but remains challenging; no free supply or XP loop.
+**Gate:** one charge per launch, no double music or alarm, saved audio settings and no changes to survival resources from audio.
 
-## 11. A13–A14 — Verify, polish, and deliver
+## 11. A13 / Feature 11 — Final gameplay polish and QA
 
 - Run domain unit tests and browser gameplay tests for start, movement, buildings, missions, incidents, endless day progression, defeat/record/restart, and save/resume.
-- Inspect desktop and mobile screenshots; fix clipping, unreadable controls, focus/accessibility issues, and broken interactions.
+- Inspect desktop and mobile screenshots; fix clipping, unreadable controls, focus/accessibility issues, broken interactions and audio usability.
+- Keep the existing scripted incidents and current game balance; recurring incidents and difficulty scaling are out of scope.
+
+**Gate:** the complete local gameplay loop, accessibility pass and visual/audio QA have recorded evidence.
+
+## 12. A14 / Feature 12 — Vercel deployment and hackathon demo
+
 - Build and deploy the static app, verify the deployed flow and offline demo mode, and prepare a demo save, recording backup, and presentation materials.
 - Report only results from checks actually run.
 
-**Gate:** build and gameplay verification pass, the deployed MVP is playable, and demo materials are ready.
+**Gate:** the deployed MVP is playable and the three-minute demonstration plus five-slide deck are ready.
 
 ## Implementation guardrails
 
-- The original A1–A12 implementation order is historical. Feature 9 is complete; A16/A17, A13 QA and A14 delivery remain open and can be sequenced by the user.
+- The original A1–A12 implementation order is historical. Features 9 and 10 are complete; A13/Feature 11 QA and A14/Feature 12 delivery remain open. Post-Day-4 water balance is a known limitation.
 - A owns the shared domain, balance/configuration, app shell, base gameplay, services, integration, and deployment.
 - Keep one canonical `GameState`, `GameAction`, and `MissionResult`. Phaser scenes dispatch actions; the domain/store alone changes shared resources and awards mission rewards.
 - Keep all game quantities illustrative and NASA observations distinct from simulated hazards.

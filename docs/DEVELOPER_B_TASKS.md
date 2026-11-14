@@ -2,7 +2,7 @@
 
 **Original branch plan:** `feat/arcade-missions`, from Developer A's A1 foundation. The user manages current branches. **MVP scope:** Chicken Hunt, original arcade art/effects/audio, mission tests and integration support. Lunar Ice Collection is deferred. **Authority:** gameplay/architecture/science in [MASTER_PLAN.md](MASTER_PLAN.md); shared chronology in [DEVELOPER_A_TASKS.md](DEVELOPER_A_TASKS.md).
 
-**Verified integration checkpoint:** Developer B's Chicken Hunt ship, bird, combat, food pickup, timer and return scene from `devB_first` were preserved in local merge `cc857d9` and registered on `main`. Feature 8 implementation `9d7aa26` then independently verified actual keyboard flight, shooting, enemy drop, food pickup, safe/failed return, store reward, Habitat eating and saved run-ID rejection in Chromium. Developer B's combat files were not changed by Feature 8. Arcade touch controls, sound and further mission polish remain open; Ice Collection was removed from the MVP. See [PROJECT_HISTORY.md](PROJECT_HISTORY.md).
+**Verified integration checkpoint:** Developer B's Chicken Hunt ship, bird, combat, food pickup, timer and return scene from `devB_first` were preserved in local merge `cc857d9` and registered on `main`. Feature 8 implementation `9d7aa26` then independently verified actual keyboard flight, shooting, enemy drop, food pickup, safe/failed return, store reward, Habitat eating and saved run-ID rejection in Chromium. Developer B's combat files were not changed by Feature 8. Feature 10 implementation `9dc6ca2` added only optional cue callbacks to B's scene/combat system so A's centralized procedural audio can follow actual shots, hits, pickups and returns; combat rules are unchanged. Arcade touch controls and further mission polish remain open; Ice Collection was removed from the MVP. See [PROJECT_HISTORY.md](PROJECT_HISTORY.md).
 
 **A11 persistence handoff:** Save/resume at `149af56` preserves completed mission run IDs. A browser refresh during a mission cancels that run without rewards and retires its run ID; a new launch must use a fresh ID. B scenes continue to emit one typed `MissionResult` and do not write LocalStorage or shared resources. No B-owned scene or asset was changed for A11.
 
@@ -19,10 +19,10 @@ src/game/entities/Collectible.ts
 src/game/systems/ChickenHuntCombat.ts
 src/game/assets/arcadeSprites.ts, src/game/assets/ARCADE_MANIFEST.md
 tests/unit/arcade/**
-arcade audio assets (future, if added)
+arcade audio cue callbacks in B files; shared synthesizer/preferences in A-owned `src/services/**`
 ```
 
-B owns scene internals and arcade-specific assets/tests. A owns and alone edits `src/domain/**`, `src/game/config/**`, React shell, Moon Base, common event/service code, SaveService and integration. B must not modify `GameState`, `GameAction`, `MissionResult`, balance, `GameSessionStore`, reducer, A's base entities or mission-registration config. If a type/balance/scene convention is insufficient, send a concrete proposal to A; A applies it and sends the new hash. Do not create a second state model, reward calculator or combat framework.
+B owns scene internals and arcade-specific assets/tests. A owns and alone edits `src/domain/**`, `src/game/config/**`, React shell, Moon Base, common event/service code, SaveService and integration. Feature 10's A-owned audio work made the minimal B-file cue callback edits under a verified integration change; future B edits should preserve those callbacks. B must not modify `GameState`, `GameAction`, `MissionResult`, balance, `GameSessionStore`, reducer, A's base entities or mission-registration config. If a type/balance/scene convention is insufficient, send a concrete proposal to A; A applies it and sends the new hash. Do not create a second state model, reward calculator or combat framework.
 
 ## Shared contracts and required flow
 
@@ -58,7 +58,7 @@ The run ID is required for idempotency; never independently extend/redeclare the
 | **B8 — 0.5 h** | MissionResult output; depends B7 and frozen A1 contract. | Emit bounded Chicken Hunt result once with mission type, success/safe return, food, damage, XP, duration and educational line; duplicate finish inputs ignored. Unit test exact-once emission. |
 | **B9 — deferred** | Optional Lunar Ice Collection after MVP; depends on a new user decision and B2/B8. | No MVP deliverable. If later approved, design a safe-return ice sample activity using the same `MissionResult` contract without duplicating Earth water pod rewards. |
 | **B10 — 0.75 h** | Animation/effects; depends B1/B5/B6. | Ship thrust, laser/hit flash, small explosion, collection particles and clear scene transition. Respect shared reduced-motion setting; cap particles. |
-| **B11 — 0.5 h** | Arcade audio; depends B2 and shared AudioService convention. | Original or properly licensed lightweight SFX, mute preference wired to A's common control, no copyrighted music. All important sounds have visual equivalent. |
+| **B11 — original 0.5 h estimate; completed by A's Feature 10 integration** | Arcade audio; depends B2 and shared AudioService convention. | Original procedural laser, hit, defeat, pickup, damage, engine and result cues are connected through optional B-scene callbacks to A's one AudioService; shared mute/volume applies. Implementation `9dc6ca2`. B retains combat ownership; no second audio manager. |
 | **B12 — 1.25 h** | Tests; depends B5–B8. | Arcade tests for movement, collision, pickup, timer/early return, failure, result bounds/exactly once and restart. Playwright flows run in app shell against deterministic fixtures. |
 | **B13 — 1 h** | Integration support; depends A12. | Resolve only B-owned defects; test Chicken Hunt through A's coordinator; document any shared contract request; confirm launch energy once, rewards once, return/save behavior, no persistent scene listeners. |
 | **B14 — 0.75 h** | Visual polish and demo evidence; depends B12/B13. | Review screenshots at desktop/mobile logical scale, repair clipping/pixel blur/difficulty spikes, final asset manifest/credits and capture arcade demo segment/video. |
@@ -91,8 +91,8 @@ Same elapsed schedule as [Developer A's task plan](DEVELOPER_A_TASKS.md#20-hour-
 ## Priority, tests, and definition of done
 
 - **P0:** Chicken Hunt movement/shooting/collision/timer/food/return/result through the shared contract and exact-once output; original readable sprites; basic browser/test evidence. Earth water supply is A-owned base gameplay.
-- **P1:** polished combat feedback, touch input, reduced motion, sound/mute, responsive visual QA, mission-specific science copy and demo capture.
-- **P2:** Lunar Ice Collection, enemy variety, bonus objectives, extra effects, optional challenge scaling. Cut first if timeline slips.
+- **P1:** polished combat feedback, touch input, reduced motion, responsive visual QA, mission-specific science copy and demo capture. Shared retro sound/mute was integrated in Feature 10; preserve its callbacks during future arcade polish.
+- **P2:** Lunar Ice Collection, enemy variety, bonus objectives and extra effects. Recurring incidents and difficulty scaling are outside the current roadmap.
 
 B owns unit tests for arcade logic and Playwright mission interactions/screenshots. A owns shared domain/reward, complete campaign, integration, persistence and deployment verification. Avoid tests against unimplemented assumptions; use deterministic seeds and bounded mission results.
 
