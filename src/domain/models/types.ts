@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — SHARED DOMAIN CONTRACT (frozen for parallel development)
+ * LUNAQUEST — SHARED DOMAIN CONTRACT (frozen for parallel development)
  *
  * Developer A owns this file. Developer B must consume these types,
  * never redefine them. See docs/MASTER_PLAN.md and developer task plans.

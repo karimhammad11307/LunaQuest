@@ -6,16 +6,16 @@ const context = await browser.newContext({ viewport: { width: 1280, height: 900 
 let page = await context.newPage();
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
-const url = process.env.MOONBOUND_URL ?? 'http://127.0.0.1:5174/';
-const state = () => page.evaluate(() => window.__moonboundStore.getState());
-const scene = (key) => page.evaluate((name) => window.__moonboundGame.scene.getScene(name).sys.isActive(), key);
+const url = process.env.LUNAQUEST_URL ?? 'http://127.0.0.1:5174/';
+const state = () => page.evaluate(() => window.__lunaquestStore.getState());
+const scene = (key) => page.evaluate((name) => window.__lunaquestGame.scene.getScene(name).sys.isActive(), key);
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
 try {
   mkdirSync('artifacts', { recursive: true });
   await page.goto(url);
   await page.waitForLoadState('networkidle');
-  await page.waitForFunction(() => window.__moonboundGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
+  await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   assert((await state()).resources.water === 40, 'New game water balance is wrong');
 
   // The astronaut uses the actual keyboard route to reach the Landing Pad.
@@ -33,17 +33,17 @@ try {
   await page.getByRole('button', { name: /back to game/ }).click();
   await page.keyboard.press('e');
   await page.getByRole('button', { name: /Launch Chicken Hunt/ }).click();
-  await page.waitForFunction(() => window.__moonboundGame.scene.getScene('ChickenHuntScene').sys.isActive());
+  await page.waitForFunction(() => window.__lunaquestGame.scene.getScene('ChickenHuntScene').sys.isActive());
   const launch = await state();
   assert(launch.resources.energy === 69 && !!launch.activeMissionRunId, 'Launch energy/run ID invalid');
   assert(await scene('ChickenHuntScene'), 'Chicken Hunt did not start');
 
   // Fire at the normal, deterministic first wave. Then fly toward the drops.
-  const shipX = await page.evaluate(() => window.__moonboundGame.scene.getScene('ChickenHuntScene').ship.sprite.x);
+  const shipX = await page.evaluate(() => window.__lunaquestGame.scene.getScene('ChickenHuntScene').ship.sprite.x);
   await page.keyboard.down('ArrowRight');
   await page.waitForTimeout(170);
   await page.keyboard.up('ArrowRight');
-  const movedX = await page.evaluate(() => window.__moonboundGame.scene.getScene('ChickenHuntScene').ship.sprite.x);
+  const movedX = await page.evaluate(() => window.__lunaquestGame.scene.getScene('ChickenHuntScene').ship.sprite.x);
   assert(movedX > shipX + 10, 'Ship did not move by keyboard');
   await page.keyboard.down('ArrowLeft');
   await page.waitForTimeout(170);
@@ -51,14 +51,14 @@ try {
   await page.keyboard.down('Space');
   await page.waitForTimeout(2400);
   await page.keyboard.up('Space');
-  const dropsBefore = await page.evaluate(() => window.__moonboundGame.scene.getScene('ChickenHuntScene').collectibles.filter((item) => item.isActive).length);
+  const dropsBefore = await page.evaluate(() => window.__lunaquestGame.scene.getScene('ChickenHuntScene').collectibles.filter((item) => item.isActive).length);
   assert(dropsBefore > 0, 'Lasers did not destroy an enemy and spawn food');
   await page.keyboard.down('ArrowUp');
   await page.waitForTimeout(1050);
   await page.keyboard.up('ArrowUp');
   await page.waitForTimeout(1700);
   const combat = await page.evaluate(() => {
-    const hunt = window.__moonboundGame.scene.getScene('ChickenHuntScene');
+    const hunt = window.__lunaquestGame.scene.getScene('ChickenHuntScene');
     return { food: hunt.localFoodCollected,
       drops: hunt.collectibles.filter((item) => item.isActive).map((item) => ({ x: item.sprite.x, y: item.sprite.y })) };
   });
@@ -68,8 +68,8 @@ try {
 
   const canvas = await page.locator('#game-canvas canvas').boundingBox();
   await page.mouse.click(canvas.x + canvas.width * 550 / 640, canvas.y + canvas.height * 20 / 360);
-  await page.waitForFunction(() => window.__moonboundStore.getState().scene === 'moon-base'
-    && window.__moonboundGame.scene.getScene('MoonBaseScene').sys.isActive());
+  await page.waitForFunction(() => window.__lunaquestStore.getState().scene === 'moon-base'
+    && window.__lunaquestGame.scene.getScene('MoonBaseScene').sys.isActive());
   const returned = await state();
   assert(returned.completedMissionRunIds.includes(launch.activeMissionRunId), 'Run ID not recorded');
   assert(returned.resources.food > launch.resources.food && returned.xp > launch.xp, 'Mission rewards missing');
@@ -78,23 +78,23 @@ try {
   console.log('Mission return', JSON.stringify({ food: returned.resources.food, xp: returned.xp, hp: returned.astronaut.health }));
 
   // A destroyed ship returns with no cargo or XP; the launch cost stays spent.
-  await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(316, 388));
+  await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(316, 388));
   await page.waitForTimeout(200);
   await page.keyboard.press('e');
   await page.getByRole('button', { name: /Launch Chicken Hunt/ }).click();
-  await page.waitForFunction(() => window.__moonboundGame.scene.getScene('ChickenHuntScene').sys.isActive());
+  await page.waitForFunction(() => window.__lunaquestGame.scene.getScene('ChickenHuntScene').sys.isActive());
   const beforeFailure = await state();
   assert(beforeFailure.resources.energy === returned.resources.energy - 6, 'Second launch cost was wrong');
-  await page.evaluate(() => window.__moonboundGame.scene.getScene('ChickenHuntScene').ship.takeDamage(3));
-  await page.waitForFunction(() => window.__moonboundStore.getState().scene === 'moon-base'
-    && window.__moonboundGame.scene.getScene('MoonBaseScene').sys.isActive());
+  await page.evaluate(() => window.__lunaquestGame.scene.getScene('ChickenHuntScene').ship.takeDamage(3));
+  await page.waitForFunction(() => window.__lunaquestStore.getState().scene === 'moon-base'
+    && window.__lunaquestGame.scene.getScene('MoonBaseScene').sys.isActive());
   const failed = await state();
   assert(failed.resources.food === returned.resources.food && failed.xp === returned.xp, 'Failed mission granted rewards');
   assert(failed.astronaut.health < returned.astronaut.health, 'Failed mission did not damage HP');
   await page.getByRole('button', { name: 'Back to Moon Base' }).click();
 
   // Eat only inside the habitat; stored food is consumed and HP recovers.
-  await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 276));
+  await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 276));
   await page.waitForTimeout(180);
   await page.keyboard.press('e');
   await page.getByRole('complementary', { name: 'habitat controls' }).waitFor();
@@ -110,7 +110,7 @@ try {
   const topics = ['habitat', 'greenhouse', 'solar', 'shield', 'landingPad', 'chickenHunt', 'earthSupply'];
   for (const topic of topics) {
     await page.evaluate((id) => {
-      const base = window.__moonboundGame.scene.getScene('MoonBaseScene');
+      const base = window.__lunaquestGame.scene.getScene('MoonBaseScene');
       const sign = base.signs.find((item) => item.id === id);
       base.astronaut.setPosition(sign.x, sign.y);
     }, topic);
@@ -126,10 +126,10 @@ try {
   }
 
   // Phaser pointer interaction uses the same nearby sign and learning panel.
-  await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(145, 406));
+  await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(145, 406));
   await page.waitForTimeout(650);
   const signPoint = await page.evaluate(() => {
-    const base = window.__moonboundGame.scene.getScene('MoonBaseScene');
+    const base = window.__lunaquestGame.scene.getScene('MoonBaseScene');
     const sign = base.signs.find((item) => item.id === 'earthSupply');
     return { x: sign.x - base.cameras.main.scrollX, y: sign.y - 14 - base.cameras.main.scrollY };
   });
@@ -141,7 +141,7 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => {
-    const base = window.__moonboundGame.scene.getScene('MoonBaseScene');
+    const base = window.__lunaquestGame.scene.getScene('MoonBaseScene');
     base.astronaut.setPosition(145, 406);
   });
   await page.waitForTimeout(160);
@@ -156,7 +156,7 @@ try {
   // Continue survival through the former five-day limit. Day 2 and Day 4 still deliver pods.
   const goHome = async () => {
     if ((await state()).astronaut.location === 'habitat') return;
-    await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
+    await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
     await page.waitForTimeout(180);
     await page.keyboard.press('e');
     await page.getByRole('complementary', { name: 'habitat controls' }).waitFor();
@@ -164,10 +164,10 @@ try {
   };
   await goHome();
   await page.getByRole('button', { name: /Advance Day/ }).click();
-  await page.waitForFunction(() => window.__moonboundStore.getState().day === 2);
+  await page.waitForFunction(() => window.__lunaquestStore.getState().day === 2);
   const day2 = await state();
   assert(day2.activeEvent?.type === 'solar-storm', 'Day 2 storm did not start');
-  assert(await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').supplyPods.size) === 1, 'Day 2 pod did not appear');
+  assert(await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').supplyPods.size) === 1, 'Day 2 pod did not appear');
   await page.keyboard.press('q');
   await page.keyboard.down('ArrowDown');
   await page.waitForTimeout(1180);
@@ -177,7 +177,7 @@ try {
   await page.keyboard.up('ArrowLeft');
   await page.waitForTimeout(150);
   const nearFirstPod = await page.evaluate(() => {
-    const base = window.__moonboundGame.scene.getScene('MoonBaseScene');
+    const base = window.__lunaquestGame.scene.getScene('MoonBaseScene');
     return { x: base.astronaut.x, y: base.astronaut.y, prompt: base.prompt.text };
   });
   console.log('First pod approach', JSON.stringify(nearFirstPod));
@@ -192,11 +192,11 @@ try {
   await page.reload();
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Continue Game' }).click();
-  await page.waitForFunction(() => window.__moonboundGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
+  await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   const restored = await state();
   assert(restored.resources.water === firstSupply.resources.water && restored.collectedEarthSupplyIds.length === 1, 'Pod did not survive reload');
   const replay = await page.evaluate((runId) => {
-    const store = window.__moonboundStore;
+    const store = window.__lunaquestStore;
     const before = store.getState();
     const afterPod = store.dispatch({ type: 'COLLECT_EARTH_SUPPLY', deliveryId: 'earth-water-day-2' });
     const afterMission = store.dispatch({ type: 'COMPLETE_MISSION', result: {
@@ -209,17 +209,17 @@ try {
   assert(replay.samePod && replay.sameMission, 'Repeated pod or mission result was accepted after reload');
 
   await goHome();
-  await page.waitForFunction(() => window.__moonboundStore.getState().activeEvent === null, undefined, { timeout: 45000 });
+  await page.waitForFunction(() => window.__lunaquestStore.getState().activeEvent === null, undefined, { timeout: 45000 });
   await page.getByRole('button', { name: /Advance Day/ }).click();
-  await page.waitForFunction(() => window.__moonboundStore.getState().day === 3);
+  await page.waitForFunction(() => window.__lunaquestStore.getState().day === 3);
   assert((await state()).activeEvent?.type === 'oxygen-leak', 'Day 3 oxygen leak did not start');
   await page.getByRole('button', { name: /Repair habitat/ }).click();
   assert((await state()).activeEvent?.id === 'solar-day-3', 'Habitat repair did not start the queued storm');
-  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
+  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
   await page.getByRole('button', { name: /Advance Day/ }).click();
-  await page.waitForFunction(() => window.__moonboundStore.getState().day === 4);
+  await page.waitForFunction(() => window.__lunaquestStore.getState().day === 4);
   await page.keyboard.press('q');
-  await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(205, 451));
+  await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(205, 451));
   await page.waitForTimeout(180);
   await page.keyboard.press('e');
   const secondSupply = await state();
@@ -230,31 +230,31 @@ try {
   await page.goto(url);
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Continue Game' }).click();
-  await page.waitForFunction(() => window.__moonboundGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
+  await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   const reopened = await state();
   assert(reopened.collectedEarthSupplyIds.length === 2 && reopened.resources.water === secondSupply.resources.water,
     'Closed-browser-tab Continue lost Earth deliveries');
-  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
+  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
   await goHome();
   await page.getByRole('button', { name: /Advance Day/ }).click();
-  await page.waitForFunction(() => window.__moonboundStore.getState().day === 5);
-  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
+  await page.waitForFunction(() => window.__lunaquestStore.getState().day === 5);
+  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
   await page.getByRole('button', { name: /Advance Day/ }).click();
   const final = await state();
   assert(final.status === 'playing' && final.daysSurvived === 5 && final.day === 6 && final.resources.water > 0, 'Survival stopped at day five');
-  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
+  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
   await page.getByRole('button', { name: /Advance Day/ }).click();
   assert((await state()).daysSurvived === 6 && (await state()).status === 'playing', 'Day six progression failed');
   await page.screenshot({ path: 'artifacts/feature8-endless-day7.png', fullPage: true });
-  await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'UPDATE_ASTRONAUT', changes: { health: 0 } }));
+  await page.evaluate(() => window.__lunaquestStore.dispatch({ type: 'UPDATE_ASTRONAUT', changes: { health: 0 } }));
   await page.getByRole('complementary', { name: 'Mission result' }).waitFor();
   await page.getByRole('button', { name: 'TRY AGAIN' }).click();
   const restarted = await state();
   assert(restarted.collectedEarthSupplyIds.length === 0 && restarted.resources.water === 40 && restarted.completedMissionRunIds.length === 0, 'Restart retained delivery or mission ledger');
   await page.evaluate(() => {
-    const store = window.__moonboundStore;
+    const store = window.__lunaquestStore;
     store.dispatch({ type: 'SPEND_RESOURCES', costs: { energy: 70 } });
-    window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(316, 388);
+    window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(316, 388);
   });
   await page.waitForTimeout(180);
   await page.keyboard.press('e');

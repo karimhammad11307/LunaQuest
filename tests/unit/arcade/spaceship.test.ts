@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — Phase 2 / B3 unit tests: Spaceship (Developer B)
+ * LUNAQUEST — Phase 2 / B3 unit tests: Spaceship (Developer B)
  *
  * Tests the Spaceship entity logic in isolation:
  *  - Health tracking and initial configuration.

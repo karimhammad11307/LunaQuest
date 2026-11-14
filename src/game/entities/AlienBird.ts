@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — AlienBird entity (Developer B)
+ * LUNAQUEST — AlienBird entity (Developer B)
  *
  * Phase 2 / B4: Alien chicken enemy.
  *

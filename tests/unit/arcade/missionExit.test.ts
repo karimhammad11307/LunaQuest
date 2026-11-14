@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — Phase 3 / B7 & B8 unit tests: Mission Exit & Race Guard (Developer B)
+ * LUNAQUEST — Phase 3 / B7 & B8 unit tests: Mission Exit & Race Guard (Developer B)
  *
  * Tests the centralized mission completion state machine and exactly-once contract:
  *  - Exit A: Timer expiration credits full collected food and safe return.

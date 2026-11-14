@@ -38,7 +38,7 @@ interface StoragePort {
   setItem(key: string, value: string): void;
 }
 
-export const AUDIO_SETTINGS_KEY = 'moonbound.audio.v1';
+export const AUDIO_SETTINGS_KEY = 'lunaquest.audio.v1';
 export const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = Object.freeze({
   musicEnabled: true, sfxEnabled: true, musicVolume: 0.24, sfxVolume: 0.38, muted: false,
 });

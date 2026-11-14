@@ -7,11 +7,11 @@ import { BALANCE } from '../game/config/balance';
 import { SPAWN_POINT } from '../game/config/gameConfig';
 import { EMPTY_PERSONAL_BEST } from '../domain/rules/scoreRules';
 
-export const SAVE_KEY = 'moonbound.session.v4';
+export const SAVE_KEY = 'lunaquest.session.v4';
 export const SAVE_VERSION = 4;
-export const PREVIOUS_SAVE_KEY = 'moonbound.session.v3';
-export const OLDER_SAVE_KEY = 'moonbound.session.v2';
-export const LEGACY_SAVE_KEY = 'moonbound.session.v1';
+export const PREVIOUS_SAVE_KEY = 'lunaquest.session.v3';
+export const OLDER_SAVE_KEY = 'lunaquest.session.v2';
+export const LEGACY_SAVE_KEY = 'lunaquest.session.v1';
 const DEFERRED_SAVE_MS = 5000;
 
 interface StoragePort {
@@ -36,7 +36,7 @@ export function recoverSavedState(state: GameState): GameState {
   const recoveryMessage = interruptedMission
       ? 'Mission interrupted. You returned to base without supplies.'
     : interruptedEvent ? 'Emergency warning restarted. Choose a safe response!'
-      : state.status === 'playing' ? 'Welcome back to Moonbound!' : 'Your mission result is ready.';
+      : state.status === 'playing' ? 'Welcome back to LunaQuest!' : 'Your mission result is ready.';
   notices.push({ id: Math.max(0, ...notices.map((notice) => notice.id)) + 1, text: recoveryMessage,
     tone: interruptedMission || interruptedEvent ? 'warn' : 'info' });
   return {

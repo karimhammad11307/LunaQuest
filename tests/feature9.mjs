@@ -6,23 +6,23 @@ const context = await browser.newContext({ viewport: { width: 1280, height: 900 
 const page = await context.newPage();
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
-const url = process.env.MOONBOUND_URL ?? 'http://127.0.0.1:5174/';
-const state = () => page.evaluate(() => window.__moonboundStore.getState());
+const url = process.env.LUNAQUEST_URL ?? 'http://127.0.0.1:5174/';
+const state = () => page.evaluate(() => window.__lunaquestStore.getState());
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
 try {
   mkdirSync('artifacts', { recursive: true });
   await page.goto(url);
   await page.waitForLoadState('networkidle');
-  await page.waitForFunction(() => window.__moonboundGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
+  await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   assert((await state()).daysSurvived === 0, 'New run must start with zero completed days');
-  await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
+  await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
   await page.waitForTimeout(180);
   await page.keyboard.press('e');
   await page.getByRole('button', { name: 'Enter Habitat' }).click();
   await page.getByRole('button', { name: /Advance Day/ }).click();
   await page.evaluate(() => {
-    for (let i = 0; i < 36; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
+    for (let i = 0; i < 36; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
   });
   await page.getByRole('button', { name: /Advance Day/ }).click();
   await page.getByRole('button', { name: /Repair habitat/ }).click();
@@ -35,7 +35,7 @@ try {
   await page.screenshot({ path: 'artifacts/feature9-endless-run.png', fullPage: true });
 
   // The existing typed test action reaches the same zero-HP defeat path as survival damage.
-  await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'UPDATE_ASTRONAUT', changes: { health: 0 } }));
+  await page.evaluate(() => window.__lunaquestStore.dispatch({ type: 'UPDATE_ASTRONAUT', changes: { health: 0 } }));
   await page.getByRole('complementary', { name: 'Mission result' }).waitFor();
   assert(await page.getByText('MISSION ENDED', { exact: true }).count() === 1, 'Result heading missing');
   assert(await page.getByText('NEW RECORD!', { exact: false }).count() === 1, 'New record celebration missing');
@@ -44,7 +44,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'artifacts/feature9-game-over-mobile.png', fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
-  const highScoreBefore = await page.evaluate(() => localStorage.getItem('moonbound.highScore.v1'));
+  const highScoreBefore = await page.evaluate(() => localStorage.getItem('lunaquest.highScore.v1'));
   assert(JSON.parse(highScoreBefore).record.bestDaysSurvived === 6, 'Personal best not persisted');
 
   await page.reload();
@@ -52,7 +52,7 @@ try {
   await page.getByRole('button', { name: 'View Last Result' }).click();
   assert((await state()).status === 'defeat', 'Ended run resumed as active');
   assert(await page.getByText('You survived 6 lunar days!', { exact: true }).count() === 1, 'Saved result not restored');
-  assert(await page.evaluate(() => localStorage.getItem('moonbound.highScore.v1')) === highScoreBefore, 'Reload duplicated record update');
+  assert(await page.evaluate(() => localStorage.getItem('lunaquest.highScore.v1')) === highScoreBefore, 'Reload duplicated record update');
   await page.getByRole('button', { name: 'TRY AGAIN' }).click();
   const restarted = await state();
   assert(restarted.status === 'playing' && restarted.daysSurvived === 0 && restarted.xp === 0, 'Restart retained run progress');
@@ -62,7 +62,7 @@ try {
   await page.reload();
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Continue Game' }).click();
-  await page.waitForFunction(() => window.__moonboundGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
+  await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   assert((await state()).daysSurvived === 0 && (await state()).recordToBeat.bestDaysSurvived === 6, 'Continue changed score or record');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'artifacts/feature9-mobile.png', fullPage: true });

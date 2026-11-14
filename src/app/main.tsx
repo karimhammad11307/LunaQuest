@@ -39,7 +39,7 @@ function AudioSettingsPanel({ preferences, onClose, inGate = false }: { preferen
   const set = (changes: Partial<AudioPreferences>) => { audioService.setPreferences(changes); audioService.play('confirm'); };
   return <aside className={`audio-panel${inGate ? ' audio-panel-gate' : ''}`} role="dialog" aria-label="Audio settings">
     <div className="panel-head"><strong>♫ AUDIO SETTINGS</strong><button type="button" aria-label="Close audio settings" onClick={() => { audioService.play('uiClose'); onClose(); }}>×</button></div>
-    <p>Original Moonbound chiptune music and game sounds.</p>
+    <p>Original LunaQuest chiptune music and game sounds.</p>
     <button type="button" aria-pressed={preferences.muted} className={preferences.muted ? 'audio-off' : ''} onClick={() => set({ muted: !preferences.muted })}>{preferences.muted ? 'UNMUTE ALL' : 'MUTE ALL'}</button>
     <button type="button" aria-pressed={preferences.musicEnabled} onClick={() => set({ musicEnabled: !preferences.musicEnabled })}>MUSIC {preferences.musicEnabled ? 'ON' : 'OFF'}</button>
     <label>Music Volume <output>{Math.round(preferences.musicVolume * 100)}%</output><input type="range" min="0" max="100" value={Math.round(preferences.musicVolume * 100)} onChange={(event) => audioService.setPreferences({ musicVolume: Number(event.target.value) / 100 })} /></label>
@@ -55,7 +55,7 @@ function VirtualJoystick() {
   const emit = (x: number, y: number) => {
     const next = { x, y };
     setVector(next);
-    window.dispatchEvent(new CustomEvent('moonbound-joystick', { detail: next }));
+    window.dispatchEvent(new CustomEvent('lunaquest-joystick', { detail: next }));
   };
   const move = (event: React.PointerEvent<HTMLDivElement>) => {
     if (activePointer.current !== event.pointerId) return;
@@ -70,7 +70,7 @@ function VirtualJoystick() {
     try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { /* canceled capture */ }
     emit(0, 0);
   };
-  useEffect(() => () => { window.dispatchEvent(new CustomEvent('moonbound-joystick', { detail: { x: 0, y: 0 } })); }, []);
+  useEffect(() => () => { window.dispatchEvent(new CustomEvent('lunaquest-joystick', { detail: { x: 0, y: 0 } })); }, []);
   return <div className="joystick" role="group" aria-label="Move astronaut in any direction"
     onPointerDown={(event) => { event.preventDefault(); activePointer.current = event.pointerId;
       event.currentTarget.setPointerCapture(event.pointerId); move(event); }}
@@ -107,9 +107,9 @@ function GameContainer({ sceneId, runId, paused }: { sceneId: GameSceneId; runId
     };
     window.addEventListener('resize', resize);
     document.addEventListener('fullscreenchange', resize);
-    if (import.meta.env.DEV) Object.assign(window, { __moonboundGame: game, __moonboundStore: store });
+    if (import.meta.env.DEV) Object.assign(window, { __lunaquestGame: game, __lunaquestStore: store });
     return () => {
-      if (import.meta.env.DEV) Object.assign(window, { __moonboundGame: undefined, __moonboundStore: undefined });
+      if (import.meta.env.DEV) Object.assign(window, { __lunaquestGame: undefined, __lunaquestStore: undefined });
       window.removeEventListener('resize', resize);
       document.removeEventListener('fullscreenchange', resize);
       game.destroy(true);
@@ -179,12 +179,12 @@ function App() {
     window.addEventListener('pointerdown', unlock, { passive: true });
     window.addEventListener('keydown', unlock);
     document.addEventListener('visibilitychange', visibility);
-    if (import.meta.env.DEV) Object.assign(window, { __moonboundAudio: audioService });
+    if (import.meta.env.DEV) Object.assign(window, { __lunaquestAudio: audioService });
     return () => {
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       document.removeEventListener('visibilitychange', visibility);
-      if (import.meta.env.DEV) Object.assign(window, { __moonboundAudio: undefined });
+      if (import.meta.env.DEV) Object.assign(window, { __lunaquestAudio: undefined });
       audioService.dispose();
     };
   }, []);
@@ -236,8 +236,8 @@ function App() {
   };
   useEffect(() => {
     const onOpen = (event: Event) => openEducation((event as CustomEvent<EducationId>).detail);
-    window.addEventListener('moonbound-open-education', onOpen);
-    return () => window.removeEventListener('moonbound-open-education', onOpen);
+    window.addEventListener('lunaquest-open-education', onOpen);
+    return () => window.removeEventListener('lunaquest-open-education', onOpen);
   }, []);
   const loadWeather = async (mode: 'live' | 'demo') => {
     const request = ++weatherRequest.current;
@@ -313,7 +313,7 @@ function App() {
     window.addEventListener('keydown', onGameKey);
     return () => window.removeEventListener('keydown', onGameKey);
   }, [showHelp, showAudio, showWeather, sessionReady, learningTopic, menuIndex]);
-  const virtualInput = (direction: string | null) => window.dispatchEvent(new CustomEvent('moonbound-input', { detail: direction }));
+  const virtualInput = (direction: string | null) => window.dispatchEvent(new CustomEvent('lunaquest-input', { detail: direction }));
   const startNewGame = () => {
     saveService.clear();
     store.dispatch({ type: 'RESTART_GAME', recordToBeat: highScores.getSnapshot() });
@@ -326,11 +326,11 @@ function App() {
     store.dispatch({ type: 'LOAD_GAME', state: restored });
     setSessionReady(true);
   };
-  if (!sessionReady) return <main className="app-shell"><div className="game-frame"><header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div></header><div className="save-start"><div className="save-start-panel"><strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong><p>Survive as many lunar days as you can!</p><p>Saved run: {savedAtStartup?.daysSurvived} days · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p><p>Personal best: {personalBest.bestDaysSurvived} days · {personalBest.bestScore.toLocaleString()} points</p>{confirmNewGame ? <><p>Your saved progress will be replaced. Your record stays safe.</p><button type="button" onClick={startNewGame}>Replace Save &amp; Start</button><button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></> : <><p>Your Moon Base is waiting.</p><button type="button" onClick={continueGame}>{savedAtStartup?.status === 'playing' ? 'Continue Game' : 'View Last Result'}</button><button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button><small>New Game replaces this saved run, not your record.</small></>}<button className="audio-gate-button" type="button" onClick={() => { audioService.play('uiOpen'); setShowAudio(!showAudio); }}>♫ Audio Settings</button>{showAudio && <AudioSettingsPanel preferences={audioPreferences} onClose={() => setShowAudio(false)} inGate />}</div></div></div></main>;
+  if (!sessionReady) return <main className="app-shell"><div className="game-frame"><header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>LUNAQUEST</span><small>Survival Mission</small></div></header><div className="save-start"><div className="save-start-panel"><strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong><p>Survive as many lunar days as you can!</p><p>Saved run: {savedAtStartup?.daysSurvived} days · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p><p>Personal best: {personalBest.bestDaysSurvived} days · {personalBest.bestScore.toLocaleString()} points</p>{confirmNewGame ? <><p>Your saved progress will be replaced. Your record stays safe.</p><button type="button" onClick={startNewGame}>Replace Save &amp; Start</button><button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></> : <><p>Your Moon Base is waiting.</p><button type="button" onClick={continueGame}>{savedAtStartup?.status === 'playing' ? 'Continue Game' : 'View Last Result'}</button><button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button><small>New Game replaces this saved run, not your record.</small></>}<button className="audio-gate-button" type="button" onClick={() => { audioService.play('uiOpen'); setShowAudio(!showAudio); }}>♫ Audio Settings</button>{showAudio && <AudioSettingsPanel preferences={audioPreferences} onClose={() => setShowAudio(false)} inGate />}</div></div></div></main>;
   return (
     <main className="app-shell"><div className="game-frame" ref={frameRef}>
       <header className="masthead">
-        <div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div>
+        <div className="brand"><span className="brand-star">✦</span><span>LUNAQUEST</span><small>Survival Mission</small></div>
         <div className="mission-day"><span>LUNAR DAY</span><strong>{state.day}</strong></div>
         <span className="xp-counter" aria-label={`${state.xp} experience points`}>XP {state.xp}</span>
         <button className="audio-settings-button" type="button" aria-label="Audio settings" aria-expanded={showAudio} onClick={() => { audioService.play('uiOpen'); setShowAudio(!showAudio); }}>♫ <span>Audio</span>{audioPreferences.muted ? ' OFF' : ''}</button>
@@ -430,10 +430,10 @@ function App() {
       <div className="touch-controls" aria-label="Touch game controls">
         <VirtualJoystick />
         <div className="touch-actions">{state.scene === 'chicken-hunt' ? <><button className="touch-action" type="button"
-          onPointerDown={() => window.dispatchEvent(new CustomEvent('moonbound-arcade-fire', { detail: true }))}
-          onPointerUp={() => window.dispatchEvent(new CustomEvent('moonbound-arcade-fire', { detail: false }))}
-          onPointerCancel={() => window.dispatchEvent(new CustomEvent('moonbound-arcade-fire', { detail: false }))}>Hold to Fire</button>
-          <button className="touch-exit" type="button" onClick={() => window.dispatchEvent(new Event('moonbound-arcade-return'))}>Return</button></>
+          onPointerDown={() => window.dispatchEvent(new CustomEvent('lunaquest-arcade-fire', { detail: true }))}
+          onPointerUp={() => window.dispatchEvent(new CustomEvent('lunaquest-arcade-fire', { detail: false }))}
+          onPointerCancel={() => window.dispatchEvent(new CustomEvent('lunaquest-arcade-fire', { detail: false }))}>Hold to Fire</button>
+          <button className="touch-exit" type="button" onClick={() => window.dispatchEvent(new Event('lunaquest-arcade-return'))}>Return</button></>
           : <><button className="touch-action" type="button" onClick={() => {
           if (indoors && selected) document.querySelector<HTMLButtonElement>('.building-panel .menu-selected')?.click();
           else virtualInput('interact');

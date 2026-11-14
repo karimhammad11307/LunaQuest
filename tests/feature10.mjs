@@ -6,19 +6,19 @@ const context = await browser.newContext({ viewport: { width: 1280, height: 900 
 const page = await context.newPage();
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
-const url = process.env.MOONBOUND_URL ?? 'http://127.0.0.1:5174/';
-const state = () => page.evaluate(() => window.__moonboundStore.getState());
-const audio = () => page.evaluate(() => window.__moonboundAudio.debug());
+const url = process.env.LUNAQUEST_URL ?? 'http://127.0.0.1:5174/';
+const state = () => page.evaluate(() => window.__lunaquestStore.getState());
+const audio = () => page.evaluate(() => window.__lunaquestAudio.debug());
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
 try {
   mkdirSync('artifacts', { recursive: true });
   await page.goto(url);
   await page.waitForLoadState('networkidle');
-  await page.waitForFunction(() => window.__moonboundGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
+  await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   assert((await audio()).unlocked === false, 'Audio played before a user gesture');
   await page.keyboard.press('ArrowRight');
-  await page.waitForFunction(() => window.__moonboundAudio?.debug().unlocked === true);
+  await page.waitForFunction(() => window.__lunaquestAudio?.debug().unlocked === true);
   assert((await audio()).track === 'base' && (await audio()).activeMusicTracks === 1, 'Base music did not start after gesture');
 
   await page.getByRole('button', { name: 'Audio settings' }).click();
@@ -37,14 +37,14 @@ try {
     'Volume settings did not update');
   await page.getByRole('button', { name: 'Close audio settings' }).click();
 
-  await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(316, 388));
+  await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(316, 388));
   await page.waitForTimeout(180);
   await page.keyboard.press('e');
   await page.getByRole('complementary', { name: 'landingPad controls' }).waitFor();
   assert((await page.locator('.launch-preview').innerText()).includes('75 → 69'), 'Landing Pad lacks exact launch cost preview');
   const before = await state();
   await page.getByRole('button', { name: /Launch Chicken Hunt/ }).click();
-  await page.waitForFunction(() => window.__moonboundStore.getState().scene === 'chicken-hunt');
+  await page.waitForFunction(() => window.__lunaquestStore.getState().scene === 'chicken-hunt');
   const launched = await state();
   assert(launched.resources.energy === before.resources.energy - 6, 'Launch did not deduct six Energy');
   assert(await page.getByLabel('Energy: 69 of 100 game units').count() === 1, 'React HUD did not show the charged Energy');
@@ -52,7 +52,7 @@ try {
   assert((await audio()).track === 'arcade' && (await audio()).activeMusicTracks === 1, 'Arcade track did not replace base track');
   assert((await audio()).cueCounts.launch === 1, 'Launch sound was not triggered exactly once');
   const duplicate = await page.evaluate(() => {
-    const store = window.__moonboundStore;
+    const store = window.__lunaquestStore;
     const before = store.getState();
     const after = store.dispatch({ type: 'START_MISSION', mission: 'chicken-hunt', runId: 'double-click' });
     return { same: before === after, energy: after.resources.energy };
@@ -73,14 +73,14 @@ try {
   await page.waitForTimeout(1700);
   assert((await audio()).cueCounts.thruster > 0 && (await audio()).cueCounts.laser > 0,
     'Arcade thruster or laser sound hook did not fire');
-  const combat = await page.evaluate(() => window.__moonboundGame.scene.getScene('ChickenHuntScene').localFoodCollected);
+  const combat = await page.evaluate(() => window.__lunaquestGame.scene.getScene('ChickenHuntScene').localFoodCollected);
   assert(combat > 0, 'No live food pickup occurred');
   assert((await audio()).cueCounts.enemyHit > 0 && (await audio()).cueCounts.enemyDefeat > 0
     && (await audio()).cueCounts.pickup > 0, 'Enemy or food-pickup sound hook did not fire');
   const canvas = await page.locator('#game-canvas canvas').boundingBox();
   await page.mouse.click(canvas.x + canvas.width * 550 / 640, canvas.y + canvas.height * 20 / 360);
-  await page.waitForFunction(() => window.__moonboundStore.getState().scene === 'moon-base'
-    && window.__moonboundGame.scene.getScene('MoonBaseScene').sys.isActive());
+  await page.waitForFunction(() => window.__lunaquestStore.getState().scene === 'moon-base'
+    && window.__lunaquestGame.scene.getScene('MoonBaseScene').sys.isActive());
   assert((await state()).resources.energy === 69, 'Return refunded launch Energy');
   assert((await audio()).track === 'base' && (await audio()).activeMusicTracks === 1, 'Base music did not resume cleanly');
   assert((await audio()).cueCounts.missionSuccess > 0, 'Mission-success cue did not play');
@@ -89,14 +89,14 @@ try {
   await page.reload();
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Continue Game' }).click();
-  await page.waitForFunction(() => window.__moonboundGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
+  await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   assert((await state()).resources.energy === 69, 'Refresh reversed or duplicated launch cost');
   assert((await audio()).preferences.musicVolume === 0.42 && (await audio()).preferences.sfxVolume === 0.27,
     'Audio settings did not survive refresh');
 
   await page.evaluate(() => {
-    window.__moonboundStore.dispatch({ type: 'SPEND_RESOURCES', costs: { energy: 64 } });
-    window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(316, 388);
+    window.__lunaquestStore.dispatch({ type: 'SPEND_RESOURCES', costs: { energy: 64 } });
+    window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(316, 388);
   });
   await page.waitForTimeout(180);
   await page.keyboard.press('e');
@@ -105,26 +105,26 @@ try {
     'Insufficient Energy message missing');
   assert((await state()).resources.energy === 5 && (await state()).scene === 'moon-base',
     'Insufficient launch changed resources or scene');
-  await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'RESTART_GAME' }));
-  await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
+  await page.evaluate(() => window.__lunaquestStore.dispatch({ type: 'RESTART_GAME' }));
+  await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
   await page.waitForTimeout(180);
   await page.keyboard.press('e');
   assert((await state()).astronaut.location === 'habitat', 'E did not enter Habitat');
   await page.getByRole('button', { name: /Advance Day/ }).click();
   assert((await audio()).cueCounts.stormAlarm === 1, 'Storm warning alarm did not start once');
   await page.evaluate(() => {
-    for (let i = 0; i < 25; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
+    for (let i = 0; i < 25; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
   });
   assert((await audio()).hazard === 'storm' && (await audio()).cueCounts.stormAlarm === 1,
     'Storm danger ambience or alarm deduplication failed');
   await page.evaluate(() => {
-    for (let i = 0; i < 12; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
+    for (let i = 0; i < 12; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
   });
   assert((await audio()).hazard === null, 'Storm ambience continued after resolution');
   await page.getByRole('button', { name: /Advance Day/ }).click();
   assert((await audio()).cueCounts.leakAlarm === 1, 'Leak alarm did not start');
   await page.evaluate(() => {
-    for (let i = 0; i < 8; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
+    for (let i = 0; i < 8; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
   });
   assert((await audio()).hazard === 'leak', 'Leak ambience did not start');
   await page.getByRole('button', { name: /Repair habitat/ }).click();
@@ -133,7 +133,7 @@ try {
   await page.getByRole('button', { name: 'Audio settings' }).click();
   await page.getByRole('button', { name: 'MUTE ALL' }).click();
   const cueCount = (await audio()).cueCounts.confirm ?? 0;
-  await page.evaluate(() => window.__moonboundAudio.play('confirm'));
+  await page.evaluate(() => window.__lunaquestAudio.play('confirm'));
   assert(((await audio()).cueCounts.confirm ?? 0) === cueCount, 'Muted audio still played');
   await page.getByRole('button', { name: 'UNMUTE ALL' }).click();
   await page.getByRole('button', { name: 'Close audio settings' }).click();

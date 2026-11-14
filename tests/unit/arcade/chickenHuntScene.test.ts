@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — Phase 1 / B2 unit tests (Developer B)
+ * LUNAQUEST — Phase 1 / B2 unit tests (Developer B)
  *
  * Tests the Phase 1 scene scaffold in isolation:
  * - finishMission() emits COMPLETE_MISSION exactly once.

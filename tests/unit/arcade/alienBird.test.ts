@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — Phase 2 / B4 unit tests: AlienBird (Developer B)
+ * LUNAQUEST — Phase 2 / B4 unit tests: AlienBird (Developer B)
  *
  * Tests the AlienBird entity and movement patterns in isolation:
  *  - Initial health per variant (A = 1 HP, B = 2 HP).

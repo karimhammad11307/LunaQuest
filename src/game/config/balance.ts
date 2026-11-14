@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — all balancing values live here and nowhere else.
+ * LUNAQUEST — all balancing values live here and nowhere else.
  * Units are simplified GAME units (0–100), not real lunar measurements.
  */
 export const BALANCE = {

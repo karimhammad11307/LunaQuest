@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — shared layout & mission configuration.
+ * LUNAQUEST — shared layout & mission configuration.
  *
  * Pure constants only: no Phaser, no React. The domain layer imports this
  * for building anchors and mission costs, so keep it dependency-free.

@@ -1,4 +1,4 @@
-# LunaQuest / Moonbound
+# LunaQuest
 
 ## Project documentation
 
@@ -21,7 +21,7 @@ Feature 11 implementation is committed locally at `d798f21` on the current user-
 
 ## Project guardrails
 
-- Keep the Moonbound game top-down 3/4-view pixel art and the lunar setting.
+- Keep the LunaQuest game top-down 3/4-view pixel art and the lunar setting.
 - Domain rules own all resources, costs, consequences and mission rewards; scenes dispatch typed actions and do not mutate shared resources.
 - Keep one `GameState`, `GameAction` and `MissionResult` contract. Developer A owns shared contract/config and integration; Developer B consumes it and owns arcade scenes/assets.
 - Keep all game numbers explicitly illustrative. NASA DONKI is solar-observation context, not direct lunar surface dose or temperature data. Make the game playable offline.

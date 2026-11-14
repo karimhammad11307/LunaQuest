@@ -1,6 +1,6 @@
-# Moonbound: Survival Mission
+# LunaQuest: Survival Mission
 
-Moonbound is a top-down 3/4 pixel-art lunar survival game for children, built with Phaser 3, TypeScript and a lightweight React shell for the NASA Space Apps Challenge 2026. Survive as many lunar days as possible and beat your personal record. The playable Moon Base has five interactive buildings, greenhouse/solar/shield systems, a solar storm on each day transition from Day 2, and one Day 3 oxygen leak. Chicken Hunt launches from the Landing Pad for six Energy; food collected there enters storage on a safe return, then can be eaten at the Habitat to restore HP. Animated Earth water pods arrive on Days 2 and 4. Seven learning signs explain the base and mission. Original procedural chiptune music and game effects have persistent audio settings. Browser-local save/resume and a separate high-score record are available; Lunar Ice Collection is deferred and deployment remains open.
+LunaQuest is a top-down 3/4 pixel-art lunar survival game for children, built with Phaser 3, TypeScript and a lightweight React shell for the NASA Space Apps Challenge 2026. Survive as many lunar days as possible and beat your personal record. The playable Moon Base has five interactive buildings, greenhouse/solar/shield systems, a solar storm on each day transition from Day 2, and one Day 3 oxygen leak. Chicken Hunt launches from the Landing Pad for six Energy; food collected there enters storage on a safe return, then can be eaten at the Habitat to restore HP. Animated Earth water pods arrive on Days 2 and 4. Seven learning signs explain the base and mission. Original procedural chiptune music and game effects have persistent audio settings. Browser-local save/resume and a separate high-score record are available; Lunar Ice Collection is deferred and deployment remains open.
 
 - [Project history and verified status](docs/PROJECT_HISTORY.md)
 - [Master game and engineering plan](docs/MASTER_PLAN.md)
@@ -27,7 +27,7 @@ npm run build
 npm test
 ```
 
-With the dev server running on port 5173, browser checks include `node tests/feature8.mjs`, `node tests/feature10.mjs` and `node tests/feature11.mjs`. Earlier scripts remain available, but some predate E/Q entry or daily storms and may need their old assertions updated before rerunning. Use `MOONBOUND_URL` if Vite runs on another port. Screenshots go to ignored `artifacts/`.
+With the dev server running on port 5173, browser checks include `node tests/feature8.mjs`, `node tests/feature10.mjs` and `node tests/feature11.mjs`. Earlier scripts remain available, but some predate E/Q entry or daily storms and may need their old assertions updated before rerunning. Use `LUNAQUEST_URL` if Vite runs on another port. Screenshots go to ignored `artifacts/`.
 
 ## NASA DONKI configuration
 

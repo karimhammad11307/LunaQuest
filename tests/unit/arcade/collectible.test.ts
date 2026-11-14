@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — Phase 3 / B6 unit tests: Collectible (Developer B)
+ * LUNAQUEST — Phase 3 / B6 unit tests: Collectible (Developer B)
  *
  * Tests the Collectible entity in isolation:
  *  - Activation, initial values, and state.

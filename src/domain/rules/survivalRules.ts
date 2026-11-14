@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — deterministic survival rules.
+ * LUNAQUEST — deterministic survival rules.
  *
  * Pure functions: no Phaser, no React, no randomness. Every rule is
  * unit-testable via createInitialState + the store's dispatch.
@@ -90,7 +90,7 @@ export function createInitialState(recordToBeat: PersonalBest = EMPTY_PERSONAL_B
     selectedBuildingId: null,
     lastDaySummary: null,
     notices: [
-      notice(1, 'Welcome to Moonbound! Walk with WASD or arrow keys.', 'info'),
+      notice(1, 'Welcome to LunaQuest! Walk with WASD or arrow keys.', 'info'),
       notice(2, 'Press E near a building to interact. Visit all five!', 'info'),
     ],
   };

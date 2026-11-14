@@ -1,4 +1,4 @@
-# Moonbound project history and verified status
+# LunaQuest project history and verified status
 
 This is the provenance record. It separates **repository/Git evidence**, **documented design decisions**, and **user-provided history**. A plan is not evidence that a feature shipped.
 
@@ -14,19 +14,19 @@ This is the provenance record. It separates **repository/Git evidence**, **docum
 
 ### Website-style Mars prototype
 
-**Repository evidence:** Commit `cf01cb4` (`Add core game functionality and initial tests for Mars colony simulation`) contains `src/main.tsx`, `src/World.tsx`, `src/game.ts`, `src/style.css`, a simulation test, browser/mission test scripts, and screenshots under `artifacts/`. `design/GAME_ARCHITECTURE.md` records React + TypeScript, an interactive SVG colony, a pure deterministic reducer, discrete day turns, save/local browser behavior and verification scope. Root `PROJECT_HISTORY.md` records that prototype as a playable 30-day Mars colony with five selectable buildings, upgrades, events, resource management, save/resume and browser testing. Those details describe the **old Mars prototype**, not the current Moonbound source tree.
+**Repository evidence:** Commit `cf01cb4` (`Add core game functionality and initial tests for Mars colony simulation`) contains `src/main.tsx`, `src/World.tsx`, `src/game.ts`, `src/style.css`, a simulation test, browser/mission test scripts, and screenshots under `artifacts/`. `design/GAME_ARCHITECTURE.md` records React + TypeScript, an interactive SVG colony, a pure deterministic reducer, discrete day turns, save/local browser behavior and verification scope. Root `PROJECT_HISTORY.md` records that prototype as a playable 30-day Mars colony with five selectable buildings, upgrades, events, resource management, save/resume and browser testing. Those details describe the **old Mars prototype**, not the current LunaQuest source tree.
 
-**User-provided rejection:** The user judged the previous website-style implementation inadequate for the intended game and directed a rebuild centered on real-time playable gameplay. Preserve it as historical work on `backup/mars-commander-codex`; do not treat it as the Moonbound implementation.
+**User-provided rejection:** The user judged the previous website-style implementation inadequate for the intended game and directed a rebuild centered on real-time playable gameplay. Preserve it as historical work on `backup/mars-commander-codex`; do not treat it as the LunaQuest implementation.
 
-### Transition to Moonbound
+### Transition to LunaQuest
 
-**Documented design decisions** in `doc/PLAN.md` and `doc/REPORT.md` changed the setting and scope to **Moonbound: Survival Mission**: a playful lunar outpost, five in-game survival days, resource-gathering activities, sheltering from solar hazards, and child-friendly survival tradeoffs. The user emphasized the Moon setting and fictional alien birds; the plans explicitly reject Martian atmosphere/dust-storm assumptions. The intended rendering direction is strict, consistent **top-down 3/4-view pixel art**, with frame-based animation. The game loop is `HOME BASE → GO ON A MISSION → RETURN WITH SUPPLIES → BUILD AND PROTECT → SURVIVE → REPEAT`.
+**Documented design decisions** in `doc/PLAN.md` and `doc/REPORT.md` changed the setting and scope to **LunaQuest: Survival Mission**: a playful lunar outpost, five in-game survival days, resource-gathering activities, sheltering from solar hazards, and child-friendly survival tradeoffs. The user emphasized the Moon setting and fictional alien birds; the plans explicitly reject Martian atmosphere/dust-storm assumptions. The intended rendering direction is strict, consistent **top-down 3/4-view pixel art**, with frame-based animation. The game loop is `HOME BASE → GO ON A MISSION → RETURN WITH SUPPLIES → BUILD AND PROTECT → SURVIVE → REPEAT`.
 
 ### Earlier Figma and skill setup records
 
 **Prior root history report:** On 2026-11-13, a new Mars Commander Figma design file was created (recorded link: <https://www.figma.com/design/k5njYduNxFJTkyITCiqeD8>) with five 1440×1024 screens, an upgrade preview, editable vector/UI components, variables/styles and nine prototype navigation links. The report says the Figma user/authentication check succeeded and that no prior Figma file was edited. It also records prototype limits: the design was guided navigation, not simulation; emergency branches led to an illustrative summary; some greenhouse/battery screens were visual concepts; live NASA data and implemented accessibility were absent. Those are historical claims from the prior project log, not checks repeated during this consolidation.
 
-The root history also records a `frontend-design` skill installation and unsuccessful/blocked setup for `develop-web-game`, `ui-ux-pro-max`, and live Codex skill discovery due to network/permission limits. Those setup details are not Moonbound features or current application requirements; they are retained here so the historical record is not lost.
+The root history also records a `frontend-design` skill installation and unsuccessful/blocked setup for `develop-web-game`, `ui-ux-pro-max`, and live Codex skill discovery due to network/permission limits. Those setup details are not LunaQuest features or current application requirements; they are retained here so the historical record is not lost.
 
 ## Cline attempt and repository evidence
 
@@ -38,7 +38,7 @@ The root history also records a `frontend-design` skill installation and unsucce
 
 ## Codex repository preparation
 
-**Verified commit:** `4a447bb2ac0c9a4525a789e3df4be7681831ed61` (`chore: prepare Moonbound base survival repository`) is the feature branch starting point before this documentation consolidation. Its commit summary adds the bootstrap/testing/repository preparation and `docs/HANDOFF.md`; `docs/HANDOFF.md` records the verified state, and `.gitignore` excludes dependencies, build output, test output, artifacts and common secret files. The preparation did not implement game scenes. A prior status in the handoff says build and four tests passed; this history records that as the prior checkpoint's report, not a new run during this documentation task.
+**Verified commit:** `4a447bb2ac0c9a4525a789e3df4be7681831ed61` (`chore: prepare LunaQuest base survival repository`) is the feature branch starting point before this documentation consolidation. Its commit summary adds the bootstrap/testing/repository preparation and `docs/HANDOFF.md`; `docs/HANDOFF.md` records the verified state, and `.gitignore` excludes dependencies, build output, test output, artifacts and common secret files. The preparation did not implement game scenes. A prior status in the handoff says build and four tests passed; this history records that as the prior checkpoint's report, not a new run during this documentation task.
 
 ## Branches and commits
 
@@ -48,7 +48,7 @@ Git references inspected at the earlier documentation-consolidation checkpoint:
 |---|---|---|
 | `feat/base-survival` (then current) | `4a447bb` | Repository preparation baseline; clean before that consolidation. |
 | `main`, `origin/main` | `4a447bb` | Same commit as feature-branch baseline at inspection. |
-| `base-survival`, `origin/base-survival` | `5a5eefc` | Cline-attributed partial Moonbound scaffold. |
+| `base-survival`, `origin/base-survival` | `5a5eefc` | Cline-attributed partial LunaQuest scaffold. |
 | `backup/mars-commander-codex`, `TestCline` | `cf01cb4` | Previous Mars Commander implementation preserved. |
 | `016a2a1` | project plans/progress report | Adds `doc/PLAN.md`, `doc/PLAN_DEV_A.md`, `doc/PLAN_DEV_B.md`, `doc/REPORT.md`. |
 
@@ -56,7 +56,7 @@ These were historical observations at that checkpoint, not a claim about the cur
 
 ## Technical state at repository preparation baseline
 
-- Package is `moonbound`; scripts are Vite `dev`, TypeScript/Vite `build`, `preview`, Vitest `test` and `test:watch`.
+- Package is `lunaquest`; scripts are Vite `dev`, TypeScript/Vite `build`, `preview`, Vitest `test` and `test:watch`.
 - Declared stack: React 19, TypeScript, Vite 6, Phaser 3.90, Vitest, Playwright tooling. Phaser is a dependency, not evidence of an implemented Phaser game.
 - `index.html` points to `src/app/main.tsx`. That file is a bootstrap placeholder.
 - `src/domain/models/types.ts` and `GameAction.ts` provide the current shared contract; see [MASTER_PLAN.md](MASTER_PLAN.md) and both developer task documents before changing it.
@@ -77,7 +77,7 @@ These were historical observations at that checkpoint, not a claim about the cur
 - Freeze shared contracts before parallel mission work; B emits a result and A's store applies it once.
 - Keep the Mars prototype, its 30-day loop and Figma exploration distinct from the lunar five-day plan.
 - NASA solar observations are contextual inputs, not local Moon measurements or exact radiation dose. Mark game values, derived hazards and thermal conditions as simulations.
-- Earlier root history records Figma authentication/design verification and skill-setup limitations; those are historical reports, not claims about this current Moonbound build. The Figma project is not part of this task.
+- Earlier root history records Figma authentication/design verification and skill-setup limitations; those are historical reports, not claims about this current LunaQuest build. The Figma project is not part of this task.
 
 ## Documentation consolidation record
 
@@ -187,7 +187,7 @@ At the Feature 6 checkpoint, the user-managed branch was `Feature-6--NASA-DONKI-
 
 ## 2026-11-14 — Local Chicken Hunt merge and conflict resolution
 
-**Request and Git evidence:** The user asked to solve conflicts while merging the current Developer B branch into `main`, with particular care for `src/app/main.tsx`. Inspection found clean `devB_first` at `4a57850` and local `main` at `5d3847a`, diverged from common ancestor `1cff7fa`. A read-only merge preview predicted nine conflicts. A real `git merge --no-commit main` on `devB_first` confirmed conflicts in `main.tsx`, stylesheet, asset manifest, shared store, pixel art, astronaut, building, Chicken Hunt and Moon Base scene files. The resolved merge commit is `cc857d9` (`merge: integrate Chicken Hunt with Moonbound survival systems`). Local `main` was then fast-forwarded to that commit. No remote push or merge request was made.
+**Request and Git evidence:** The user asked to solve conflicts while merging the current Developer B branch into `main`, with particular care for `src/app/main.tsx`. Inspection found clean `devB_first` at `4a57850` and local `main` at `5d3847a`, diverged from common ancestor `1cff7fa`. A read-only merge preview predicted nine conflicts. A real `git merge --no-commit main` on `devB_first` confirmed conflicts in `main.tsx`, stylesheet, asset manifest, shared store, pixel art, astronaut, building, Chicken Hunt and Moon Base scene files. The resolved merge commit is `cc857d9` (`merge: integrate Chicken Hunt with LunaQuest survival systems`). Local `main` was then fast-forwarded to that commit. No remote push or merge request was made.
 
 **Resolution and behavior:** Main's authoritative React shell, GameSessionStore, domain rules, Moon Base, survival systems, weather panel and emergency UI were preserved. Developer B's Chicken Hunt scene and its ship, birds, combat, pickups and unit tests were retained. `main.tsx` now registers both Phaser play scenes in one canvas, launches Chicken Hunt from the Landing Pad with a unique run ID and energy cost, pauses/resumes the arcade scene, and restores the Moon Base after a result. The scene sends its result with the required run ID; only the shared reducer credits food and XP, records the run ID and blocks duplicate rewards. The launch notice, controls hint, help text and short return summary match the active scene. Chicken Hunt was enabled in the mission catalog; Ice Collection stays disabled. An obsolete unit-test assumption about Chicken Hunt availability was updated while retaining its unavailable-mission and low-energy checks.
 
@@ -201,7 +201,7 @@ At the Chicken Hunt merge checkpoint, local `main` contained `cc857d9`. The Moon
 
 ## 2026-11-14 — Feature 7: browser save and resume
 
-**Request and Git:** The user requested only A11 browser persistence and retained all branch management. Inspection found a clean checkout on `Feature-7-—-Save-&-Resume-(A11)`. The verified implementation commit is `149af56` (`feat: add versioned Moonbound save and resume`). No branches were created, switched, renamed, merged or pushed during this feature.
+**Request and Git:** The user requested only A11 browser persistence and retained all branch management. Inspection found a clean checkout on `Feature-7-—-Save-&-Resume-(A11)`. The verified implementation commit is `149af56` (`feat: add versioned LunaQuest save and resume`). No branches were created, switched, renamed, merged or pushed during this feature.
 
 **Implementation:** `SaveService` stores a versioned LocalStorage envelope of the serializable `GameState`, using the existing reducer's loaded-state validator and `LOAD_GAME` action for hydration. It writes meaningful actions promptly and coalesces movement, HP timer ticks, mission progress and weather updates into one write per five seconds. Pagehide flushes pending progress. A single action-aware transition subscription preserves the existing React/Phaser state-subscription API. Missing/invalid versions, corrupt data, out-of-range values and storage errors fail safely. A valid save presents Continue/New Game before the Phaser canvas mounts; New Game confirms replacement, while terminal Restart uses the existing clean reducer.
 

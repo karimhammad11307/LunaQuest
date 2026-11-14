@@ -1,4 +1,4 @@
-# MOONBOUND — Survival Mission Master Plan
+# LUNAQUEST — Survival Mission Master Plan
 
 **Authority:** This is the single source of truth for game scope, rules, shared architecture, visual direction, science framing, testing and delivery. Developer task files sequence work but must not redefine these requirements.
 
@@ -8,13 +8,13 @@
 
 ## Vision and story
 
-Moonbound is a playful, educational lunar survival adventure rendered entirely in consistent top-down 3/4-view pixel art. A young astronaut establishes a small outpost after a landing mishap. The player gathers limited supplies, operates life support, farms, generates and stores power, maintains the habitat, and protects the crew during solar hazards. The objective is to **survive as many lunar days as possible and beat a personal record**. This replaces the earlier five-day rescue objective; there is no automatic day-based victory.
+LunaQuest is a playful, educational lunar survival adventure rendered entirely in consistent top-down 3/4-view pixel art. A young astronaut establishes a small outpost after a landing mishap. The player gathers limited supplies, operates life support, farms, generates and stores power, maintains the habitat, and protects the crew during solar hazards. The objective is to **survive as many lunar days as possible and beat a personal record**. This replaces the earlier five-day rescue objective; there is no automatic day-based victory.
 
 Gameplay is action and consequence in a world, not a sequence of informational pages. Teach with visual state changes, short dialogue and one-sentence explanations at decisions. The Moon has vacuum, low gravity, abrasive dust, severe light/shadow thermal conditions and radiation exposure risk. Do not import Martian weather, atmosphere or terrain. Alien birds in Chicken Hunt are openly fictional arcade creatures, not lunar wildlife.
 
 ## Challenge learning goals
 
-The project framing is the NASA Space Apps Challenge 2026 Junior Astronaut Mission Trainer (official link in [PROJECT_HISTORY.md](PROJECT_HISTORY.md)). The challenge context and prior repository plan call for an interactive outpost/survival simulation for children, with NASA-related concepts demonstrated through trade-offs, clear language, replayability and source attribution. The Moonbound game expresses those goals as follows; numerical rules remain simplified and are not engineering guidance.
+The project framing is the NASA Space Apps Challenge 2026 Junior Astronaut Mission Trainer (official link in [PROJECT_HISTORY.md](PROJECT_HISTORY.md)). The challenge context and prior repository plan call for an interactive outpost/survival simulation for children, with NASA-related concepts demonstrated through trade-offs, clear language, replayability and source attribution. The LunaQuest game expresses those goals as follows; numerical rules remain simplified and are not engineering guidance.
 
 | Learning goal | Player action | Short feedback |
 |---|---|---|
@@ -156,7 +156,7 @@ Required original sprite sheets/assets: astronaut idle + walk in four directions
 
 Frame-based idle/walk, footprints/dust puffs, solar glint, crop stages, habitat lights, shield pulse, alert flash, repair/build burst, pickup bounce/shine, floating resource/XP text and brief scene transitions. Arcade has ship thrust, readable enemy motion, laser, damage flash, small explosion and pickups. Animate resource meters only after domain updates; avoid per-frame React churn. Effects are short and interruptible.
 
-Feature 10 uses original browser-synthesized retro audio: a gentle 32-step Moon Base loop, a faster 32-step Chicken Hunt loop, and square/triangle/sawtooth electronic cues for footsteps, buildings, food and water, laser/combat/pickup, launch/return, UI, success/defeat and both scripted emergencies. A single service changes tracks without overlap, lowers music during emergencies, stops hazard ambience when an incident resolves, and does not replay a restored warning alarm. React exposes separate Music and Sound Effects toggles/volumes plus Mute All; preferences are stored in `moonbound.audio.v1`, apart from GameState and SaveService. The synthesizer unlocks only after a player gesture and tolerates blocked or unavailable Web Audio. No external audio files, copyrighted melodies or hotlinked samples are used; provenance is in `src/assets/manifest.json`. Every critical cue also has text/icon feedback. Avoid rapid flashing; reduced-motion disables repeated pulses, shake and nonessential particles.
+Feature 10 uses original browser-synthesized retro audio: a gentle 32-step Moon Base loop, a faster 32-step Chicken Hunt loop, and square/triangle/sawtooth electronic cues for footsteps, buildings, food and water, laser/combat/pickup, launch/return, UI, success/defeat and both scripted emergencies. A single service changes tracks without overlap, lowers music during emergencies, stops hazard ambience when an incident resolves, and does not replay a restored warning alarm. React exposes separate Music and Sound Effects toggles/volumes plus Mute All; preferences are stored in `lunaquest.audio.v1`, apart from GameState and SaveService. The synthesizer unlocks only after a player gesture and tolerates blocked or unavailable Web Audio. No external audio files, copyrighted melodies or hotlinked samples are used; provenance is in `src/assets/manifest.json`. Every critical cue also has text/icon feedback. Avoid rapid flashing; reduced-motion disables repeated pulses, shake and nonessential particles.
 
 ### HUD and accessibility
 

@@ -2,7 +2,7 @@ import type { GameState, PersonalBest } from '../domain/models/types';
 import type { GameSessionStore } from '../domain/store/GameSessionStore';
 import { beatsPersonalBest, EMPTY_PERSONAL_BEST, survivalScore, validPersonalBest } from '../domain/rules/scoreRules';
 
-export const HIGH_SCORE_KEY = 'moonbound.highScore.v1';
+export const HIGH_SCORE_KEY = 'lunaquest.highScore.v1';
 export const HIGH_SCORE_VERSION = 1;
 
 interface StoragePort {

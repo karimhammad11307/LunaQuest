@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — GAME ACTION CONTRACT (frozen for parallel development)
+ * LUNAQUEST — GAME ACTION CONTRACT (frozen for parallel development)
  *
  * Scenes and React dispatch these actions. Only the domain engine
  * mutates state in response. Minigames never touch resources directly:

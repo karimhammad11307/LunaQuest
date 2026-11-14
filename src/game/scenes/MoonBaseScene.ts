@@ -74,15 +74,15 @@ export class MoonBaseScene extends Phaser.Scene {
       const vector = (event as CustomEvent<{ x: number; y: number }>).detail;
       this.astronaut.setVirtualVector(vector?.x ?? 0, vector?.y ?? 0);
     };
-    window.addEventListener('moonbound-input', onVirtualInput);
-    window.addEventListener('moonbound-joystick', onJoystick);
+    window.addEventListener('lunaquest-input', onVirtualInput);
+    window.addEventListener('lunaquest-joystick', onJoystick);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.keyboard?.off('keydown-E', this.interact, this);
       this.events.off('building-pointer', this.pointerInteract, this);
       this.events.off('education-pointer', this.pointerEducation, this);
       this.events.off('earth-supply-pointer', this.pointerSupply, this);
-      window.removeEventListener('moonbound-input', onVirtualInput);
-      window.removeEventListener('moonbound-joystick', onJoystick);
+      window.removeEventListener('lunaquest-input', onVirtualInput);
+      window.removeEventListener('lunaquest-joystick', onJoystick);
       this.activeBuilding = null;
       this.activeSign = null;
       this.activeSupplyPod = null;
@@ -143,7 +143,7 @@ export class MoonBaseScene extends Phaser.Scene {
     for (let x = 225; x < 647; x += 17) for (let y = 331; y < 361; y += 14) paving(x, y);
     for (let x = 262; x < 373; x += 17) for (let y = 397; y < 425; y += 14) paving(x, y);
     for (let x = 540; x < 645; x += 17) for (let y = 368; y < 396; y += 14) paving(x, y);
-    this.add.text(373, 340, 'MOONBOUND', { fontFamily: 'monospace', fontSize: '11px', fontStyle: 'bold', color: C.outlineSoft }).setDepth(-60);
+    this.add.text(373, 340, 'LUNAQUEST', { fontFamily: 'monospace', fontSize: '11px', fontStyle: 'bold', color: C.outlineSoft }).setDepth(-60);
     const craters: [number, number][] = [[86, 177], [680, 164], [124, 398], [748, 443], [497, 90], [185, 92]];
     craters.forEach(([x, y]) => this.add.image(x, y, 'crater').setDepth(y - 40));
     const rocks: [number, number][] = [[95, 293], [163, 247], [524, 177], [728, 322], [738, 207], [520, 444], [55, 454]];
@@ -228,7 +228,7 @@ export class MoonBaseScene extends Phaser.Scene {
   }
 
   private openEducation(sign: EducationSign): void {
-    window.dispatchEvent(new CustomEvent<EducationId>('moonbound-open-education', { detail: sign.id }));
+    window.dispatchEvent(new CustomEvent<EducationId>('lunaquest-open-education', { detail: sign.id }));
   }
 
   private collectSupply(pod: EarthSupplyPod): void {

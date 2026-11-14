@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — Developer B: Arcade Sprite Generator
+ * LUNAQUEST — Developer B: Arcade Sprite Generator
  *
  * Procedurally draws all Chicken Hunt / Ice Collection sprites using
  * only colours from the shared PALETTE.  Every function returns a

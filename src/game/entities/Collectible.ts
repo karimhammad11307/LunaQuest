@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — Collectible entity (Developer B)
+ * LUNAQUEST — Collectible entity (Developer B)
  *
  * Phase 3 / B6: Collectible food drops with Arcade Physics and magnet attraction.
  *

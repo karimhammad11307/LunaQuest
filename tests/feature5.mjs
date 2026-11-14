@@ -5,17 +5,17 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
-await page.goto(process.env.MOONBOUND_URL ?? 'http://127.0.0.1:5173/');
-await page.waitForFunction(() => window.__moonboundGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
+await page.goto(process.env.LUNAQUEST_URL ?? 'http://127.0.0.1:5173/');
+await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
 mkdirSync('artifacts', { recursive: true });
-const state = () => page.evaluate(() => window.__moonboundStore.getState());
+const state = () => page.evaluate(() => window.__lunaquestStore.getState());
 const moveTo = async (x, y) => {
-  await page.evaluate(([px, py]) => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(px, py), [x, y]);
+  await page.evaluate(([px, py]) => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(px, py), [x, y]);
   await page.waitForTimeout(260);
   await page.keyboard.press('e');
 };
 const fastForward = async (seconds) => page.evaluate((amount) => {
-  for (let i = 0; i < amount; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
+  for (let i = 0; i < amount; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
 }, seconds);
 const close = () => page.getByRole('button', { name: 'Close building controls' }).click();
 
@@ -26,7 +26,7 @@ let current = await state();
 if (current.activeEvent?.type !== 'solar-storm' || current.activeEvent.phase !== 'warning') throw new Error('Solar warning did not trigger');
 await page.getByRole('alert', { name: 'Space emergency' }).getByText(/SOLAR STORM/).waitFor();
 let visual = await page.evaluate(() => {
-  const scene = window.__moonboundGame.scene.getScene('MoonBaseScene');
+  const scene = window.__lunaquestGame.scene.getScene('MoonBaseScene');
   return { tint: scene.hazardTint.visible, badge: scene.hazardBadge.visible };
 });
 if (!visual.tint || !visual.badge) throw new Error('Storm scene effects missing');
@@ -49,7 +49,7 @@ await page.getByRole('button', { name: 'Enter Habitat' }).click();
 await page.getByRole('button', { name: 'Advance Day' }).click();
 current = await state();
 if (current.activeEvent?.type !== 'oxygen-leak' || current.buildings.habitat.condition !== 'damaged') throw new Error('Leak did not damage habitat');
-visual = await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').leakBadge.visible);
+visual = await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').leakBadge.visible);
 if (!visual) throw new Error('Leak marker missing from habitat');
 await page.screenshot({ path: 'artifacts/feature5-leak-warning.png', fullPage: true });
 await fastForward(10);
@@ -64,7 +64,7 @@ const oxygenAfterRepair = current.resources.oxygen;
 await fastForward(2);
 if (Math.abs((await state()).resources.oxygen - oxygenAfterRepair) > 0.01) throw new Error('Leak continued after repair');
 
-await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'RESTART_GAME' }));
+await page.evaluate(() => window.__lunaquestStore.dispatch({ type: 'RESTART_GAME' }));
 await moveTo(400, 226);
 await page.getByRole('button', { name: 'Enter Habitat' }).click();
 await page.getByRole('button', { name: 'Advance Day' }).click();
@@ -76,7 +76,7 @@ current = await state();
 if (current.activeEvent || current.buildings.greenhouse.condition !== 'damaged' || current.buildings.greenhouse.active
   || current.resources.oxygen !== beforeIsolation.resources.oxygen - 5 || current.xp !== 8) throw new Error('Isolation choice incorrect');
 await page.screenshot({ path: 'artifacts/feature5-isolation.png', fullPage: true });
-await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'RESTART_GAME' }));
+await page.evaluate(() => window.__lunaquestStore.dispatch({ type: 'RESTART_GAME' }));
 await moveTo(400, 226);
 await page.getByRole('button', { name: 'Enter Habitat' }).click();
 await page.getByRole('button', { name: 'Advance Day' }).click();

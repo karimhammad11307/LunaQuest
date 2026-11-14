@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — ChickenHuntScene (Developer B)
+ * LUNAQUEST — ChickenHuntScene (Developer B)
  *
  * Phase 3 update: Collectibles & Rewards (B6), Mission Timer & Failure States (B7),
  * and MissionResult Emission & Scene Exit Contract (B8).
@@ -209,13 +209,13 @@ export class ChickenHuntScene extends Phaser.Scene {
     };
     const onFire = (event: Event) => this.ship?.setVirtualFire(!!(event as CustomEvent<boolean>).detail);
     const onReturn = () => { if (this.missionState === 'ACTIVE') this.completeMission('return-early'); };
-    window.addEventListener('moonbound-joystick', onJoystick);
-    window.addEventListener('moonbound-arcade-fire', onFire);
-    window.addEventListener('moonbound-arcade-return', onReturn);
+    window.addEventListener('lunaquest-joystick', onJoystick);
+    window.addEventListener('lunaquest-arcade-fire', onFire);
+    window.addEventListener('lunaquest-arcade-return', onReturn);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      window.removeEventListener('moonbound-joystick', onJoystick);
-      window.removeEventListener('moonbound-arcade-fire', onFire);
-      window.removeEventListener('moonbound-arcade-return', onReturn);
+      window.removeEventListener('lunaquest-joystick', onJoystick);
+      window.removeEventListener('lunaquest-arcade-fire', onFire);
+      window.removeEventListener('lunaquest-arcade-return', onReturn);
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
     this.events.on(Phaser.Scenes.Events.PAUSE,    this.onPause,    this);

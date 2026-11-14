@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — Spaceship entity (Developer B)
+ * LUNAQUEST — Spaceship entity (Developer B)
  *
  * Phase 2 / B3: Player-controlled arcade ship.
  *

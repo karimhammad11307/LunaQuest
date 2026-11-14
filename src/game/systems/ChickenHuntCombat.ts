@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — ChickenHuntCombat system (Developer B)
+ * LUNAQUEST — ChickenHuntCombat system (Developer B)
  *
  * Phase 2 / B5: Projectile pooling, wave spawner, Arcade Physics collision.
  *

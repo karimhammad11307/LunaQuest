@@ -12,5 +12,5 @@ export const SPACE_WEATHER = {
   elevatedFlareHours: 72,
   elevatedCmeHours: 72,
   elevatedCmeSpeedKmS: 1000,
-  cacheKey: 'moonbound.donki.v1',
+  cacheKey: 'lunaquest.donki.v1',
 } as const;

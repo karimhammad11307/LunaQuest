@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — shared pixel-art palette.
+ * LUNAQUEST — shared pixel-art palette.
  * Every texture in the game draws from these values only.
  */
 export const PALETTE = {

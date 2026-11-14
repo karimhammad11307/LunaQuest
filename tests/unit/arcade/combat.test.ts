@@ -1,5 +1,5 @@
 /**
- * MOONBOUND — Phase 2 / B5 unit tests: ChickenHuntCombat (Developer B)
+ * LUNAQUEST — Phase 2 / B5 unit tests: ChickenHuntCombat (Developer B)
  *
  * Tests combat orchestration, projectile pooling, wave scheduling, and collision logic:
  *  - Laser pooling limits unbounded object allocation.

@@ -1,4 +1,4 @@
-# Moonbound — Arcade Asset Manifest (Developer B)
+# LunaQuest — Arcade Asset Manifest (Developer B)
 
 All assets are **procedurally generated at runtime** by
 `src/game/assets/arcadeSprites.ts` using only colours from
@@ -13,7 +13,7 @@ beyond the original authorship recorded here.
 | Item | Author | Licence |
 |---|---|---|
 | All procedural pixel-art sprites | Developer B (original work, 2026) | Same as project licence |
-| Palette | Developer A (Moonbound shared palette) | Same as project licence |
+| Palette | Developer A (LunaQuest shared palette) | Same as project licence |
 
 No third-party sprite sheets, fonts, or image packs are used.
 
