@@ -94,19 +94,17 @@ try {
   await page.getByRole('button', { name: 'Back to Moon Base' }).click();
 
   // Eat only inside the habitat; stored food is consumed and HP recovers.
-  await page.keyboard.down('ArrowUp');
-  await page.waitForTimeout(560);
-  await page.keyboard.up('ArrowUp');
+  await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 276));
+  await page.waitForTimeout(180);
   await page.keyboard.press('e');
   await page.getByRole('complementary', { name: 'habitat controls' }).waitFor();
-  await page.getByRole('button', { name: 'Enter Habitat' }).click();
+  assert((await state()).astronaut.location === 'habitat', 'E did not enter the habitat');
   const beforeEating = await state();
   await page.getByRole('button', { name: /Eat Food/ }).click();
   const eaten = await state();
   assert(eaten.resources.food === beforeEating.resources.food - 10, 'Eating did not spend ten stored food');
   assert(eaten.astronaut.health > beforeEating.astronaut.health && eaten.astronaut.health <= 100, 'Eating did not heal and cap HP');
-  await page.getByRole('button', { name: 'Leave Habitat' }).click();
-  await page.getByRole('button', { name: 'Close building controls' }).click();
+  await page.keyboard.press('q');
 
   // All seven separate signposts open by E; closing never auto-reopens a panel.
   const topics = ['habitat', 'greenhouse', 'solar', 'shield', 'landingPad', 'chickenHunt', 'earthSupply'];
@@ -157,11 +155,12 @@ try {
 
   // Continue survival through the former five-day limit. Day 2 and Day 4 still deliver pods.
   const goHome = async () => {
+    if ((await state()).astronaut.location === 'habitat') return;
     await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
     await page.waitForTimeout(180);
     await page.keyboard.press('e');
     await page.getByRole('complementary', { name: 'habitat controls' }).waitFor();
-    await page.getByRole('button', { name: 'Enter Habitat' }).click();
+    assert((await state()).astronaut.location === 'habitat', 'E did not enter the habitat');
   };
   await goHome();
   await page.getByRole('button', { name: /Advance Day/ }).click();
@@ -169,8 +168,7 @@ try {
   const day2 = await state();
   assert(day2.activeEvent?.type === 'solar-storm', 'Day 2 storm did not start');
   assert(await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').supplyPods.size) === 1, 'Day 2 pod did not appear');
-  await page.getByRole('button', { name: 'Leave Habitat' }).click();
-  await page.getByRole('button', { name: 'Close building controls' }).click();
+  await page.keyboard.press('q');
   await page.keyboard.down('ArrowDown');
   await page.waitForTimeout(1180);
   await page.keyboard.up('ArrowDown');
@@ -216,11 +214,11 @@ try {
   await page.waitForFunction(() => window.__moonboundStore.getState().day === 3);
   assert((await state()).activeEvent?.type === 'oxygen-leak', 'Day 3 oxygen leak did not start');
   await page.getByRole('button', { name: /Repair habitat/ }).click();
-  assert((await state()).activeEvent === null, 'Habitat repair did not end leak');
+  assert((await state()).activeEvent?.id === 'solar-day-3', 'Habitat repair did not start the queued storm');
+  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
   await page.getByRole('button', { name: /Advance Day/ }).click();
   await page.waitForFunction(() => window.__moonboundStore.getState().day === 4);
-  await page.getByRole('button', { name: 'Leave Habitat' }).click();
-  await page.getByRole('button', { name: 'Close building controls' }).click();
+  await page.keyboard.press('q');
   await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(205, 451));
   await page.waitForTimeout(180);
   await page.keyboard.press('e');
@@ -236,12 +234,15 @@ try {
   const reopened = await state();
   assert(reopened.collectedEarthSupplyIds.length === 2 && reopened.resources.water === secondSupply.resources.water,
     'Closed-browser-tab Continue lost Earth deliveries');
+  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
   await goHome();
   await page.getByRole('button', { name: /Advance Day/ }).click();
   await page.waitForFunction(() => window.__moonboundStore.getState().day === 5);
+  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
   await page.getByRole('button', { name: /Advance Day/ }).click();
   const final = await state();
   assert(final.status === 'playing' && final.daysSurvived === 5 && final.day === 6 && final.resources.water > 0, 'Survival stopped at day five');
+  await page.evaluate(() => { for (let i = 0; i < 36; i++) window.__moonboundStore.dispatch({ type: 'TICK', deltaSeconds: 1 }); });
   await page.getByRole('button', { name: /Advance Day/ }).click();
   assert((await state()).daysSurvived === 6 && (await state()).status === 'playing', 'Day six progression failed');
   await page.screenshot({ path: 'artifacts/feature8-endless-day7.png', fullPage: true });

@@ -6,6 +6,14 @@ import { applyEnvironmentalDamage, clamp, trimNotices } from './survivalRules';
 const storm = BALANCE.emergencies.storm;
 const leak = BALANCE.emergencies.leak;
 
+export const stormIdForDay = (day: number): string => `solar-day-${day}`;
+export function isValidEmergencyId(id: unknown, day: number): id is string {
+  if (id === leak.id) return day >= leak.triggerAfterDays + 1;
+  if (typeof id !== 'string' || !/^solar-day-[1-9]\d*$/.test(id)) return false;
+  const eventDay = Number(id.slice('solar-day-'.length));
+  return Number.isSafeInteger(eventDay) && eventDay >= storm.triggerAfterDays + 1 && eventDay <= day;
+}
+
 export const EMERGENCY_CATALOG = {
   [storm.id]: { id: storm.id, type: 'solar-storm', triggerAfterDays: storm.triggerAfterDays,
     warningSeconds: storm.warningSeconds, choices: ['shelter', 'shield', 'ignore'],
@@ -25,33 +33,40 @@ function tell(state: GameState, text: string, tone: 'info' | 'good' | 'warn'): G
   return { ...state, notices: trimNotices([...state.notices, { id, text, tone }]) };
 }
 
-function begin(state: GameState, type: EmergencyState['type']): GameState {
+function begin(state: GameState, type: EmergencyState['type'], id: string): GameState {
   const spec = type === 'solar-storm' ? storm : leak;
-  const event: EmergencyState = { id: spec.id, type, phase: 'warning', remainingSeconds: spec.warningSeconds,
+  const event: EmergencyState = { id, type, phase: 'warning', remainingSeconds: spec.warningSeconds,
     pulseSeconds: 0, tookDamage: false, ignored: false };
   const buildings = type === 'oxygen-leak'
     ? { ...state.buildings, habitat: { ...state.buildings.habitat, condition: 'damaged' as const } }
     : state.buildings;
-  return tell({ ...state, buildings, activeEventId: event.id, activeEvent: event, lastEventOutcome: null },
+  return tell({ ...state, buildings, activeEventId: event.id, activeEvent: event },
     type === 'solar-storm' ? 'Solar storm incoming! Find shelter!' : 'Oxygen leak detected! Fix it quickly!', 'warn');
 }
 
-/** Fixed order and completed-ID ledger prevent overlaps or repeat spawns. */
+/** The Day 3 leak precedes that day's storm; both stay queued and once-only. */
 export function triggerEmergency(state: GameState): GameState {
-  if (state.status !== 'playing' || state.activeEvent || state.paused || state.scene !== 'moon-base') return state;
-  const due = Object.values(EMERGENCY_CATALOG).find((spec) => state.daysSurvived >= spec.triggerAfterDays
-    && !state.completedEventIds.includes(spec.id));
-  if (due) return begin(state, due.type);
-  return state;
+  if (state.status !== 'playing' || state.paused || state.scene !== 'moon-base') return state;
+  const candidates = state.day === leak.triggerAfterDays + 1
+    ? [leak.id, stormIdForDay(state.day)] : state.day >= storm.triggerAfterDays + 1 ? [stormIdForDay(state.day)] : [];
+  const pending = [...state.pendingEventIds];
+  for (const id of candidates) {
+    if (state.activeEventId !== id && !state.completedEventIds.includes(id) && !pending.includes(id)) pending.push(id);
+  }
+  if (state.activeEvent) return pending.length === state.pendingEventIds.length ? state : { ...state, pendingEventIds: pending };
+  if (!pending.length) return state;
+  const [id, ...remaining] = pending;
+  return begin({ ...state, pendingEventIds: remaining }, id === leak.id ? 'oxygen-leak' : 'solar-storm', id);
 }
 
 function finish(state: GameState, choice: EmergencyChoice, xpEarned: number, message: string, takeaway: string): GameState {
   const event = state.activeEvent;
   if (!event || state.completedEventIds.includes(event.id) || !Number.isSafeInteger(state.xp + xpEarned)) return state;
-  const next = { ...state, activeEvent: null, activeEventId: null,
+  const next: GameState = { ...state, activeEvent: null, activeEventId: null,
     completedEventIds: [...state.completedEventIds, event.id], xp: state.xp + xpEarned,
     lastEventOutcome: { id: event.id, choice, xpEarned, message, takeaway } };
-  return tell(next, `${message}${xpEarned ? ` +${xpEarned} XP` : ''}`, xpEarned ? 'good' : 'warn');
+  const announced = tell(next, `${message}${xpEarned ? ` +${xpEarned} XP` : ''}`, xpEarned ? 'good' : 'warn');
+  return triggerEmergency(announced);
 }
 
 function finishStorm(state: GameState): GameState {
@@ -92,9 +107,10 @@ export function tickEmergency(state: GameState, deltaSeconds: number): GameState
   }
   if (pulses > 0 && current.type === 'oxygen-leak') {
     const oxygen = clamp(next.resources.oxygen - pulses * leak.oxygenLossPerPulse);
-    const health = clamp(next.astronaut.health - (oxygen <= leak.criticalOxygen ? pulses * leak.criticalHpLossPerPulse : 0));
+    const healthBefore = next.astronaut.health;
+    const health = clamp(healthBefore - (oxygen <= leak.criticalOxygen ? pulses * leak.criticalHpLossPerPulse : 0));
     next = { ...next, resources: { ...next.resources, oxygen }, astronaut: { ...next.astronaut, health },
-      activeEvent: { ...next.activeEvent!, tookDamage: current.tookDamage || health < next.astronaut.health },
+      activeEvent: { ...next.activeEvent!, tookDamage: current.tookDamage || health < healthBefore },
       status: health === 0 ? 'defeat' : next.status, scene: health === 0 ? 'result' : next.scene };
   }
   if (next.status !== 'playing') return next;

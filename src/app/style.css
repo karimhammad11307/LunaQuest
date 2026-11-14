@@ -61,3 +61,24 @@
 .launch-preview{padding:5px;border:2px solid #ffd75e;background:#1b2145;color:#ffd75e;font-weight:900;text-align:center}.launch-cost-banner{position:absolute;z-index:6;left:50%;top:9px;transform:translateX(-50%);padding:5px 9px;border:2px solid #ffd75e;background:#292740ec;color:#ffd75e;box-shadow:3px 3px #12172f;font:900 11px ui-monospace,monospace;white-space:nowrap;pointer-events:none}
 .meter-launch-flash{animation:launch-energy-flash .35s steps(2,end) 5}@keyframes launch-energy-flash{50%{background:#8067da;border-color:#ffd75e}}
 @media(max-width:680px){.audio-settings-button{font-size:9px;padding:3px 4px}.audio-settings-button span{display:none}.audio-panel{position:fixed;left:50%;right:auto;top:50%;transform:translate(-50%,-50%);width:min(340px,calc(100vw - 20px));max-height:calc(100dvh - 30px);padding:12px;font-size:11px;box-shadow:0 0 0 100vmax #12172f99,5px 5px #12172f}.audio-panel-gate{position:static;transform:none;width:100%;max-height:300px;box-shadow:3px 3px #12172f}.launch-cost-banner{font-size:8px;top:4px;padding:3px 5px}}
+
+/* Feature 11: the base fills the viewport; Phaser FIT keeps square pixels and aspect. */
+.app-shell{height:100dvh;min-height:0;display:block;overflow:hidden;padding:0;background:#12172f}
+.game-frame{display:flex;flex-direction:column;width:100%;height:100dvh;min-width:0;border:3px solid #292740;box-shadow:none}
+.masthead,.hud,.score-strip,.status-strip,.touch-controls,.day-summary,.survival-warning{flex:none}
+.canvas-wrap{flex:1;min-height:0;width:100%;aspect-ratio:auto;background:radial-gradient(circle at center,#514969 0%,#292740 72%,#12172f 100%)}
+#game-canvas{width:100%;height:100%;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#game-canvas canvas{max-width:none;max-height:none;image-rendering:pixelated}
+.demo-note{display:none}
+.fullscreen-button{font:900 11px ui-monospace,monospace;color:#ffd75e;background:#1b2145;border:2px solid #ffd75e;box-shadow:2px 2px #12172f;cursor:pointer;padding:5px 7px;white-space:nowrap}
+.fullscreen-button:focus-visible{outline:3px solid #4edce5;outline-offset:2px}
+.inside-indicator{position:absolute;z-index:4;left:12px;bottom:10px;padding:5px 8px;border:2px solid #80e5a0;background:#292740e8;color:#80e5a0;font:900 11px ui-monospace,monospace;pointer-events:none}
+.building-panel button.menu-selected{outline:3px solid #4edce5;outline-offset:1px;background:#fff2b5}
+.building-panel button:disabled{opacity:.65}
+.joystick{position:relative;width:104px;height:104px;flex:none;border:4px solid #4edce5;border-radius:50%;background:radial-gradient(circle,#514969 0%,#292740 68%);box-shadow:inset 0 0 0 5px #12172f,3px 3px #12172f;touch-action:none;user-select:none}
+.joystick-cross{position:absolute;inset:0;display:grid;place-items:center;color:#b9a7f5;font-size:22px;pointer-events:none}
+.joystick-knob{position:absolute;left:31px;top:31px;width:36px;height:36px;border:3px solid #12172f;border-radius:50%;background:#ffd75e;box-shadow:2px 2px #8067da;pointer-events:none}
+.touch-actions{display:flex;align-items:center;gap:10px}.touch-actions button{min-width:80px;min-height:48px}
+@media(pointer:coarse){.touch-controls{display:flex;min-height:120px;padding:8px max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}.touch-pad{display:none}}
+@media(max-width:680px){.game-frame{border-width:2px}.masthead{padding-left:max(5px,env(safe-area-inset-left));padding-right:max(5px,env(safe-area-inset-right))}.fullscreen-button{font-size:9px;padding:3px 4px}.fullscreen-button span{display:none}.inside-indicator{left:5px;bottom:5px;font-size:8px;padding:3px 4px}.building-panel{width:min(280px,72%);max-height:calc(100% - 12px);right:5px;top:5px}.touch-actions{flex-direction:column;gap:5px}.touch-actions button{min-height:44px}}
+@media(pointer:coarse) and (orientation:landscape) and (max-height:500px){.game-frame{position:relative}.masthead{height:37px}.hud{padding:3px 5px}.meter{height:34px}.score-strip{height:25px}.status-strip{height:24px}.touch-controls{position:absolute;z-index:8;left:0;right:0;bottom:24px;min-height:0;height:112px;background:transparent;border:0;padding:4px 12px;pointer-events:none}.touch-controls .joystick,.touch-controls .touch-actions{pointer-events:auto}.touch-actions{flex-direction:row}.building-panel{max-height:calc(100% - 10px)}}

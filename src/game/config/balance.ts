@@ -72,6 +72,9 @@ export const BALANCE = {
   },
 
   habitat: {
+    /** Illustrative closed-loop recovery: one limited reserve cycle per day. */
+    recycleEnergyCost: 8,
+    recycleOxygenGain: 15,
     /** Base oxygen spent per unit of suit oxygen refilled. */
     transferRatio: 0.7,
     healFoodCost: 5,

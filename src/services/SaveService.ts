@@ -7,9 +7,10 @@ import { BALANCE } from '../game/config/balance';
 import { SPAWN_POINT } from '../game/config/gameConfig';
 import { EMPTY_PERSONAL_BEST } from '../domain/rules/scoreRules';
 
-export const SAVE_KEY = 'moonbound.session.v3';
-export const SAVE_VERSION = 3;
-export const PREVIOUS_SAVE_KEY = 'moonbound.session.v2';
+export const SAVE_KEY = 'moonbound.session.v4';
+export const SAVE_VERSION = 4;
+export const PREVIOUS_SAVE_KEY = 'moonbound.session.v3';
+export const OLDER_SAVE_KEY = 'moonbound.session.v2';
 export const LEGACY_SAVE_KEY = 'moonbound.session.v1';
 const DEFERRED_SAVE_MS = 5000;
 
@@ -33,7 +34,7 @@ export function recoverSavedState(state: GameState): GameState {
     ? BALANCE.emergencies.storm.warningSeconds : BALANCE.emergencies.leak.warningSeconds;
   const notices = [...state.notices];
   const recoveryMessage = interruptedMission
-    ? 'Mission interrupted. You returned to base without supplies.'
+      ? 'Mission interrupted. You returned to base without supplies.'
     : interruptedEvent ? 'Emergency warning restarted. Choose a safe response!'
       : state.status === 'playing' ? 'Welcome back to Moonbound!' : 'Your mission result is ready.';
   notices.push({ id: Math.max(0, ...notices.map((notice) => notice.id)) + 1, text: recoveryMessage,
@@ -62,13 +63,17 @@ export function parseSave(raw: string): GameState | null {
     if (!envelope || typeof envelope !== 'object') return null;
     const candidate = envelope as Partial<SaveEnvelope>;
     if (typeof candidate.savedAt !== 'string' || !Number.isFinite(Date.parse(candidate.savedAt))) return null;
-    // V1 lacked cargo IDs; V1/V2 both lacked the run-start record. Keep all other progress.
+    // V1 lacked cargo IDs; V1/V2 lacked the run-start record; V1–V3 lacked Feature 11 state.
     const state = candidate.state && typeof candidate.state === 'object'
       ? candidate.schemaVersion === 1
-        ? { ...candidate.state, collectedEarthSupplyIds: [], recordToBeat: { ...EMPTY_PERSONAL_BEST } }
+        ? { ...candidate.state, collectedEarthSupplyIds: [], recordToBeat: { ...EMPTY_PERSONAL_BEST },
+          pendingEventIds: [], lastOxygenRecycleDay: 0 }
         : candidate.schemaVersion === 2
-          ? { ...candidate.state, recordToBeat: { ...EMPTY_PERSONAL_BEST } }
-          : candidate.schemaVersion === SAVE_VERSION ? candidate.state : null
+          ? { ...candidate.state, recordToBeat: { ...EMPTY_PERSONAL_BEST },
+            pendingEventIds: [], lastOxygenRecycleDay: 0 }
+          : candidate.schemaVersion === 3
+            ? { ...candidate.state, pendingEventIds: [], lastOxygenRecycleDay: 0 }
+            : candidate.schemaVersion === SAVE_VERSION ? candidate.state : null
       : null;
     if (!validLoadedState(state)) return null;
     const recovered = recoverSavedState(state);
@@ -97,7 +102,7 @@ export class SaveService {
 
   load(): GameState | null {
     try {
-      for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, LEGACY_SAVE_KEY]) {
+      for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, OLDER_SAVE_KEY, LEGACY_SAVE_KEY]) {
         const raw = this.storage?.getItem(key);
         if (raw) {
           const state = parseSave(raw);
@@ -113,7 +118,7 @@ export class SaveService {
     try {
       const envelope: SaveEnvelope = { schemaVersion: SAVE_VERSION, savedAt: new Date().toISOString(), state };
       this.storage.setItem(SAVE_KEY, JSON.stringify(envelope));
-      for (const key of [PREVIOUS_SAVE_KEY, LEGACY_SAVE_KEY]) {
+      for (const key of [PREVIOUS_SAVE_KEY, OLDER_SAVE_KEY, LEGACY_SAVE_KEY]) {
         try { this.storage.removeItem(key); } catch { /* new save is already durable */ }
       }
       return true;
@@ -123,7 +128,7 @@ export class SaveService {
   clear(): void {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
-    for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, LEGACY_SAVE_KEY]) {
+    for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, OLDER_SAVE_KEY, LEGACY_SAVE_KEY]) {
       try { this.storage?.removeItem(key); } catch { /* gameplay continues without storage */ }
     }
   }

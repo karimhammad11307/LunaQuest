@@ -47,6 +47,13 @@ export const BUILDING_BY_ID: Record<string, BuildingLayoutEntry> = Object.fromEn
 /** Where the astronaut starts each run (just below the habitat). */
 export const SPAWN_POINT = { x: 400, y: 316 } as const;
 
+/** Walkable places outside enclosed building entrances; outside collision footprints. */
+export const BUILDING_EXIT_POINTS = {
+  habitat: { x: 400, y: 276 },
+  greenhouse: { x: 232, y: 355 },
+  shelter: { x: 636, y: 432 },
+} as const;
+
 /** Separate cargo objects, adjacent to the Landing Pad but clear of its collision zone. */
 export const EARTH_SUPPLY_DELIVERIES = BALANCE.earthSupply.deliveryDays.map((day, index) => ({
   id: `earth-water-day-${day}`, day, x: 205, y: index === 0 ? 405 : 451,

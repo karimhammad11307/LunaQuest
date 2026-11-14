@@ -208,6 +208,7 @@ export class WebAudioSynth implements AudioOutput {
       case 'emergencyClear': case 'repair': t(390, 560, 0.12, 'triangle', 0.15); t(560, 780, 0.13, 'square', 0.1, 0.12); break;
       case 'eat': t(260, 330, 0.08, 'triangle', 0.12); t(390, 430, 0.08, 'triangle', 0.11, 0.09); break;
       case 'refill': t(250, 720, 0.34, 'sine', 0.14); break;
+      case 'recycle': t(220, 440, 0.16, 'triangle', 0.13); t(440, 660, 0.18, 'square', 0.11, 0.14); break;
       case 'rest': t(523, 392, 0.32, 'triangle', 0.12); break;
       case 'plant': t(270, 360, 0.1, 'triangle', 0.12); t(440, 510, 0.1, 'square', 0.09, 0.1); break;
       case 'harvest': case 'podCollect': t(440, 660, 0.11, 'square', 0.17); t(660, 880, 0.15, 'triangle', 0.13, 0.1); break;

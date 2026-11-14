@@ -17,9 +17,12 @@ export type GameAction =
   | { type: 'CLOSE_BUILDING' }
   | { type: 'ENTER_HABITAT' }
   | { type: 'LEAVE_HABITAT' }
+  | { type: 'ENTER_GREENHOUSE' }
+  | { type: 'LEAVE_GREENHOUSE' }
   | { type: 'ENTER_SHELTER' }
   | { type: 'LEAVE_SHELTER' }
   | { type: 'REFILL_SUIT_OXYGEN' }
+  | { type: 'RECYCLE_OXYGEN' }
   | { type: 'EAT_FOOD' }
   | { type: 'REST_AT_HABITAT' }
   | { type: 'APPLY_ENVIRONMENTAL_EXPOSURE'; damage: number }

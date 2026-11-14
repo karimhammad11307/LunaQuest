@@ -68,7 +68,9 @@ export function createInitialState(recordToBeat: PersonalBest = EMPTY_PERSONAL_B
     activeEventId: null,
     activeEvent: null,
     completedEventIds: [],
+    pendingEventIds: [],
     lastEventOutcome: null,
+    lastOxygenRecycleDay: 0,
     xp: 0,
     awardedRewardIds: [],
     weather: {

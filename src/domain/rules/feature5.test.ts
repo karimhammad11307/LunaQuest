@@ -115,7 +115,7 @@ describe('Feature 5 deterministic emergencies', () => {
     expect(leaking.resources.oxygen).toBe(leakState.resources.oxygen - 3 * BALANCE.emergencies.leak.oxygenLossPerPulse);
     const selected = select(leaking, 'habitat');
     const fixed = act(selected, { type: 'REPAIR_BUILDING', buildingId: 'habitat' });
-    expect(fixed.activeEvent).toBeNull();
+    expect(fixed.activeEvent).toMatchObject({ id: 'solar-day-3', phase: 'warning' });
     expect(fixed.buildings.habitat.condition).toBe('good');
     expect(fixed.resources.energy).toBe(selected.resources.energy - BALANCE.repair.energyCost);
     expect(fixed.xp).toBe(BALANCE.emergencies.leak.repairXp);
@@ -132,7 +132,7 @@ describe('Feature 5 deterministic emergencies', () => {
   it('isolation stops leak with distinct cost and shuts down greenhouse until repaired', () => {
     const leaking = leakStart();
     const isolated = act(leaking, { type: 'RESOLVE_EVENT', eventId: leaking.activeEventId!, choiceId: 'isolate' });
-    expect(isolated.activeEvent).toBeNull();
+    expect(isolated.activeEvent).toMatchObject({ id: 'solar-day-3', phase: 'warning' });
     expect(isolated.resources.energy).toBe(leaking.resources.energy - BALANCE.emergencies.leak.isolateEnergyCost);
     expect(isolated.resources.oxygen).toBe(leaking.resources.oxygen - BALANCE.emergencies.leak.isolateOxygenCost);
     expect(isolated.buildings.greenhouse).toMatchObject({ condition: 'damaged', active: false });

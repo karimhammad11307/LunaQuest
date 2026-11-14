@@ -109,7 +109,7 @@ try {
   await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
   await page.waitForTimeout(180);
   await page.keyboard.press('e');
-  await page.getByRole('button', { name: 'Enter Habitat' }).click();
+  assert((await state()).astronaut.location === 'habitat', 'E did not enter Habitat');
   await page.getByRole('button', { name: /Advance Day/ }).click();
   assert((await audio()).cueCounts.stormAlarm === 1, 'Storm warning alarm did not start once');
   await page.evaluate(() => {

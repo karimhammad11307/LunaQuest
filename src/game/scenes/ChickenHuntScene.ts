@@ -203,6 +203,20 @@ export class ChickenHuntScene extends Phaser.Scene {
     this.missionState = 'ACTIVE';
 
     // Lifecycle handlers
+    const onJoystick = (event: Event) => {
+      const vector = (event as CustomEvent<{ x: number; y: number }>).detail;
+      this.ship?.setVirtualVector(vector?.x ?? 0, vector?.y ?? 0);
+    };
+    const onFire = (event: Event) => this.ship?.setVirtualFire(!!(event as CustomEvent<boolean>).detail);
+    const onReturn = () => { if (this.missionState === 'ACTIVE') this.completeMission('return-early'); };
+    window.addEventListener('moonbound-joystick', onJoystick);
+    window.addEventListener('moonbound-arcade-fire', onFire);
+    window.addEventListener('moonbound-arcade-return', onReturn);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener('moonbound-joystick', onJoystick);
+      window.removeEventListener('moonbound-arcade-fire', onFire);
+      window.removeEventListener('moonbound-arcade-return', onReturn);
+    });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.onShutdown, this);
     this.events.on(Phaser.Scenes.Events.PAUSE,    this.onPause,    this);
     this.events.on(Phaser.Scenes.Events.RESUME,   this.onResume,   this);

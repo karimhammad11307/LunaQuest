@@ -49,7 +49,8 @@ export class MoonBaseScene extends Phaser.Scene {
     this.buildings = BUILDING_LAYOUT.map((entry) => new Building(this, entry));
     this.previousState = this.store.getState();
     this.buildings.forEach((building) => building.syncState(this.previousState.buildings[building.entry.id], this.previousState.resources.energy));
-    this.astronaut = new Astronaut(this, SPAWN_POINT.x, SPAWN_POINT.y);
+    this.astronaut = new Astronaut(this, this.previousState.astronaut.position.x, this.previousState.astronaut.position.y);
+    this.astronaut.setVisible(this.previousState.astronaut.location === 'outside');
     this.astronaut.setDepth(SPAWN_POINT.y + 12);
     this.buildings.forEach((b) => this.physics.add.collider(this.astronaut, b.collision));
     this.children.list.forEach((item) => {
@@ -69,13 +70,19 @@ export class MoonBaseScene extends Phaser.Scene {
       if (input === 'interact') this.interact();
       else this.astronaut.setVirtualDirection(input);
     };
+    const onJoystick = (event: Event) => {
+      const vector = (event as CustomEvent<{ x: number; y: number }>).detail;
+      this.astronaut.setVirtualVector(vector?.x ?? 0, vector?.y ?? 0);
+    };
     window.addEventListener('moonbound-input', onVirtualInput);
+    window.addEventListener('moonbound-joystick', onJoystick);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.keyboard?.off('keydown-E', this.interact, this);
       this.events.off('building-pointer', this.pointerInteract, this);
       this.events.off('education-pointer', this.pointerEducation, this);
       this.events.off('earth-supply-pointer', this.pointerSupply, this);
       window.removeEventListener('moonbound-input', onVirtualInput);
+      window.removeEventListener('moonbound-joystick', onJoystick);
       this.activeBuilding = null;
       this.activeSign = null;
       this.activeSupplyPod = null;
@@ -214,6 +221,7 @@ export class MoonBaseScene extends Phaser.Scene {
   private interact(): void {
     const state = this.store.getState();
     if (state.paused || state.status !== 'playing' || state.scene !== 'moon-base') return;
+    if (state.astronaut.location !== 'outside') return;
     if (this.activeSupplyPod) this.collectSupply(this.activeSupplyPod);
     else if (this.activeSign) this.openEducation(this.activeSign);
     else if (this.activeBuilding) this.activate(this.activeBuilding);
@@ -257,9 +265,13 @@ export class MoonBaseScene extends Phaser.Scene {
   }
 
   private activate(building: Building): void {
+    const before = this.store.getState();
     this.store.dispatch({ type: 'INTERACT_BUILDING', buildingId: building.entry.id });
-    if (building.entry.id === 'shield' && this.store.getState().activeEvent?.type === 'solar-storm'
-      && this.store.getState().astronaut.location === 'outside') this.store.dispatch({ type: 'ENTER_SHELTER' });
+    if (before.astronaut.location === 'outside') {
+      if (building.entry.id === 'habitat') this.store.dispatch({ type: 'ENTER_HABITAT' });
+      if (building.entry.id === 'greenhouse') this.store.dispatch({ type: 'ENTER_GREENHOUSE' });
+      if (building.entry.id === 'shield') this.store.dispatch({ type: 'ENTER_SHELTER' });
+    }
     const latest = this.store.getState().notices.at(-1);
     this.showMessage(latest?.text ?? `${building.entry.label} ready!`);
     this.cameras.main.flash(120, 78, 220, 229, false);
@@ -275,6 +287,14 @@ export class MoonBaseScene extends Phaser.Scene {
   private onStoreState = (state: GameState): void => {
     const before = this.previousState;
     this.previousState = state;
+    if (before.astronaut.location !== state.astronaut.location) {
+      this.astronaut.setVisible(state.astronaut.location === 'outside');
+      this.astronaut.stopMovement();
+      if (state.astronaut.location === 'outside') {
+        this.astronaut.setPosition(state.astronaut.position.x, state.astronaut.position.y);
+        this.astronaut.setVirtualVector(0, 0);
+      }
+    }
     if (before.day !== state.day || before.collectedEarthSupplyIds !== state.collectedEarthSupplyIds) {
       this.syncSupplyPods(state, before.day !== state.day);
     }
@@ -304,10 +324,12 @@ export class MoonBaseScene extends Phaser.Scene {
       const habitat = this.buildings.find((building) => building.entry.id === 'habitat')!;
       this.floatAt(habitat.x, habitat.y - 55, '-1 BASE O₂', '#4EDCE5');
     }
-    if (before.activeEvent && !state.activeEvent && state.lastEventOutcome) {
+    if (before.activeEvent && before.activeEvent.id !== state.activeEvent?.id
+      && state.lastEventOutcome?.id === before.activeEvent.id) {
       const target = this.buildings.find((building) => building.entry.id === (before.activeEvent?.type === 'oxygen-leak' ? 'habitat' : 'shield'))!;
       this.pixelBurst(target, state.lastEventOutcome.xpEarned ? 0x80e5a0 : 0xff8d63);
-      this.showMessage(state.lastEventOutcome.message, 3600);
+      if (state.activeEvent) this.floatText(target, state.lastEventOutcome.message, '#80E5A0');
+      else this.showMessage(state.lastEventOutcome.message, 3600);
     }
     const greenhouse = this.buildings.find((building) => building.entry.id === 'greenhouse')!;
     const solar = this.buildings.find((building) => building.entry.id === 'solar')!;
@@ -445,7 +467,8 @@ export class MoonBaseScene extends Phaser.Scene {
       this.activeSupplyPod?.setApproach(true);
     }
     if (simulationActive && state.astronaut.location === 'outside' && !state.selectedBuildingId && (closest || closestSign || closestPod)) {
-      this.prompt.setText(closestPod ? 'Press E to collect Earth supplies' : closestSign ? `E  Learn: ${EDUCATION[closestSign.id].title}` : `E  ${closest!.entry.label}`)
+      this.prompt.setText(closestPod ? 'Press E to collect Earth supplies' : closestSign ? `E  Learn: ${EDUCATION[closestSign.id].title}`
+        : ['habitat', 'greenhouse', 'shield'].includes(closest!.entry.id) ? `Press E to Enter ${closest!.entry.label}` : `Press E: ${closest!.entry.label}`)
         .setPosition(closestPod?.x ?? closestSign?.x ?? closest!.x, (closestPod?.y ?? closestSign?.y ?? closest!.y) - (closest ? 57 : 28)).setVisible(true);
     } else this.prompt.setVisible(false);
   }

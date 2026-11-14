@@ -1,10 +1,10 @@
 import type { GameAction } from '../models/GameAction';
 import type { AstronautState, GameState, MissionResult, MissionType, ResourceName, Resources } from '../models/types';
 import { BALANCE } from '../../game/config/balance';
-import { BUILDING_LAYOUT, EARTH_SUPPLY_DELIVERIES, MISSION_CONFIG, WORLD } from '../../game/config/gameConfig';
+import { BUILDING_EXIT_POINTS, BUILDING_LAYOUT, EARTH_SUPPLY_DELIVERIES, MISSION_CONFIG, WORLD } from '../../game/config/gameConfig';
 import type { MissionSpec } from '../../game/config/gameConfig';
 import { advanceSurvivalDay, applyEnvironmentalDamage, clamp, createInitialState, tickSurvival, trimNotices } from './survivalRules';
-import { EMERGENCY_CATALOG, repairOxygenLeak, resolveEmergency, tickEmergency, triggerEmergency } from './eventRules';
+import { isValidEmergencyId, repairOxygenLeak, resolveEmergency, tickEmergency, triggerEmergency } from './eventRules';
 import { validPersonalBest } from './scoreRules';
 
 export type MissionCatalog = Record<MissionType, Pick<MissionSpec, 'available' | 'energyCost'>>;
@@ -68,7 +68,7 @@ export function validLoadedState(value: unknown): value is GameState {
     && validResourceMap(state.resources)
     && resources.every((name) => numberIn(state.resources?.[name], 0, 100))
     && !!state.astronaut
-    && ['outside', 'habitat', 'shelter'].includes(state.astronaut.location)
+    && ['outside', 'habitat', 'greenhouse', 'shelter'].includes(state.astronaut.location)
     && statusFields.every((name) => numberIn(state.astronaut?.[name], 0, 100))
     && numberIn(state.astronaut.position?.x, 0, WORLD.width)
     && numberIn(state.astronaut.position?.y, 0, WORLD.height)
@@ -107,12 +107,18 @@ export function validLoadedState(value: unknown): value is GameState {
     && (state.lastMissionResult === null || (validMissionResult(state.lastMissionResult) && state.completedMissionRunIds.includes(state.lastMissionResult.runId)))
     && (state.activeEventId === null || typeof state.activeEventId === 'string')
     && Array.isArray(state.completedEventIds)
-    && state.completedEventIds.every((id) => validRunId(id) && Object.hasOwn(EMERGENCY_CATALOG, id))
+    && state.completedEventIds.every((id) => isValidEmergencyId(id, state.day!))
     && new Set(state.completedEventIds).size === state.completedEventIds.length
+    && Array.isArray(state.pendingEventIds)
+    && state.pendingEventIds.every((id) => isValidEmergencyId(id, state.day!)
+      && !state.completedEventIds!.includes(id) && id !== state.activeEventId)
+    && new Set(state.pendingEventIds).size === state.pendingEventIds.length
+    && Number.isSafeInteger(state.lastOxygenRecycleDay)
+    && numberIn(state.lastOxygenRecycleDay, 0, state.day)
     && (state.activeEvent === null || (!!state.activeEvent
       && state.activeEvent.id === state.activeEventId
-      && Object.hasOwn(EMERGENCY_CATALOG, state.activeEvent.id)
-      && EMERGENCY_CATALOG[state.activeEvent.id as keyof typeof EMERGENCY_CATALOG].type === state.activeEvent.type
+      && isValidEmergencyId(state.activeEvent.id, state.day!)
+      && (state.activeEvent.id === BALANCE.emergencies.leak.id ? 'oxygen-leak' : 'solar-storm') === state.activeEvent.type
       && (state.activeEvent.type === 'solar-storm' || state.activeEvent.type === 'oxygen-leak')
       && (state.activeEvent.phase === 'warning' || state.activeEvent.phase === 'danger')
       && numberIn(state.activeEvent.remainingSeconds, 0, 60)
@@ -206,23 +212,42 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
     }
     case 'INTERACT_BUILDING': {
       if (typeof action.buildingId !== 'string' || !state.buildings[action.buildingId]) return state;
-      if (state.astronaut.location !== 'outside' && (state.astronaut.location === 'habitat' ? action.buildingId !== 'habitat' : action.buildingId !== 'shield')) return state;
+      if (state.astronaut.location !== 'outside' && (state.astronaut.location === 'shelter' ? action.buildingId !== 'shield' : action.buildingId !== state.astronaut.location)) return state;
       return withNotice({ ...state, selectedBuildingId: action.buildingId }, buildingMessages[action.buildingId] ?? 'Building ready!', 'good');
     }
     case 'CLOSE_BUILDING':
-      return state.selectedBuildingId === null ? state : { ...state, selectedBuildingId: null };
+      return state.selectedBuildingId === null || state.astronaut.location !== 'outside' ? state : { ...state, selectedBuildingId: null };
     case 'ENTER_HABITAT':
       if (state.selectedBuildingId !== 'habitat' || state.astronaut.location !== 'outside') return state;
       return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'habitat' } }, 'Welcome home, astronaut! Suit oxygen is safe indoors.', 'good');
     case 'LEAVE_HABITAT':
       if (state.astronaut.location !== 'habitat') return state;
-      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'outside' } }, 'Back outside. Watch your suit oxygen!', 'info');
+      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'outside', position: { ...BUILDING_EXIT_POINTS.habitat } },
+        selectedBuildingId: null }, 'Back outside. Watch your suit oxygen!', 'info');
+    case 'ENTER_GREENHOUSE':
+      if (state.selectedBuildingId !== 'greenhouse' || state.astronaut.location !== 'outside') return state;
+      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'greenhouse' } }, 'Inside the greenhouse. Tend your crops!', 'good');
+    case 'LEAVE_GREENHOUSE':
+      if (state.astronaut.location !== 'greenhouse') return state;
+      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'outside', position: { ...BUILDING_EXIT_POINTS.greenhouse } },
+        selectedBuildingId: null }, 'Back outside the greenhouse.', 'info');
     case 'ENTER_SHELTER':
       if (state.selectedBuildingId !== 'shield' || state.astronaut.location !== 'outside') return state;
       return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'shelter' } }, 'Shelter entered. You are protected while it has power.', 'good');
     case 'LEAVE_SHELTER':
       if (state.astronaut.location !== 'shelter') return state;
-      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'outside' } }, 'You left the shelter.', 'info');
+      return withNotice({ ...state, astronaut: { ...state.astronaut, location: 'outside', position: { ...BUILDING_EXIT_POINTS.shelter } },
+        selectedBuildingId: null }, 'You left the shelter.', 'info');
+    case 'RECYCLE_OXYGEN': {
+      const h = BALANCE.habitat;
+      if (state.astronaut.location !== 'habitat' || state.selectedBuildingId !== 'habitat'
+        || state.buildings.habitat.condition !== 'good' || !state.buildings.habitat.active
+        || state.lastOxygenRecycleDay === state.day || state.resources.energy < h.recycleEnergyCost
+        || state.resources.oxygen >= 100) return state;
+      const oxygen = clamp(state.resources.oxygen + h.recycleOxygenGain);
+      return withNotice({ ...state, resources: { ...state.resources, energy: state.resources.energy - h.recycleEnergyCost, oxygen },
+        lastOxygenRecycleDay: state.day }, `Air recycled! +${oxygen - state.resources.oxygen} Base O₂ for ${h.recycleEnergyCost} Energy.`, 'good');
+    }
     case 'EAT_FOOD': {
       if (state.astronaut.location !== 'habitat' || state.astronaut.health >= 100 || state.resources.food < BALANCE.habitat.eatFoodCost) return state;
       return withNotice({ ...state, resources: { ...state.resources, food: state.resources.food - BALANCE.habitat.eatFoodCost },
@@ -261,7 +286,7 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
     case 'PLANT_CROP': {
       const greenhouse = state.buildings.greenhouse;
       const cost = BALANCE.greenhouse;
-      if (state.activeMission || state.selectedBuildingId !== 'greenhouse' || state.astronaut.location !== 'outside'
+      if (state.activeMission || state.selectedBuildingId !== 'greenhouse' || state.astronaut.location !== 'greenhouse'
         || greenhouse.cropPlanted || !greenhouse.active || greenhouse.condition !== 'good'
         || state.resources.water < cost.waterCost || state.resources.energy < cost.energyCost) return state;
       return withNotice({ ...state, resources: { ...state.resources, water: state.resources.water - cost.waterCost,
@@ -270,7 +295,7 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
     }
     case 'HARVEST_CROP': {
       const greenhouse = state.buildings.greenhouse;
-      if (state.activeMission || state.selectedBuildingId !== 'greenhouse' || state.astronaut.location !== 'outside'
+      if (state.activeMission || state.selectedBuildingId !== 'greenhouse' || state.astronaut.location !== 'greenhouse'
         || !greenhouse.cropPlanted || greenhouse.cropGrowth < 1 || !greenhouse.active || greenhouse.condition !== 'good') return state;
       const food = clamp(state.resources.food + BALANCE.greenhouse.foodYield);
       const oxygen = clamp(state.resources.oxygen + BALANCE.greenhouse.oxygenYield);

@@ -5,8 +5,10 @@ import { reduceGameState } from './gameRules';
 import { advanceSurvivalDay, createInitialState, solarYieldForDay } from './survivalRules';
 
 const select = (state: GameState, buildingId: string) => reduceGameState(state, { type: 'INTERACT_BUILDING', buildingId });
+const greenhouse = (state: GameState) => reduceGameState(select(state, 'greenhouse'), { type: 'ENTER_GREENHOUSE' });
 const habitat = (state: GameState) => reduceGameState(select(state, 'habitat'), { type: 'ENTER_HABITAT' });
-const afterDay = (state: GameState) => reduceGameState(habitat(state), { type: 'ADVANCE_DAY' });
+const afterDay = (state: GameState) => reduceGameState(habitat(state.astronaut.location === 'greenhouse'
+  ? reduceGameState(state, { type: 'LEAVE_GREENHOUSE' }) : state), { type: 'ADVANCE_DAY' });
 const outside = (state: GameState) => reduceGameState(state, { type: 'LEAVE_HABITAT' });
 const damaged = (state: GameState, id: string, condition: 'damaged' | 'broken' = 'damaged'): GameState => ({
   ...state, buildings: { ...state.buildings, [id]: { ...state.buildings[id], condition } },
@@ -14,7 +16,7 @@ const damaged = (state: GameState, id: string, condition: 'damaged' | 'broken' =
 
 describe('Feature 4 greenhouse, solar and shield rules', () => {
   it('plants one crop, charges water and energy once, and rejects a duplicate', () => {
-    const ready = select(createInitialState(), 'greenhouse');
+    const ready = greenhouse(createInitialState());
     const planted = reduceGameState(ready, { type: 'PLANT_CROP' });
     expect(planted.buildings.greenhouse).toMatchObject({ cropPlanted: true, cropGrowth: 0 });
     expect(planted.resources.water).toBe(ready.resources.water - BALANCE.greenhouse.waterCost);
@@ -24,7 +26,7 @@ describe('Feature 4 greenhouse, solar and shield rules', () => {
   });
 
   it('rejects planting when water, energy or greenhouse condition is insufficient', () => {
-    const ready = select(createInitialState(), 'greenhouse');
+    const ready = greenhouse(createInitialState());
     for (const poor of [
       { ...ready, resources: { ...ready.resources, water: 9 } },
       { ...ready, resources: { ...ready.resources, energy: 3 } },
@@ -36,12 +38,12 @@ describe('Feature 4 greenhouse, solar and shield rules', () => {
   });
 
   it('grows from seed to ready in one completed day and harvests food, oxygen and XP once', () => {
-    const planted = reduceGameState(select(createInitialState(), 'greenhouse'), { type: 'PLANT_CROP' });
+    const planted = reduceGameState(greenhouse(createInitialState()), { type: 'PLANT_CROP' });
     expect(reduceGameState(planted, { type: 'HARVEST_CROP' })).toBe(planted);
     const grown = afterDay(planted);
     expect(grown.buildings.greenhouse.cropGrowth).toBe(1);
     expect(grown.buildings.greenhouse.cropPlanted).toBe(true);
-    const selected = select(outside(grown), 'greenhouse');
+    const selected = greenhouse(outside(grown));
     const hp = selected.astronaut.health;
     const harvested = reduceGameState(selected, { type: 'HARVEST_CROP' });
     expect(harvested.resources.food).toBe(selected.resources.food + BALANCE.greenhouse.foodYield);
@@ -53,11 +55,11 @@ describe('Feature 4 greenhouse, solar and shield rules', () => {
   });
 
   it('caps harvest at capacity, rejects fully saturated storage, and pauses damaged crops', () => {
-    const planted = reduceGameState(select(createInitialState(), 'greenhouse'), { type: 'PLANT_CROP' });
+    const planted = reduceGameState(greenhouse(createInitialState()), { type: 'PLANT_CROP' });
     const stalled = afterDay(damaged(planted, 'greenhouse'));
     expect(stalled.buildings.greenhouse.cropGrowth).toBe(0);
     expect(stalled.lastDaySummary?.warnings).toContain('Greenhouse needs repair before crops can grow.');
-    const ready = { ...select(createInitialState(), 'greenhouse'),
+    const ready = { ...greenhouse(createInitialState()),
       resources: { ...createInitialState().resources, food: 99, oxygen: 99 },
       buildings: { ...createInitialState().buildings, greenhouse: { ...createInitialState().buildings.greenhouse, cropPlanted: true, cropGrowth: 1 } } };
     const capped = reduceGameState(ready, { type: 'HARVEST_CROP' });

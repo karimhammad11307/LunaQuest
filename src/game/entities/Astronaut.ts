@@ -7,6 +7,7 @@ type Keys = Record<'W' | 'A' | 'S' | 'D' | 'UP' | 'DOWN' | 'LEFT' | 'RIGHT', Pha
 export class Astronaut extends Phaser.Physics.Arcade.Sprite {
   private keys: Keys;
   private virtualDirection: string | null = null;
+  private virtualVector = { x: 0, y: 0 };
   private lastDirection = 'down';
   private wasMoving = false;
 
@@ -30,6 +31,11 @@ export class Astronaut extends Phaser.Physics.Arcade.Sprite {
     this.virtualDirection = direction;
   }
 
+  setVirtualVector(x: number, y: number): void {
+    this.virtualVector = Number.isFinite(x) && Number.isFinite(y)
+      ? { x: Phaser.Math.Clamp(x, -1, 1), y: Phaser.Math.Clamp(y, -1, 1) } : { x: 0, y: 0 };
+  }
+
   stopMovement(): void {
     this.setVelocity(0, 0);
     if (this.wasMoving) {
@@ -45,11 +51,14 @@ export class Astronaut extends Phaser.Physics.Arcade.Sprite {
     const down = this.keys.S.isDown || this.keys.DOWN.isDown || this.virtualDirection === 'down';
     let vx = Number(right) - Number(left);
     let vy = Number(down) - Number(up);
+    const analogMagnitude = Math.min(1, Math.hypot(this.virtualVector.x, this.virtualVector.y));
+    if (analogMagnitude > 0.02) { vx = this.virtualVector.x; vy = this.virtualVector.y; }
     const moving = vx !== 0 || vy !== 0;
     if (moving) {
       const length = Math.hypot(vx, vy);
-      vx = vx / length * PLAYER_SPEED;
-      vy = vy / length * PLAYER_SPEED;
+      const speed = analogMagnitude > 0.02 ? PLAYER_SPEED * analogMagnitude : PLAYER_SPEED;
+      vx = vx / length * speed;
+      vy = vy / length * speed;
       this.lastDirection = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
     }
     this.setVelocity(vx, vy);

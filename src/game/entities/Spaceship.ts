@@ -81,6 +81,8 @@ export class Spaceship {
 
   private lastFiredAt = -SHIP_CONFIG.fireCooldownMs; // Allows firing immediately on game start
   private isActive = false;
+  private virtualVector = { x: 0, y: 0 };
+  private virtualFire = false;
 
   /** Called once by the CombatSystem to shoot a laser from the pool. */
   private fireFn: (() => void) | null = null;
@@ -133,6 +135,14 @@ export class Spaceship {
   setFireFunction(fn: () => void): void {
     this.fireFn = fn;
   }
+
+  /** Optional touch controls; keyboard remains unchanged. */
+  setVirtualVector(x: number, y: number): void {
+    this.virtualVector = Number.isFinite(x) && Number.isFinite(y)
+      ? { x: clamp(x, -1, 1), y: clamp(y, -1, 1) } : { x: 0, y: 0 };
+  }
+
+  setVirtualFire(active: boolean): void { this.virtualFire = active; }
 
   /**
    * Register the callback invoked when health hits 0.
@@ -196,6 +206,7 @@ export class Spaceship {
    */
   pause(): void {
     this.isActive = false;
+    this.virtualFire = false;
     const body = this.sprite?.body as Phaser.Physics.Arcade.Body | undefined;
     if (body) {
       body.setVelocity(0, 0);
@@ -218,6 +229,8 @@ export class Spaceship {
    */
   destroy(): void {
     this.isActive = false;
+    this.virtualFire = false;
+    this.virtualVector = { x: 0, y: 0 };
     this.cancelInvulnerabilityTimers();
     this.fireFn = null;
     this.onDestroyed = null;
@@ -274,8 +287,11 @@ export class Spaceship {
     if (up)    vy -= 1;
     if (down)  vy += 1;
 
+    const analogMagnitude = Math.min(1, Math.hypot(this.virtualVector.x, this.virtualVector.y));
+    if (analogMagnitude > 0.02) { vx = this.virtualVector.x; vy = this.virtualVector.y; }
+
     // Normalize diagonal so diagonal speed === straight speed
-    if (vx !== 0 && vy !== 0) {
+    if (analogMagnitude <= 0.02 && vx !== 0 && vy !== 0) {
       const INV_SQRT2 = 0.7071;
       vx *= INV_SQRT2;
       vy *= INV_SQRT2;
@@ -307,7 +323,7 @@ export class Spaceship {
   // =========================================================================
 
   private handleFiring(time: number): void {
-    if (!this.spaceKey || !this.spaceKey.isDown) return;
+    if ((!this.spaceKey || !this.spaceKey.isDown) && !this.virtualFire) return;
     if (time - this.lastFiredAt < SHIP_CONFIG.fireCooldownMs) return;
     this.lastFiredAt = time;
     this.fireFn?.();

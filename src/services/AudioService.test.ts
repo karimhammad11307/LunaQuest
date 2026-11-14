@@ -152,7 +152,7 @@ describe('Feature 10 centralized audio', () => {
     for (let i = 0; i < 8; i++) store.dispatch({ type: 'TICK', deltaSeconds: 1 });
     expect(output.setHazard).toHaveBeenLastCalledWith('leak', DEFAULT_AUDIO_PREFERENCES.sfxVolume * 0.26);
     store.dispatch({ type: 'REPAIR_BUILDING', buildingId: 'habitat' });
-    expect(store.getState().activeEvent).toBeNull();
+    expect(store.getState().activeEvent).toMatchObject({ id: 'solar-day-3', phase: 'warning' });
     expect(output.setHazard).toHaveBeenLastCalledWith(null, DEFAULT_AUDIO_PREFERENCES.sfxVolume * 0.26);
   });
 });

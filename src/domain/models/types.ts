@@ -23,7 +23,7 @@ export type ResourceName = keyof Resources;
 export interface AstronautState {
   health: number;
   /** Current protection zone; only outside consumes portable oxygen. */
-  location: 'outside' | 'habitat' | 'shelter';
+  location: 'outside' | 'habitat' | 'greenhouse' | 'shelter';
   /** Portable EVA suit oxygen, drains while outside. */
   suitOxygen: number;
   /** Suit thermal protection remaining (%). */
@@ -166,7 +166,11 @@ export interface GameState {
   activeEventId: string | null;
   activeEvent: EmergencyState | null;
   completedEventIds: string[];
+  /** Due incidents waiting behind the current one, in deterministic order. */
+  pendingEventIds: string[];
   lastEventOutcome: EmergencyOutcome | null;
+  /** One limited Habitat oxygen-recycling action per displayed lunar day. */
+  lastOxygenRecycleDay: number;
   xp: number;
   /** Idempotency keys for non-mission XP awards (tutorials and future events). */
   awardedRewardIds: string[];

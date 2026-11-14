@@ -9,7 +9,7 @@ export type MusicTrack = 'base' | 'arcade' | null;
 export type HazardSound = 'storm' | 'leak' | null;
 export type AudioCue =
   | 'uiOpen' | 'uiClose' | 'confirm' | 'invalid' | 'footstep' | 'enter' | 'exit'
-  | 'eat' | 'refill' | 'rest' | 'plant' | 'harvest' | 'solar' | 'shield'
+  | 'eat' | 'refill' | 'recycle' | 'rest' | 'plant' | 'harvest' | 'solar' | 'shield'
   | 'podArrive' | 'podCollect' | 'launch' | 'thruster' | 'laser' | 'enemyHit'
   | 'enemyDefeat' | 'pickup' | 'damage' | 'missionSuccess' | 'missionFailure'
   | 'return' | 'stormAlarm' | 'countdown' | 'stormDanger' | 'leakAlarm'
@@ -172,10 +172,11 @@ export class AudioService {
     switch (action.type) {
       case 'INTERACT_BUILDING': this.play('uiOpen'); break;
       case 'CLOSE_BUILDING': this.play('uiClose'); break;
-      case 'ENTER_HABITAT': case 'ENTER_SHELTER': this.play('enter'); break;
-      case 'LEAVE_HABITAT': case 'LEAVE_SHELTER': this.play('exit'); break;
+      case 'ENTER_HABITAT': case 'ENTER_GREENHOUSE': case 'ENTER_SHELTER': this.play('enter'); break;
+      case 'LEAVE_HABITAT': case 'LEAVE_GREENHOUSE': case 'LEAVE_SHELTER': this.play('exit'); break;
       case 'EAT_FOOD': this.play('eat'); break;
       case 'REFILL_SUIT_OXYGEN': this.play('refill'); break;
+      case 'RECYCLE_OXYGEN': this.play('recycle'); break;
       case 'REST_AT_HABITAT': this.play('rest'); break;
       case 'PLANT_CROP': this.play('plant'); break;
       case 'HARVEST_CROP': this.play('harvest'); break;
