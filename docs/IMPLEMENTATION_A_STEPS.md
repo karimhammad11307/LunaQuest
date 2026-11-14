@@ -12,6 +12,8 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 
 **Feature 10 checkpoint:** A16 implementation `9dc6ca2` made the configured six-Energy Chicken Hunt charge visible and added one original procedural retro audio system with Moon Base/arcade music, action and emergency cues, and independent persistent music/SFX controls. Build, 149 Vitest cases and 11 Chromium scripts passed. Feature 11 is A13 final gameplay polish/QA; Feature 12 is A14 Vercel/demo. No recurring incidents or difficulty scaling are planned.
 
+**Feature 11 checkpoint:** A13 implementation `d798f21` added E/Q enclosed-building controls, once-daily 8-Energy/15-base-O₂ recycling, one queued solar storm per day transition from Day 2, mobile analog movement in the base and Chicken Hunt, viewport-filling responsive layout and optional fullscreen. Save v4 preserves the new cooldown/queue and migrates valid v1–v3 progress. Build, 156 Vitest cases and Chromium Feature 8/10/11 flows passed. The explicit Feature 11 user request superseded the Feature 10 no-recurrence decision; no extra difficulty scaling was added. Feature 12 remains open.
+
 ## 1. A1 — Freeze the shared contract and build the game store
 
 - Review the existing `GameState`, `GameAction`, and `MissionResult` types.
@@ -101,11 +103,11 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 
 **Gate:** one charge per launch, no double music or alarm, saved audio settings and no changes to survival resources from audio.
 
-## 11. A13 / Feature 11 — Final gameplay polish and QA
+## 11. A13 / Feature 11 — Gameplay and UX enhancements (completed)
 
 - Run domain unit tests and browser gameplay tests for start, movement, buildings, missions, incidents, endless day progression, defeat/record/restart, and save/resume.
 - Inspect desktop and mobile screenshots; fix clipping, unreadable controls, focus/accessibility issues, broken interactions and audio usability.
-- Keep the existing scripted incidents and current game balance; recurring incidents and difficulty scaling are out of scope.
+- Add E/Q indoor interaction, keyboard menu selection, limited Habitat oxygen recycling, queued once-per-day solar warnings, touch joystick and viewport/fullscreen behavior while preserving the prior survival costs and arcade contract. No extra difficulty scaling.
 
 **Gate:** the complete local gameplay loop, accessibility pass and visual/audio QA have recorded evidence.
 
@@ -118,7 +120,7 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 
 ## Implementation guardrails
 
-- The original A1–A12 implementation order is historical. Features 9 and 10 are complete; A13/Feature 11 QA and A14/Feature 12 delivery remain open. Post-Day-4 water balance is a known limitation.
+- The original A1–A12 implementation order is historical. Features 9–11 are complete; A14/Feature 12 delivery remains open. Post-Day-4 water balance is a known limitation.
 - A owns the shared domain, balance/configuration, app shell, base gameplay, services, integration, and deployment.
 - Keep one canonical `GameState`, `GameAction`, and `MissionResult`. Phaser scenes dispatch actions; the domain/store alone changes shared resources and awards mission rewards.
 - Keep all game quantities illustrative and NASA observations distinct from simulated hazards.
