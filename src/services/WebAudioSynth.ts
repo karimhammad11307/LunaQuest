@@ -8,6 +8,8 @@ const BASE_MELODY: Note[] = [0, null, 7, null, 10, 7, 5, null, 3, null, 7, null,
   5, null, 10, null, 12, 10, 7, null, 3, null, 5, 7, 0, null, null, null];
 const ARCADE_MELODY: Note[] = [0, 7, 12, 7, 10, 7, 5, 7, 3, 7, 10, 12, 15, 12, 10, 7,
   5, 12, 17, 12, 15, 12, 10, 7, 3, 7, 10, 7, 0, 3, 5, 7];
+const JOURNEY_MELODY: Note[] = [0, null, 7, 12, null, 10, 7, null, 5, null, 12, 15, 12, null, 7, null,
+  3, null, 10, 12, null, 17, 15, null, 12, 10, 7, null, 5, 7, 0, null];
 
 const midiHz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
 
@@ -30,6 +32,7 @@ export class WebAudioSynth implements AudioOutput {
   private destroyed = false;
   private cleanupTimers = new Set<ReturnType<typeof setTimeout>>();
   private cueCounts: Record<string, number> = {};
+  private journeyBuses = new Set<GainNode>();
 
   async unlock(): Promise<boolean> {
     if (this.destroyed) return false;
@@ -136,11 +139,22 @@ export class WebAudioSynth implements AudioOutput {
     const bus = ctx.createGain();
     bus.gain.value = Math.min(1, volume);
     bus.connect(ctx.destination);
+    if (cue.startsWith('journey')) this.journeyBuses.add(bus);
     try {
       this.synthesizeCue(cue, bus, at);
       this.cueCounts[cue] = (this.cueCounts[cue] ?? 0) + 1;
-      this.after(850, () => bus.disconnect());
-    } catch { bus.disconnect(); /* Missing WebAudio capability is non-fatal. */ }
+      this.after(850, () => { bus.disconnect(); this.journeyBuses.delete(bus); });
+    } catch { bus.disconnect(); this.journeyBuses.delete(bus); /* Missing WebAudio capability is non-fatal. */ }
+  }
+
+  stopJourney(): void {
+    const ctx = this.context;
+    for (const bus of this.journeyBuses) {
+      try {
+        if (ctx) bus.gain.setTargetAtTime(0, ctx.currentTime, 0.02);
+        this.after(120, () => { bus.disconnect(); this.journeyBuses.delete(bus); });
+      } catch { this.journeyBuses.delete(bus); }
+    }
   }
 
   private scheduleMusic(): void {
@@ -149,19 +163,24 @@ export class WebAudioSynth implements AudioOutput {
     const track = this.track;
     if (!ctx || !bus || !track || this.destroyed) return;
     const arcade = track === 'arcade';
-    const stepSeconds = 60 / (arcade ? 152 : 108) / 2;
-    const melody = arcade ? ARCADE_MELODY : BASE_MELODY;
+    const journey = track === 'journey';
+    const stepSeconds = 60 / (arcade ? 152 : journey ? 126 : 108) / 2;
+    const melody = arcade ? ARCADE_MELODY : journey ? JOURNEY_MELODY : BASE_MELODY;
     while (this.nextMusicAt < ctx.currentTime + 0.26) {
       const step = this.musicStep % melody.length;
       const note = melody[step];
-      if (note !== null) this.tone(bus, midiHz((arcade ? 69 : 62) + note), midiHz((arcade ? 69 : 62) + note),
-        arcade ? stepSeconds * 0.72 : stepSeconds * 0.8, arcade ? 'square' : 'triangle', arcade ? 0.095 : 0.13, this.nextMusicAt);
+      if (note !== null) this.tone(bus, midiHz((arcade ? 69 : journey ? 64 : 62) + note),
+        midiHz((arcade ? 69 : journey ? 64 : 62) + note),
+        arcade ? stepSeconds * 0.72 : stepSeconds * 0.8, arcade || journey ? 'square' : 'triangle',
+        arcade ? 0.095 : journey ? 0.072 : 0.13, this.nextMusicAt);
       if (step % 4 === 0) {
-        const bass = arcade ? [45, 43, 41, 43][Math.floor(step / 8) % 4] : [38, 36, 41, 36][Math.floor(step / 8) % 4];
+        const bass = arcade ? [45, 43, 41, 43][Math.floor(step / 8) % 4]
+          : journey ? [40, 43, 45, 43][Math.floor(step / 8) % 4] : [38, 36, 41, 36][Math.floor(step / 8) % 4];
         this.tone(bus, midiHz(bass), midiHz(bass), stepSeconds * (arcade ? 2.7 : 3.2), 'triangle', arcade ? 0.19 : 0.14, this.nextMusicAt);
       }
       if (arcade && step % 2 === 1) this.tone(bus, midiHz(81), midiHz(81), 0.035, 'square', 0.03, this.nextMusicAt);
       if (!arcade && step % 8 === 6) this.tone(bus, midiHz(86), midiHz(86), 0.1, 'sine', 0.055, this.nextMusicAt);
+      if (journey && step % 8 === 2) this.tone(bus, midiHz(88), midiHz(88), 0.07, 'triangle', 0.04, this.nextMusicAt);
       this.musicStep++;
       this.nextMusicAt += stepSeconds;
     }
@@ -196,6 +215,12 @@ export class WebAudioSynth implements AudioOutput {
       case 'damage': t(190, 65, 0.24, 'sawtooth', 0.22); break;
       case 'launch': t(220, 440, 0.2, 'sawtooth', 0.13); t(440, 660, 0.2, 'square', 0.11, 0.14); break;
       case 'return': t(660, 330, 0.18, 'triangle', 0.17); break;
+      case 'journeyIgnite': t(92, 185, 0.38, 'sawtooth', 0.12); t(185, 120, 0.26, 'triangle', 0.1, 0.12); break;
+      case 'journeyEngine': t(94, 81, 0.42, 'triangle', 0.08); break;
+      case 'journeyThrusters': t(125, 86, 0.38, 'sawtooth', 0.09); break;
+      case 'journeyTouchdown': t(220, 104, 0.18, 'triangle', 0.13); break;
+      case 'journeySuccess':
+        [523, 659, 784].forEach((f, i) => t(f, f, 0.17, i % 2 ? 'square' : 'triangle', 0.12, i * 0.1)); break;
       case 'missionSuccess': case 'newRecord':
         [523, 659, 784, 1047].forEach((f, i) => t(f, f, 0.18, i % 2 ? 'square' : 'triangle', 0.14, i * 0.09)); break;
       case 'missionFailure': case 'gameOver':
@@ -233,6 +258,8 @@ export class WebAudioSynth implements AudioOutput {
 
   dispose(): void {
     this.destroyed = true;
+    this.journeyBuses.forEach((bus) => { try { bus.disconnect(); } catch { /* already disconnected */ } });
+    this.journeyBuses.clear();
     if (this.musicTimer) clearInterval(this.musicTimer);
     this.musicTimer = null;
     this.cleanupTimers.forEach(clearTimeout);

@@ -1,5 +1,6 @@
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
+import { useExistingPlayer } from './legacyProfile.mjs';
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -7,6 +8,7 @@ const errors = [];
 const url = process.env.LUNAQUEST_URL ?? 'http://127.0.0.1:5173/';
 const trackedPage = async () => {
   const page = await context.newPage();
+  await useExistingPlayer(page);
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(url);
   await page.waitForLoadState('networkidle');
@@ -16,7 +18,10 @@ const trackedPage = async () => {
 try {
   let page = await trackedPage();
   await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
-  await page.evaluate(() => window.__lunaquestStore.dispatch({ type: 'INTERACT_BUILDING', buildingId: 'greenhouse' }));
+  await page.evaluate(() => {
+    window.__lunaquestStore.dispatch({ type: 'INTERACT_BUILDING', buildingId: 'greenhouse' });
+    window.__lunaquestStore.dispatch({ type: 'ENTER_GREENHOUSE' });
+  });
   await page.getByRole('button', { name: /Plant Seeds/ }).click();
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   const before = await page.evaluate(() => window.__lunaquestStore.getState());

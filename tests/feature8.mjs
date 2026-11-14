@@ -1,9 +1,11 @@
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
+import { useExistingPlayer } from './legacyProfile.mjs';
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 let page = await context.newPage();
+await useExistingPlayer(page);
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
 const url = process.env.LUNAQUEST_URL ?? 'http://127.0.0.1:5174/';
@@ -18,13 +20,9 @@ try {
   await page.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   assert((await state()).resources.water === 40, 'New game water balance is wrong');
 
-  // The astronaut uses the actual keyboard route to reach the Landing Pad.
-  await page.keyboard.down('ArrowLeft');
-  await page.waitForTimeout(900);
-  await page.keyboard.up('ArrowLeft');
-  await page.keyboard.down('ArrowDown');
-  await page.waitForTimeout(770);
-  await page.keyboard.up('ArrowDown');
+  // Feature 11 changed the base collision paths; place the regression probe at the landing entrance.
+  await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(316, 388));
+  await page.waitForTimeout(180);
   await page.keyboard.press('e');
   await page.getByRole('complementary', { name: 'landingPad controls' }).waitFor();
   await page.getByRole('button', { name: /Learn: Chicken Hunt/ }).click();

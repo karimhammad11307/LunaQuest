@@ -11,6 +11,7 @@ function fakeOutput(unlockResult = true) {
     setHazard: vi.fn(),
     play: vi.fn(),
     setSuspended: vi.fn(),
+    stopJourney: vi.fn(),
     debug: () => ({ unlocked: unlockResult, track: null, hazard: null, activeMusicTracks: 0, cueCounts: {} }),
     dispose: vi.fn(),
   };
@@ -154,5 +155,28 @@ describe('Feature 10 centralized audio', () => {
     store.dispatch({ type: 'REPAIR_BUILDING', buildingId: 'habitat' });
     expect(store.getState().activeEvent).toMatchObject({ id: 'solar-day-3', phase: 'warning' });
     expect(output.setHazard).toHaveBeenLastCalledWith(null, DEFAULT_AUDIO_PREFERENCES.sfxVolume * 0.26);
+  });
+
+  it('plays one journey track, respects pause/mute, and silences cinematic cues on exit', async () => {
+    const output = fakeOutput();
+    const audio = new AudioService(output, null);
+    await audio.unlock();
+    audio.setJourneyActive(true);
+    expect(output.setMusic).toHaveBeenLastCalledWith('journey', DEFAULT_AUDIO_PREFERENCES.musicVolume);
+    const before = vi.mocked(output.setMusic).mock.calls.length;
+    audio.setJourneyActive(true);
+    expect(vi.mocked(output.setMusic).mock.calls.length).toBe(before);
+    audio.play('journeyIgnite');
+    expect(output.play).toHaveBeenCalledWith('journeyIgnite', DEFAULT_AUDIO_PREFERENCES.sfxVolume);
+    audio.setJourneyPaused(true);
+    expect(output.setSuspended).toHaveBeenLastCalledWith(true);
+    audio.play('journeyEngine');
+    expect(output.play).not.toHaveBeenCalledWith('journeyEngine', expect.anything());
+    audio.setJourneyPaused(false);
+    audio.setPreferences({ muted: true });
+    expect(output.setMusic).toHaveBeenLastCalledWith('journey', 0);
+    audio.setJourneyActive(false);
+    expect(output.stopJourney).toHaveBeenCalledTimes(1);
+    expect(output.setMusic).toHaveBeenLastCalledWith(null, 0);
   });
 });

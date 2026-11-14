@@ -1,9 +1,11 @@
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
+import { useExistingPlayer } from './legacyProfile.mjs';
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const page = await context.newPage();
+await useExistingPlayer(page);
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
 const url = process.env.LUNAQUEST_URL ?? 'http://127.0.0.1:5174/';

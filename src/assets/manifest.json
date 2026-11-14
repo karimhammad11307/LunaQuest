@@ -10,8 +10,15 @@
   "audio": {
     "source": "src/services/WebAudioSynth.ts",
     "license": "Original procedural music and sound effects authored for LunaQuest; redistributable with this repository. No third-party recordings, melodies, samples, or hotlinked assets.",
-    "music": ["Moon Base: original 32-step ambient chiptune", "Chicken Hunt: original 32-step arcade chiptune"],
-    "effects": "Original Web Audio oscillator cues for movement, actions, combat, emergencies, rewards and UI; storm and leak ambience is synthesized at runtime."
+    "music": ["Moon Base: original 32-step ambient chiptune", "Chicken Hunt: original 32-step arcade chiptune", "Space Journey: original 32-step travel chiptune"],
+    "effects": "Original Web Audio oscillator cues for movement, actions, combat, emergencies, rewards, UI, and the Space Journey's ignition, engine, landing thrust and touchdown; storm and leak ambience is synthesized at runtime."
+  },
+  "spaceJourney": {
+    "source": "src/game/art/journeyArt.ts",
+    "license": "Original procedural pixel art authored for this repository; redistributable with LunaQuest. No stock image or source pixels were copied.",
+    "styleReference": "The Dreamstime bit-spaceship search page informed only the broad retro-arcade genre; no item was downloaded, traced or redistributed.",
+    "textures": ["journey-earth", "journey-moon", "journey-lander-0/1/2", "journey-stars-far/near", "journey-ground"],
+    "landingPad": "Reuses the existing bld-landingPad game texture for visual continuity."
   },
   "logicalResolution": "640x360",
   "textures": [

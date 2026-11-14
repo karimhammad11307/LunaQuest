@@ -32,6 +32,8 @@ The first playable Moon Base is implemented on `feat/base-survival`: Phaser boot
 
 **Feature 11 progress:** A13 implementation `d798f21bd246a890e5d136cf5d77163966eacd01` on the user-managed `Feature-11-—-Final-Gameplay-Polish-&-QA` branch adds E entry/Q safe exit and hidden indoor astronaut for Habitat, Greenhouse and Shelter; keyboard building menus; once-daily Habitat oxygen recycling (8 Energy → up to 15 base O₂); one queued/once-only solar storm on every day transition from Day 2; a 360-degree touch joystick for the base and Chicken Hunt; viewport-filling responsive play and optional fullscreen. Save v4 migrates valid v1–v3 progress and persists the new cooldown/incident queue. `npm run build`, 156 Vitest cases and Chromium Feature 8, 10 and 11 flows passed, including mobile portrait/landscape and arcade touch controls. Developer B's combat rules were preserved; two B-owned files received only touch input adapters. Post-Day-4 water balance remains limited. Feature 12/A14 deployment and demo remain open; no extra difficulty scaling was added.
 
+**First-time experience Task 1 progress:** Implementation `70b2d3c` adds the static three-page LUNAQUEST introduction, observed movement/Habitat/menu/resource/exit training, skip and replay, versioned local onboarding progress, and emergency-safe paused reading panels. It reuses the single store and existing mobile controls/audio. Build, 161 Vitest cases and Chromium onboarding plus Feature 7–11 regressions passed. The later user-directed desktop frame remains centered at about 900px. The spacecraft journey is a separate future Task 2; Feature 12/A14 deployment remains unstarted.
+
 Developer A owns `src/domain/**`, `src/game/config/**`, React shell `src/app/**`, base scenes/entities, NASA/Save services, base assets and deployment. Specific primary paths:
 
 ```text
@@ -85,7 +87,7 @@ Contract invariants: one canonical state and action union; pure TypeScript rules
 | **A15 — Feature 9, completed** | Endless survival and high score; depends A6/A11/A12. | Remove five-day victory; keep daily costs and defeat. Derive score from completed days and bounded XP bonus, persist personal best independently, migrate v1/v2 saves to v3, and show Game Over/new record. Verify Day 6 browser play, Day 10/20 domain progression, defeat, restart and refresh. Implementation `faacbe4`. |
 | **A16 — Feature 10, completed** | Audio and launch-cost visibility; depends A12/A15. | Preserve the six-Energy domain charge, show exact launch cost and before/after result, reject insufficient/repeated launches, and add one procedural retro AudioService with base/arcade music, gameplay/event cues, persistent controls and browser unlock. Build, 149 Vitest cases and 11 Chromium scripts passed; implementation `9dc6ca2`. |
 
-The original A1–A14 estimates totaled approximately 16.75 h of focused A-owned effort including integration; A15/A16 were later feature work outside that estimate. Feature 11/A13 is now complete. The active remaining roadmap is **Feature 12 = A14 Vercel deployment/demo**. Protect integration/QA time.
+The original A1–A14 estimates totaled approximately 16.75 h of focused A-owned effort including integration; A15/A16 and first-time experience Task 1 were later feature work outside that estimate. Feature 11/A13 and onboarding Task 1 are complete. The spacecraft introduction (Task 2) and **Feature 12 = A14 Vercel deployment/demo** remain separate future work. Protect integration/QA time.
 
 ## 20-hour shared wall-clock schedule
 

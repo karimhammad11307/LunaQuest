@@ -92,3 +92,49 @@
 }
 .game-frame:fullscreen{max-width:none;width:100%;height:100dvh;margin:0}
 .game-frame:fullscreen .canvas-wrap{flex:1;aspect-ratio:auto}
+
+/* First-time astronaut training uses the existing arcade frame and palette. */
+.intro-start{min-height:520px;padding:18px;background:radial-gradient(circle at 50% 70%,#514969,#1b2145 65%,#12172f)}
+.intro-panel{width:min(500px,100%);padding:16px 20px;background:#292740;border:4px solid #4edce5;box-shadow:7px 7px #12172f;color:#e8e4f5;text-align:center;font:700 13px/1.5 ui-monospace,monospace}
+.intro-panel strong{display:block;color:#ffd75e;font-size:19px;line-height:1.25}
+.intro-panel h1{margin:9px 0 13px;color:#80e5a0;font-size:22px;line-height:1.25}
+.intro-panel p{margin:7px 0}.intro-page-count{margin:10px 0;color:#4edce5;font-size:11px}
+.intro-art{position:relative;height:104px;overflow:hidden;border:3px solid #8067da;background:#12172f;image-rendering:pixelated}
+.intro-earth{position:absolute;left:13%;top:15px;width:30px;height:30px;background:#4edce5;box-shadow:4px 4px 0 #209cad,inset -6px -5px 0 #209cad,inset 5px 5px 0 #a4f3e8}
+.intro-moon{position:absolute;right:11%;top:18px;width:67px;height:67px;background:#d6d1e6;clip-path:polygon(24% 0,76% 0,76% 8%,90% 8%,90% 22%,100% 22%,100% 78%,90% 78%,90% 92%,76% 92%,76% 100%,24% 100%,24% 92%,10% 92%,10% 78%,0 78%,0 22%,10% 22%,10% 8%,24% 8%);box-shadow:inset -12px -10px 0 #9995b2}
+.intro-astronaut{position:absolute;left:50%;bottom:0;width:66px;height:66px;transform:translateX(-50%);image-rendering:pixelated}
+.intro-star{position:absolute;color:#ffd75e;font-size:17px}.intro-star-a{left:34%;top:13px}.intro-star-b{right:33%;top:43px;color:#4edce5}
+.intro-actions{display:flex;justify-content:center;gap:10px;margin-top:18px}
+.intro-panel button,.tutorial-panel button{min-height:42px;padding:7px 14px;border:2px solid #12172f;background:#ffd75e;color:#292740;box-shadow:3px 3px #8067da;font:900 12px ui-monospace,monospace;cursor:pointer}
+.intro-panel button:hover,.tutorial-panel button:hover{background:#fff0b4}
+.intro-panel button:focus-visible,.tutorial-panel button:focus-visible{outline:3px solid #4edce5;outline-offset:3px}
+.intro-actions button:first-child:not(:last-child){background:#b9a7f5}
+.intro-panel .intro-skip{display:block;margin:11px auto 7px;background:#514969;color:#e8e4f5;border-color:#b9a7f5}
+.intro-panel small{color:#c9c2e8;font-size:10px}
+.gate-howto{margin:8px 0;padding:8px;background:#1b2145;border:2px solid #8067da;text-align:left;max-height:155px;overflow:auto}.gate-howto p{margin:6px 0;font-size:11px}
+.tutorial-panel{position:absolute;z-index:8;left:10px;bottom:10px;width:min(300px,46%);padding:10px 12px;background:#292740f5;border:3px solid #ffd75e;box-shadow:4px 4px #12172f;color:#e8e4f5;font:700 12px/1.4 ui-monospace,monospace}
+.tutorial-scrim{position:absolute;z-index:10;inset:0;background:#12172fbb}
+.tutorial-eyebrow{color:#4edce5;font-size:10px}.tutorial-panel strong{display:block;margin:3px 0;color:#ffd75e;font-size:15px}.tutorial-panel p{margin:5px 0}
+.tutorial-panel .tutorial-skip{display:block;min-height:30px;margin-top:7px;padding:3px 7px;background:#514969;color:#e8e4f5;border-color:#b9a7f5;font-size:10px}
+.tutorial-panel-blocking{z-index:11;left:50%;bottom:auto;top:50%;transform:translate(-50%,-50%);width:min(410px,calc(100% - 18px));max-height:calc(100% - 18px);overflow:auto;padding:14px 18px;border-color:#4edce5;font-size:13px}
+.tutorial-panel-blocking p{margin:7px 0}.tutorial-panel-blocking b{color:#80e5a0}
+.tutorial-panel-blocking>button:not(.tutorial-skip){margin-top:8px;width:100%}
+@media(max-width:680px){.intro-start{min-height:0;flex:1;padding:7px}.intro-panel{padding:10px;font-size:12px;max-height:calc(100dvh - 60px);overflow:auto}.intro-panel h1{font-size:18px}.intro-panel strong{font-size:16px}.intro-art{height:86px}.intro-astronaut{width:54px;height:54px}.intro-panel small{font-size:9px}.tutorial-panel{left:5px;bottom:5px;width:min(290px,calc(100% - 10px));padding:7px 9px;font-size:11px}.tutorial-panel strong{font-size:13px}.tutorial-panel-blocking{left:50%;bottom:auto;top:50%;width:calc(100% - 12px);font-size:12px;padding:10px 12px}.tutorial-panel-blocking strong{font-size:16px}}
+
+.journey-start{min-height:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:18px;background:#12172f}
+.journey-stage{position:relative;width:min(640px,100%);aspect-ratio:16/9;overflow:hidden;background:#12172f;border:3px solid #8067da;box-shadow:6px 6px #292740;image-rendering:pixelated}
+#journey-canvas,#journey-canvas canvas{width:100%;height:100%;image-rendering:pixelated}
+#journey-canvas{display:flex;align-items:center;justify-content:center;overflow:hidden}
+.journey-topline{position:absolute;top:9px;left:11px;color:#4edce5;font:900 11px ui-monospace,monospace;letter-spacing:.08em;text-shadow:2px 2px #12172f;pointer-events:none}
+.journey-actions{position:absolute;top:7px;right:7px;display:flex;gap:6px}
+.journey-actions button{min-height:36px;padding:5px 9px;background:#292740;border:2px solid #4edce5;color:#e8e4f5;font:900 10px ui-monospace,monospace;cursor:pointer;box-shadow:2px 2px #12172f}
+.journey-actions button:last-child{background:#ffd75e;border-color:#12172f;color:#292740}
+.journey-actions button:focus-visible{outline:3px solid #80e5a0;outline-offset:2px}
+.journey-caption{position:absolute;left:50%;bottom:21px;transform:translateX(-50%);width:min(82%,430px);padding:6px 8px;background:#12172feb;border:2px solid #4edce5;text-align:center;pointer-events:none}
+.journey-caption strong{display:block;color:#ffd75e;font:900 clamp(12px,1.8vw,18px) ui-monospace,monospace;text-shadow:2px 2px #8067da}
+.journey-caption small{display:block;color:#d6d1e6;font:700 10px ui-monospace,monospace;margin-top:3px}
+.journey-caption-landing{left:12px;top:58px;bottom:auto;transform:none;width:240px}
+.journey-progress{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px}
+.journey-progress span{display:block;width:19px;height:4px;background:#5a5678}.journey-progress span.active{background:#80e5a0}
+.journey-key-hint{color:#b9a7f5;font:700 10px ui-monospace,monospace;text-align:center}
+@media(max-width:680px){.journey-start{flex:1;min-height:0;padding:6px}.journey-stage{width:100%;box-shadow:3px 3px #292740}.journey-topline{font-size:8px;top:6px;left:6px;max-width:37%;line-height:1.4}.journey-actions{top:5px;right:5px;gap:3px}.journey-actions button{min-height:34px;padding:3px 5px;font-size:9px}.journey-caption{bottom:17px;width:90%;padding:4px 5px}.journey-caption strong{font-size:11px}.journey-caption small{font-size:8px}.journey-caption-landing{left:5px;top:37px;bottom:auto;width:48%}.journey-progress{bottom:5px}.journey-progress span{width:13px;height:3px}.journey-key-hint{font-size:8px}}
