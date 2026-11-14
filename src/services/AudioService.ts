@@ -5,7 +5,7 @@ import type { GameSessionStore } from '../domain/store/GameSessionStore';
 import { BALANCE } from '../game/config/balance';
 import { WebAudioSynth } from './WebAudioSynth';
 
-export type MusicTrack = 'base' | 'arcade' | null;
+export type MusicTrack = 'base' | 'arcade' | 'journey' | null;
 export type HazardSound = 'storm' | 'leak' | null;
 export type AudioCue =
   | 'uiOpen' | 'uiClose' | 'confirm' | 'invalid' | 'footstep' | 'enter' | 'exit'
@@ -13,6 +13,7 @@ export type AudioCue =
   | 'podArrive' | 'podCollect' | 'launch' | 'thruster' | 'laser' | 'enemyHit'
   | 'enemyDefeat' | 'pickup' | 'damage' | 'missionSuccess' | 'missionFailure'
   | 'return' | 'stormAlarm' | 'countdown' | 'stormDanger' | 'leakAlarm'
+  | 'journeyIgnite' | 'journeyEngine' | 'journeyThrusters' | 'journeyTouchdown' | 'journeySuccess'
   | 'leakDanger' | 'emergencyClear' | 'repair' | 'gameOver' | 'newRecord';
 
 export interface AudioPreferences {
@@ -31,6 +32,7 @@ export interface AudioOutput {
   setSuspended(suspended: boolean): void;
   debug(): { unlocked: boolean; track: MusicTrack; hazard: HazardSound; activeMusicTracks: number; cueCounts: Record<string, number> };
   dispose(): void;
+  stopJourney?(): void;
 }
 
 interface StoragePort {
@@ -72,6 +74,8 @@ export class AudioService {
   private unlocked = false;
   private state: GameState | null = null;
   private hidden = false;
+  private journeyActive = false;
+  private journeyPaused = false;
   private recentCues = new Map<AudioCue, number>();
   private appliedMix: { suspended: boolean; track: MusicTrack; musicVolume: number; hazard: HazardSound; hazardVolume: number } | null = null;
 
@@ -126,22 +130,34 @@ export class AudioService {
 
   setHidden(hidden: boolean): void { if (this.hidden !== hidden) { this.hidden = hidden; this.applyMix(); } }
 
+  setJourneyActive(active: boolean): void {
+    if (this.journeyActive === active) return;
+    this.journeyActive = active;
+    if (!active) { this.journeyPaused = false; this.output.stopJourney?.(); }
+    this.applyMix();
+  }
+
+  setJourneyPaused(paused: boolean): void {
+    if (this.journeyPaused !== paused) { this.journeyPaused = paused; this.applyMix(); }
+  }
+
   play(cue: AudioCue): void {
     if (!this.unlocked || this.isSuspended() || !this.preferences.sfxEnabled || this.preferences.muted) return;
     const now = Date.now();
     const minimumGap = cue === 'footstep' ? 280 : cue === 'thruster' ? 320
+      : cue === 'journeyEngine' || cue === 'journeyThrusters' ? 650
       : cue === 'laser' ? 85 : cue === 'enemyHit' || cue === 'enemyDefeat' ? 90 : 35;
     if (now - (this.recentCues.get(cue) ?? -Infinity) < minimumGap) return;
     this.recentCues.set(cue, now);
     this.output.play(cue, this.preferences.sfxVolume);
   }
 
-  private isSuspended(): boolean { return this.hidden || !!this.state?.paused; }
+  private isSuspended(): boolean { return this.hidden || this.journeyPaused || !!this.state?.paused; }
 
   private applyMix(): void {
     const suspended = this.isSuspended();
     const track: MusicTrack = this.state?.status === 'playing'
-      ? this.state.scene === 'chicken-hunt' ? 'arcade' : 'base' : null;
+      ? this.state.scene === 'chicken-hunt' ? 'arcade' : 'base' : this.journeyActive ? 'journey' : null;
     const hazard: HazardSound = this.state?.status === 'playing' && this.state.activeEvent?.phase === 'danger'
       ? this.state.activeEvent.type === 'solar-storm' ? 'storm' : 'leak' : null;
     const musicVolume = this.preferences.muted || !this.preferences.musicEnabled ? 0

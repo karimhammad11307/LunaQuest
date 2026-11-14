@@ -2,6 +2,7 @@
 export type TutorialStep = 'movement' | 'habitat' | 'enter' | 'menu' | 'confirm' | 'resources' | 'exit' | 'ready';
 
 export interface OnboardingProgress {
+  journeySeen: boolean;
   introSeen: boolean;
   tutorialLearned: boolean;
   tutorialStep: TutorialStep | null;
@@ -22,15 +23,17 @@ export function parseOnboarding(raw: string): OnboardingProgress | null {
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
     const envelope = parsed as { version?: unknown; progress?: Partial<OnboardingProgress> };
     const progress = envelope.progress;
-    if (envelope.version !== 1 || !progress || typeof progress.introSeen !== 'boolean'
+    if ((envelope.version !== 1 && envelope.version !== 2) || !progress || typeof progress.introSeen !== 'boolean'
       || typeof progress.tutorialLearned !== 'boolean'
+      || (envelope.version === 2 && typeof (progress as Partial<OnboardingProgress>).journeySeen !== 'boolean')
       || typeof progress.introPage !== 'number' || !Number.isInteger(progress.introPage)
       || progress.introPage < 0 || progress.introPage > 2
       || progress.tutorialStep === undefined
       || (progress.tutorialStep !== null && !steps.includes(progress.tutorialStep))
       || (!progress.introSeen && (progress.tutorialLearned || progress.tutorialStep !== null))
       || (progress.tutorialStep !== null && !progress.introSeen)) return null;
-    return { introSeen: progress.introSeen, tutorialLearned: progress.tutorialLearned,
+    return { journeySeen: envelope.version === 1 ? progress.introSeen : (progress as OnboardingProgress).journeySeen,
+      introSeen: progress.introSeen, tutorialLearned: progress.tutorialLearned,
       tutorialStep: progress.tutorialStep, introPage: progress.introPage };
   } catch { return null; }
 }
@@ -49,7 +52,7 @@ export class OnboardingService {
     try { const raw = this.storage?.getItem(ONBOARDING_KEY); saved = raw ? parseOnboarding(raw) : null; }
     catch { /* Onboarding still works without browser storage. */ }
     // Existing players predate this feature and should not be forced through the guide.
-    this.progress = saved ?? { introSeen: existingSave, tutorialLearned: existingSave,
+    this.progress = saved ?? { journeySeen: existingSave, introSeen: existingSave, tutorialLearned: existingSave,
       tutorialStep: null, introPage: 0 };
   }
 
@@ -57,7 +60,7 @@ export class OnboardingService {
 
   private set(progress: OnboardingProgress): OnboardingProgress {
     this.progress = progress;
-    try { this.storage?.setItem(ONBOARDING_KEY, JSON.stringify({ version: 1, progress })); }
+    try { this.storage?.setItem(ONBOARDING_KEY, JSON.stringify({ version: 2, progress })); }
     catch { /* Gameplay continues when storage is unavailable or full. */ }
     return progress;
   }
@@ -65,6 +68,11 @@ export class OnboardingService {
   setIntroPage(page: number): OnboardingProgress {
     if (!Number.isInteger(page) || page < 0 || page > 2 || this.progress.introSeen) return this.progress;
     return this.set({ ...this.progress, introPage: page });
+  }
+
+  /** The journey is separate from the briefing and tutorial. Skipping also records it as seen. */
+  finishJourney(): OnboardingProgress {
+    return this.progress.journeySeen ? this.progress : this.set({ ...this.progress, journeySeen: true });
   }
 
   /** New runs only repeat onboarding until it has been learned or skipped. */

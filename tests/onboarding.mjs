@@ -13,6 +13,8 @@ try {
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(url);
   await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'New Game' }).click();
+  await page.getByRole('button', { name: 'SKIP INTRO' }).click();
   await page.getByRole('dialog', { name: 'LunaQuest mission introduction' }).waitFor();
   check(await page.title() === 'LUNAQUEST', 'Official tab title is missing');
   await page.screenshot({ path: 'artifacts/onboarding-intro-desktop.png', fullPage: true });
@@ -78,6 +80,8 @@ try {
   const interrupted = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const interruptedPage = await interrupted.newPage();
   await interruptedPage.goto(url);
+  await interruptedPage.getByRole('button', { name: 'New Game' }).click();
+  await interruptedPage.getByRole('button', { name: 'SKIP INTRO' }).click();
   await interruptedPage.getByRole('button', { name: 'Skip Intro' }).click();
   await interruptedPage.waitForFunction(() => window.__lunaquestGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   await interruptedPage.keyboard.down('w');
@@ -119,6 +123,8 @@ try {
   const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const mobile = await mobileContext.newPage();
   await mobile.goto(url);
+  await mobile.getByRole('button', { name: 'New Game' }).click();
+  await mobile.getByRole('button', { name: 'SKIP INTRO' }).click();
   await mobile.getByRole('dialog', { name: 'LunaQuest mission introduction' }).waitFor();
   await mobile.screenshot({ path: 'artifacts/onboarding-intro-mobile.png', fullPage: true });
   check(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile introduction overflows horizontally');

@@ -20,6 +20,7 @@ import { AudioService, type AudioPreferences } from '../services/AudioService';
 import { joystickVector } from '../game/input/joystick';
 import { OnboardingService, type OnboardingProgress, type TutorialStep } from '../services/OnboardingService';
 import { IntroPanel, TutorialPanel } from './Onboarding';
+import { SpaceJourney } from './SpaceJourney';
 import './style.css';
 
 const audioService = new AudioService();
@@ -153,7 +154,9 @@ function App() {
   const personalBest = useSyncExternalStore(highScores.subscribe, highScores.getSnapshot);
   const audioPreferences = useSyncExternalStore(audioService.subscribe, audioService.getSnapshot);
   const [sessionReady, setSessionReady] = useState(!savedAtStartup && initialOnboarding.introSeen);
-  const [introOpen, setIntroOpen] = useState(!savedAtStartup && !initialOnboarding.introSeen);
+  const [introOpen, setIntroOpen] = useState(false);
+  const [journeyOpen, setJourneyOpen] = useState(false);
+  const [journeyReplay, setJourneyReplay] = useState(false);
   const [onboarding, setOnboarding] = useState<OnboardingProgress>(initialOnboarding);
   const [showGateHelp, setShowGateHelp] = useState(false);
   const [confirmNewGame, setConfirmNewGame] = useState(false);
@@ -403,8 +406,20 @@ function App() {
   const startNewGame = () => {
     const next = onboardingService.beginNewRun();
     updateOnboarding(next);
+    if (!next.journeySeen) {
+      setJourneyReplay(false);
+      setJourneyOpen(true);
+      setIntroOpen(false);
+      return;
+    }
     if (!next.introSeen) { setIntroOpen(true); return; }
     startFreshSession();
+  };
+  const finishJourney = () => {
+    if (!journeyReplay) updateOnboarding(onboardingService.finishJourney());
+    setJourneyOpen(false);
+    if (!journeyReplay) setIntroOpen(true);
+    setJourneyReplay(false);
   };
   const startIntroMission = () => {
     updateOnboarding(onboardingService.startMission());
@@ -423,21 +438,27 @@ function App() {
   };
   if (!sessionReady) return <main className="app-shell"><div className="game-frame">
     <header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>LUNAQUEST</span><small>Survival Mission</small></div></header>
-    {introOpen ? <IntroPanel page={onboarding.introPage}
+    {journeyOpen ? <SpaceJourney audio={audioService} onFinished={finishJourney} />
+      : introOpen ? <IntroPanel page={onboarding.introPage}
       onPage={(page) => { updateOnboarding(onboardingService.setIntroPage(page)); audioService.play('uiOpen'); }}
       onStart={startIntroMission} onSkip={startIntroMission} />
       : <div className="save-start"><div className="save-start-panel">
-        <strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong>
+        <strong>{confirmNewGame ? 'START A NEW MISSION?' : savedAtStartup ? 'WELCOME BACK, ASTRONAUT!' : 'WELCOME TO LUNAQUEST!'}</strong>
         <p>Survive as many lunar days as you can!</p>
-        <p>Saved run: {savedAtStartup?.daysSurvived} days · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p>
+        {savedAtStartup ? <p>Saved run: {savedAtStartup.daysSurvived} days · Food {Math.round(savedAtStartup.resources.food)} · XP {savedAtStartup.xp}</p>
+          : <p>Your first Moon adventure begins here.</p>}
         <p>Personal best: {personalBest.bestDaysSurvived} days · {personalBest.bestScore.toLocaleString()} points</p>
         {confirmNewGame ? <><p>Your saved progress will be replaced. Your record stays safe.</p>
           <button type="button" onClick={startNewGame}>Replace Save &amp; Start</button>
           <button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></>
-          : <><p>Your Moon Base is waiting.</p>
+          : savedAtStartup ? <><p>Your Moon Base is waiting.</p>
             <button type="button" onClick={continueGame}>{savedAtStartup?.status === 'playing' ? 'Continue Game' : 'View Last Result'}</button>
             <button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button>
-            <small>New Game replaces this saved run, not your record.</small></>}
+            <small>New Game replaces this saved run, not your record.</small></>
+            : <button type="button" onClick={startNewGame}>New Game</button>}
+        {onboarding.journeySeen && savedAtStartup && <button type="button" onClick={() => {
+          setJourneyReplay(true); setJourneyOpen(true); audioService.play('uiOpen');
+        }}>Replay Space Journey</button>}
         <button type="button" onClick={() => setShowGateHelp(!showGateHelp)}>How to Play</button>
         {showGateHelp && <div className="gate-howto"><p>Move with WASD, arrows or the touch joystick. Press E or tap Interact near a building.</p>
           <p>Use ↑/↓ and Enter/E in building menus; Q or touch Exit leaves. Eat stored food at the Habitat to recover HP.</p>
