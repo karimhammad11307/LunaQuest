@@ -12,6 +12,7 @@ LunaQuest is a top-down 3/4 pixel-art lunar survival game for children, built wi
 ```sh
 npm install
 npm run dev
+https://luna-quest.vercel.app/
 ```
 
 Open the local Vite URL. Move with **WASD or arrow keys** or the mobile joystick. Approach the Habitat, Greenhouse or Shelter and press **E** to enter; the astronaut hides outdoors while inside. Use Arrow Up/Down and Enter/E for menu actions, then **Q** to leave. The Habitat can recycle up to 15 base O₂ for eight Energy once per day. Click or tap nearby outdoor objects to interact. At the Landing Pad, launch **Chicken Hunt** for six Energy; use WASD/arrows or the mobile joystick to fly, Space or the touch Fire button to shoot, and Return to leave early. The Landing Pad and launch banner show the Energy change immediately. Collect Earth pods near the pad on Days 2 and 4 to add 25 water each. Each sign opens short **What / Why / Your Mission** guidance and pauses survival until closed. Open **Space Weather** in the bottom status strip to inspect NASA observation context; the default is a clearly labeled historical demo example. The two-day delivery schedule and all game resource, HP and hazard values are illustrative.
