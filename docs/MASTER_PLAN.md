@@ -8,7 +8,7 @@
 
 ## Vision and story
 
-Moonbound is a playful, educational lunar survival adventure rendered entirely in consistent top-down 3/4-view pixel art. A young astronaut establishes a small outpost after a landing mishap. The player must gather limited supplies, operate life support, farm, generate and store power, maintain the habitat, protect the crew during solar hazards and survive five lunar days until rescue arrives.
+Moonbound is a playful, educational lunar survival adventure rendered entirely in consistent top-down 3/4-view pixel art. A young astronaut establishes a small outpost after a landing mishap. The player gathers limited supplies, operates life support, farms, generates and stores power, maintains the habitat, and protects the crew during solar hazards. The objective is to **survive as many lunar days as possible and beat a personal record**. This replaces the earlier five-day rescue objective; there is no automatic day-based victory.
 
 Gameplay is action and consequence in a world, not a sequence of informational pages. Teach with visual state changes, short dialogue and one-sentence explanations at decisions. The Moon has vacuum, low gravity, abrasive dust, severe light/shadow thermal conditions and radiation exposure risk. Do not import Martian weather, atmosphere or terrain. Alien birds in Chicken Hunt are openly fictional arcade creatures, not lunar wildlife.
 
@@ -30,7 +30,7 @@ The project framing is the NASA Space Apps Challenge 2026 Junior Astronaut Missi
 
 ## MVP scope and flow
 
-The MVP has one explorable Moon Base Phaser scene, one Chicken Hunt Phaser scene, a lightweight React start/Continue gate, and React result/learning overlays. Radiation shelter response and Earth cargo collection happen in the Moon Base; Ice Collection is deferred. Successful run target is 5–8 minutes excluding optional exploration. The five-day objective is a game abstraction. Avoid requiring perfect combat or punishing a child irrecoverably for one mistake.
+The MVP has one explorable Moon Base Phaser scene, one Chicken Hunt Phaser scene, a lightweight React start/Continue gate, and React result/learning overlays. Radiation shelter response and Earth cargo collection happen in the Moon Base; Ice Collection is deferred. An early demo run should show multiple days, an emergency, a mission and a personal record within a few minutes; play itself has no planned end day. Avoid requiring perfect combat or punishing a child irrecoverably for one mistake.
 
 ### Core controls and child UX
 
@@ -41,11 +41,11 @@ The MVP has one explorable Moon Base Phaser scene, one Chicken Hunt Phaser scene
 
 ### Resources and survival
 
-Main resources are bounded from 0–100 **illustrative game units**: food, water, stored base oxygen, and electrical energy. Astronaut state includes health, portable suit oxygen, thermal safety, radiation exposure and world position. Base oxygen and suit oxygen are separate: base oxygen supports habitat life support; suit O₂ drains during EVA and refills at the habitat. Also track day (1–5), time, scene, buildings, crop progress, shield condition, active mission/event, XP, weather provenance, notices and playing/victory/defeat.
+Main resources are bounded from 0–100 **illustrative game units**: food, water, stored base oxygen, and electrical energy. Astronaut state includes health, portable suit oxygen, thermal safety, radiation exposure and world position. Base oxygen and suit oxygen are separate: base oxygen supports habitat life support; suit O₂ drains during EVA and refills at the habitat. Also track the current day, completed survival days, time, scene, buildings, crop progress, shield condition, active mission/event, XP, weather provenance, notices and playing/defeat. A legacy `victory` status remains loadable for older terminal saves, but new gameplay never enters it.
 
 Current starter tuning: Food 55, Water 40, base O₂ 80, Energy 75, Health 100, Suit O₂ 100, Radiation 0, Day 1. Daily food/water/base O₂/energy costs are 7/9/6/5. Solar generates up to 16 energy at each day advance when operational. Earth water pods arrive on Days 2 and 4, each granting 25 water exactly once when collected; uncollected pods persist. All values and formulas live in `src/game/config/balance.ts`; missions use shared mission config. Nothing increases without a visible source. Outdoor simulation drains suit O₂ and thermal safety; crew consumption and daily production apply only on day advance. Give visible threshold warnings before consequences.
 
-At depletion, apply gradual understandable consequences: food shortage slowly harms health; water shortage more quickly harms health; suit O₂ exhaustion outdoors starts an emergency/rescue window; depleted base O₂ makes habitat unsafe; insufficient energy disables/reduces systems; high radiation can harm health. Health 0 or unrecoverable critical life-support failure is defeat. Survive through the fifth day with crew and life support operational for victory. Tune to allow recovery from mistakes. These quantities are not real NASA safety limits.
+At depletion, apply gradual understandable consequences: food shortage slowly harms health; water shortage more quickly harms health; suit O₂ exhaustion outdoors starts an emergency/rescue window; depleted base O₂ makes habitat unsafe; insufficient energy disables/reduces systems; high radiation can harm health. The currently implemented terminal defeat is health reaching 0. No survival day triggers victory or caps progression. Tune to allow recovery from mistakes. These quantities are not real NASA safety limits.
 
 ### Home base/buildings
 
@@ -64,7 +64,15 @@ Seven separate, non-blocking pixel-art learning signs cover Habitat, Greenhouse,
 
 ### XP and progression
 
-XP is score/celebration only; no skill tree. Starter reward proposal from existing plan: mission +20 XP, emergency response +15, optional supply objective +5, day survived +10. Tune centrally. Apply each reward once, show the earned amount and a concise learning takeaway, and make retry a new experiment rather than a punishment.
+XP rewards come from validated mission results and once-only survival actions/events; no skill tree is implemented. The **authoritative record metric** is completed days: Day 1 starts at 0, each accepted day advance increments `daysSurvived` once, and the displayed current day is `daysSurvived + 1`. The deterministic **score** is `daysSurvived × 1,000 + min(floor(XP), 999)`. A longer run therefore outranks any shorter run, even if the shorter one has more XP. No free repeated action awards score: the domain's mission run and reward ID ledgers prevent duplicate XP. Failed missions do not award XP. `HighScoreService` derives the current personal best from authoritative store snapshots and persists best days/score in a separate LocalStorage key; Phaser never sets score directly. When a run ends at 0 HP, the result shows days survived, final score, personal best and a new-record celebration if the run beats its saved run-start baseline. New Game/Restart reset the run but keep the personal record. Scores are illustrative game points, not NASA measurements.
+
+### Endless survival roadmap and current balance boundary
+
+**Feature 9 (implemented):** remove automatic five-day victory, show completed days/score and an independently saved personal record, and keep existing defeat mechanics. Day consumption, greenhouse, solar and once-only mission rewards remain unchanged. A save from the former five-day version stays valid through explicit v1/v2 migration; old terminal victories remain terminal results.
+
+**Feature 10 (Developer A, future):** design a sustainable long-term water and resource economy. Decide and implement repeat Earth resupply or a scientifically framed recovery source, with stable delivery IDs, bounded storage, clear costs/risks and save migration. Balance repeated days without free unlimited supplies. The present Day 2/4 pods are retained until this feature exists; normal play can eventually run out of water.
+
+**Feature 11 (Developer A, future):** add recurring emergencies and gradual difficulty scaling only after the long-term economy is verified. Keep one active incident at a time, prevent reward farming with unique IDs, provide child-friendly response windows, and test pause/restore/terminal safety. Current solar storm and oxygen leak remain scripted one-time events.
 
 ## Missions
 
@@ -84,8 +92,8 @@ Mission scenes own moment-to-moment input/timing/collision only. Before launch, 
 
 - **Entry requirements:** reach the separately rendered pod near the Landing Pad after its scheduled arrival; no mission fee or scene transition.
 - **Controls/objective:** walk near a pod, press E or tap it, and collect 25 water. Each delivery has a stable ID and is collectible once.
-- **Schedule:** Days 2 and 4 in the illustrative five-day campaign. A missed pod remains available on later days; active missions cannot collect pods. New Game/Restart clears the delivery ledger; Save/Continue keeps it.
-- **Balance:** starting water 40 and five daily costs of 9 create a shortfall without resupply. Two pods add 50 total, leaving room for optional greenhouse planting at 10 water per crop. Capacity 100 still applies; a full tank prevents collection until space is available.
+- **Schedule:** Days 2 and 4 only in the current implementation. A missed pod remains available on later days; active missions cannot collect pods. New Game/Restart clears the delivery ledger; Save/Continue keeps it.
+- **Balance:** starting water 40 and daily cost 9 create a shortfall without resupply. Two pods add 50 total, supporting early survival and optional greenhouse planting at 10 water per crop. Capacity 100 still applies; a full tank prevents collection until space is available. **There are currently no further deliveries after Day 4. Long-term water sustainability is not yet balanced for endless play; Feature 10 owns that economy.**
 - **Science:** cargo delivery is a game simplification. Sending water from Earth is difficult and expensive; recycling and possible local resources matter for real exploration. Do not imply an actual two-day lunar cargo schedule.
 
 ### Lunar Ice Collection (deferred enhancement)
@@ -148,7 +156,7 @@ Original lightweight cues: UI tick, footsteps, pickup, plant/growth, repair, ala
 
 ### HUD and accessibility
 
-Keep the game world dominant. Compact HUD: large icon + label + number + meter for food, water, base O₂ and energy; health and suit O₂ during EVA; day `n / 5`; objective/progress; pause/help. Color is never the only status signal. Context prompt sits by highlighted target. Prominent base Rest/Next Day action shows forecast and clear confirmation before daily costs. Event overlay presents two/three large choices with costs and plain-language consequence. Results show art, delta, XP and one science takeaway.
+Keep the game world dominant. Compact HUD: large icon + label + number + meter for food, water, base O₂ and energy; health and suit O₂ during EVA; current day, completed days, current score and personal best; pause/help. There is no `/5` day limit. Color is never the only status signal. Context prompt sits by highlighted target. Prominent base Rest/Advance Day action shows forecast before daily costs. Event overlay presents two/three large choices with costs and plain-language consequence. Game Over shows final score, best days, best score and Try Again.
 
 Support keyboard and pointer/touch, visible focus, semantic labeled DOM controls, accessible status announcements without flooding, ≥44 CSS px targets where practical, readable type, zoom/reflow, contrast, pause and reduced motion. No hover-only information or timed decision without a clear warning/accessible alternative. Test at 320 CSS px width. Add mute if sound is implemented; do not promise unavailable sound/read-aloud features.
 
@@ -172,7 +180,7 @@ src/game/config/              palette, balance, education, world and mission con
 src/game/art/pixelArt.ts      original procedural base sprites and terrain (A)
 src/game/assets/              original procedural arcade sprites and manifest (B)
 src/assets/                   base asset manifest and historical DONKI demo fixture
-src/services/                 NASAWeatherService and SaveService
+src/services/                 NASAWeatherService, SaveService and HighScoreService
 src/**.test.ts                co-located domain/service/config unit tests
 tests/unit/arcade/            Developer B arcade unit tests
 tests/*.mjs                  Chromium gameplay/regression scripts; artifacts/ is ignored
@@ -180,11 +188,11 @@ tests/*.mjs                  Chromium gameplay/regression scripts; artifacts/ is
 
 React creates Phaser once, passes the shared store/coordinator, subscribes to safe state snapshots, and destroys game/listeners on unmount. Phaser handles render, input and collision; scenes dispatch typed actions and never edit resources. `GameSessionStore` exposes `getState`, `subscribe`, `dispatch`, cleanup. Pure functions own every cost, yield, day tick, health penalty, XP and reward. Centralize all balance numbers. Use immutable transitions and injected clock/RNG for deterministic tests. Limit tick frequency; keep high-frequency visual position scene-local and persist only meaningful progress.
 
-Existing contract paths: `src/domain/models/types.ts` and `GameAction.ts`. Shared `GameState` covers day/time/scene/resources/astronaut/buildings/mission/event/XP/weather/status/notices plus `collectedEarthSupplyIds`. Shared `GameAction` is the discriminated union for TICK, MOVE_PLAYER, INTERACT_BUILDING, START/COMPLETE_MISSION, `COLLECT_EARTH_SUPPLY`, ADVANCE_DAY, crop, shield, repair, event, restart/load and notice actions. Validate preconditions centrally; reject impossible spends without partial mutation and show a friendly notice.
+Existing contract paths: `src/domain/models/types.ts` and `GameAction.ts`. Shared `GameState` covers current day, completed days, run-start record baseline, time/scene/resources/astronaut/buildings/mission/event/XP/weather/status/notices plus `collectedEarthSupplyIds`. Shared `GameAction` is the discriminated union for TICK, MOVE_PLAYER, INTERACT_BUILDING, START/COMPLETE_MISSION, `COLLECT_EARTH_SUPPLY`, ADVANCE_DAY, crop, shield, repair, event, restart/load and notice actions. Validate preconditions centrally; reject impossible spends without partial mutation and show a friendly notice.
 
 `MissionResult` is the scene-to-domain boundary: `{ runId, missionType, success, returnedSafely, collectedResources, healthDamage, xpEarned, duration, educationalMessage }`. `START_MISSION` requires a unique `runId`; the same ID is returned in `MissionResult`. `GameState` holds the active run, provisional mission progress and completed-run ledger. Scene emits exactly once; store verifies active run/type and bounds, applies resources/XP once on safe success, applies damage, records the ID, clears the active mission and returns to base/results. Failed or unsafe returns award no resources or XP. Non-mission `ADD_XP` actions require a unique `rewardId`. A owns this contract; B consumes it without editing store rules. Never duplicate reward arithmetic in UI or scene.
 
-Save envelope: `{ schemaVersion, savedAt, state }`, namespaced key. Current schema v2 persists the Earth delivery ledger; the v1 save migrates with no delivery IDs yet collected. Validate enums and numbers defensively; reject any other unsupported version. Corrupted data starts a fresh game safely. Save after meaningful actions, day advance, event resolution, supply collection and mission return; coalesce frequent movement/ticks and flush on pagehide. Do not save animation/projectile/enemy frame state or simulate elapsed closed-tab time. On interrupted mission recovery, return to base without reward and retire the run ID. On interrupted emergency recovery, restart its warning while retaining damage and event identity. New Game confirms replacement; Continue uses only valid save; Restart creates fresh state.
+Save envelope: `{ schemaVersion, savedAt, state }`, namespaced key. Current schema v3 persists the Earth delivery ledger and run-start personal-record baseline. Valid v2 saves migrate by adding a zero baseline; valid v1 saves also receive an empty Earth delivery ledger. Validate enums and numbers defensively; reject any other unsupported version. Corrupted data starts a fresh game safely. Save after meaningful actions, day advance, event resolution, supply collection and mission return; coalesce frequent movement/ticks and flush on pagehide. The personal best uses a separate versioned LocalStorage key and survives New Game/Restart or clearing an active save. Do not save animation/projectile/enemy frame state or simulate elapsed closed-tab time. On interrupted mission recovery, return to base without reward and retire the run ID. On interrupted emergency recovery, restart its warning while retaining damage and event identity. New Game confirms replacement; Continue uses only valid save; a terminal save can display its last result but cannot resume as active play; Restart creates fresh state.
 
 ## NASA DONKI and data integrity
 
@@ -199,15 +207,15 @@ NASA DONKI base: <https://api.nasa.gov/DONKI/>. Relevant endpoints: `/FLR` solar
 
 ### Unit tests (Vitest)
 
-Test validation/clamp; outdoor suit/thermal tick; daily consumption/production; crop costs/growth/harvest; refill/heal; solar; shield; repair; each event choice/timeout; mission preconditions/result bounds/idempotency; XP; defeat/victory; save/load/migration/corruption; DONKI parsing/cache/fallback; deterministic seeded outcomes and edge cases.
+Test validation/clamp; outdoor suit/thermal tick; daily consumption/production; crop costs/growth/harvest; refill/heal; solar; shield; repair; each event choice/timeout; mission preconditions/result bounds/idempotency; XP; progression beyond Days 5, 10 and 20; completed-day count; score ranking and record idempotency; defeat; save/load/v1–v3 migration/corruption; DONKI parsing/cache/fallback; deterministic seeded outcomes and edge cases.
 
 ### Browser tests (Playwright)
 
-Load with no console errors; start/continue; move and interact with at least three buildings; open all seven learning signs; plant, advance one day and harvest; Chicken Hunt launch, shooting, pickup, return and reward; collect both scheduled Earth pods; emergency choice; progress to victory and separately defeat/restart; save/resume and duplicate-ledger checks. Exercise keyboard and pointer/touch-sized controls, no horizontal overflow, focus/accessibility labels, offline demo mode, pause and reduced motion as built.
+Load with no console errors; start/continue; move and interact with at least three buildings; open all seven learning signs; plant, advance one day and harvest; Chicken Hunt launch, shooting, pickup, return and reward; collect both scheduled Earth pods; emergency choice; survive beyond Day 5, end through a legitimate defeat path, show and retain the personal best after restart/refresh; save/resume and duplicate-ledger checks. Exercise keyboard and pointer/touch-sized controls, no horizontal overflow, focus/accessibility labels, offline demo mode, pause and reduced motion as built.
 
 ### Visual QA and performance
 
-Capture start/Continue, base idle, building/learning interaction, Chicken Hunt, Earth pod arrival/collection, warning/event choices, victory/loss, and mobile. Inspect actual browser render at 1x and scaled sizes for pixel blur, framing, hierarchy, clipping, labels/contrast, modal bounds and player readability. Target stable 60 fps on modest device; cap particles/textures, avoid per-frame React updates, clean up scene listeners; test background pause and modest mobile dimensions.
+Capture start/Continue, base idle, building/learning interaction, Chicken Hunt, Earth pod arrival/collection, warning/event choices, endless-day HUD, Game Over/new record, and mobile. Inspect actual browser render at 1x and scaled sizes for pixel blur, framing, hierarchy, clipping, labels/contrast, modal bounds and player readability. Target stable 60 fps on modest device; cap particles/textures, avoid per-frame React updates, clean up scene listeners; test background pause and modest mobile dimensions.
 
 ### Deploy and present
 

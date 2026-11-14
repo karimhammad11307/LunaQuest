@@ -26,6 +26,8 @@ The first playable Moon Base is implemented on `feat/base-survival`: Phaser boot
 
 **Feature 8 progress:** A12 implementation `9d7aa26` on user-managed `Feature-8--Mission-Integration-(A12)` independently verified Chicken Hunt movement, shooting, food pickup, safe/failed return, store rewards and eating; added Day 2/4 Earth water pods (+25 each), saved once-only delivery IDs with v1→v2 migration, and seven learning signs/panels. Starting water is 40 against 9/day. Build, 129 Vitest cases, eight existing Chromium regressions and a full Feature 8 Chromium five-day run passed. Ice Collection is now a deferred enhancement, not a required MVP scene. A13 accessibility/QA polish and A14 deployment remain separate work; no deployment was performed. See [ImplementedFeatureA.md](ImplementedFeatureA.md).
 
+**Feature 9 progress:** A15 implementation `faacbe4` on the user-managed current branch replaced the five-day finish with endless day progression, a completed-day/XP score, separate persistent personal records, a new Game Over result, and save v3 migration from valid v1/v2 sessions. Build, 139 Vitest cases and ten Chromium scripts passed, including Day 6 gameplay, defeat, record/restart and refresh/Continue. A13/A14 remain open. A16 owns a sustainable post-Day-4 water economy; A17 owns recurring incidents/difficulty scaling. These are future features, not implemented by A15. See [ImplementedFeatureA.md](ImplementedFeatureA.md).
+
 Developer A owns `src/domain/**`, `src/game/config/**`, React shell `src/app/**`, base scenes/entities, NASA/Save services, base assets and deployment. Specific primary paths:
 
 ```text
@@ -43,6 +45,7 @@ src/game/config/**                   palette, balance, scene/layout/mission conf
 src/game/art/pixelArt.ts             original base textures and tiles
 src/services/NASAWeatherService.ts
 src/services/SaveService.ts
+src/services/HighScoreService.ts
 src/assets/manifest.json, src/assets/data/demoSpaceWeather.json
 src/domain/**/*.test.ts, src/services/**/*.test.ts, src/game/config/education.test.ts
 tests/feature*.mjs, tests/healthFoodAudit.mjs, tests/merge-chicken-hunt.mjs
@@ -66,21 +69,24 @@ Contract invariants: one canonical state and action union; pure TypeScript rules
 | **A3 — 1.5 h** | Moon Base layout/art; depends A2. | Walkable world bounds/path/crater/rock tiles and five interactive building footprints; original consistent 3/4 pixel-art base palette, backdrop/props, collision separate from art. Screenshot acceptance: world dominates viewport and each target readable at 1x. |
 | **A4 — 1.25 h** | Astronaut; depends A2/A3. | Four-direction WASD/arrows, normalized diagonal speed, body/world/building collisions, depth sorting, idle/walk frames, proximity highlight and `E` plus pointer/tap interaction. Verify movement bounds and nearest-target prompt. |
 | **A5 — 1.25 h** | Building interactions; depends A1/A3/A4. | Habitat, greenhouse, solar, shield and landing pad each dispatch actions; state-specific visuals and clear action/cost/result prompt; disabled mission entries do not crash. Verify each interaction causes state or explanatory notice. |
-| **A6 — 1.75 h** | Survival/day loop; depends A1/A5. | Central balance values; day advance applies food/water/base O₂/energy production/consumption, health thresholds, win at day 5 and defeat; pre-action forecast and post-action summary. Unit tests at boundaries and successful five-day recovery path. |
+| **A6 — 1.75 h** | Survival/day loop; depends A1/A5. | Original milestone implemented daily food/water/base O₂/energy consumption, health thresholds and defeat. Its five-day victory was removed by A15/Feature 9; current progression is endless. Retain boundary and recovery tests. |
 | **A7 — 0.75 h** | Greenhouse; depends A6. | Plant checks/spends water+energy; one-day crop growth; harvest adds food and configured small O₂ benefit; seed/sprout/ready/harvest visuals. Test cost, invalid spend, timing, output. |
 | **A8 — 0.75 h** | Solar/shield/repairs; depends A6. | Solar generation/storage; once/day collection if configured; shield energy cost/protection ring/status; repair transitions. Test energy constraints and visible operating/damaged state. |
 | **A9 — 1.25 h** | Incidents; depends A6/A8. | Radiation warning with countdown/shelter interaction, oxygen leak repair/isolate/ignore, plus power/thermal/communication incident if time. Typed options, different costs/outcomes, visible alarm and outcome/learning feedback. Deterministic unit tests for each MVP event choice. |
 | **A10 — 0.75 h** | NASA adapter; depends A1/A9. | DONKI normalization (`FLR`, `CME`, `SEP`, notifications), timeout/validation, bounded date query, 6-hour cache, live/cached/demo states and offline fixture. Attribution + limitations and no key in source. Test malformed/rate-limit/offline; full game works in demo. |
 | **A11 — 0.75 h** | Save/resume; depends A1/A6. | Versioned LocalStorage envelope and schema validation; reject unsupported versions until an explicit migration exists. Save meaningful base progression, new/continue/restart, corruption fallback. Unit tests old version, malformed, bounded values and valid round trip. |
-| **A12 — 1.5 h** | Chicken Hunt integration, Earth cargo and learning signs; depends B2/B3/B5, A11 and contract handoff. | Verify real flight/shooting/pickup/failure/early return, launch cost, store rewards once, habitat eating and save recovery without editing B internals. Schedule and persist Day 2/4 Earth pods with 25 water each, capacity/once-only validation, and add seven concise WHAT/WHY/YOUR MISSION interactions. Run five-day browser victory and regressions. Ice Collection is deferred. |
-| **A13 — 1.5 h** | QA/accessibility/visual polish; depends A5–A12. | Unit suite and Playwright complete flow; keyboard/pointer/mobile, focus labels, no horizontal overflow, reduced motion, screenshot review and defect fixes. Include victory and defeat/restart. |
+| **A12 — 1.5 h** | Chicken Hunt integration, Earth cargo and learning signs; depends B2/B3/B5, A11 and contract handoff. | Verified real flight/shooting/pickup/failure/early return, launch cost, store rewards once, habitat eating and save recovery without editing B internals. Scheduled and persisted Day 2/4 Earth pods with 25 water each and added seven WHAT/WHY/YOUR MISSION interactions. The original five-day browser victory gate passed at Feature 8; A15 superseded it. Ice Collection is deferred. |
+| **A13 — 1.5 h** | QA/accessibility/visual polish; depends A5–A12/A15. | Unit suite and Playwright complete flow; keyboard/pointer/mobile, focus labels, no horizontal overflow, reduced motion, screenshot review and defect fixes. Include endless-day HUD, defeat/record/restart and persistence. |
 | **A14 — 0.75 h** | Deployment/demo; depends A13. | Static Vercel config and public build; clean build + deployed playthrough, offline demo mode, secret scan, known-good save/video backup and A-owned slide/demo evidence. |
+| **A15 — Feature 9, completed** | Endless survival and high score; depends A6/A11/A12. | Remove five-day victory; keep daily costs and defeat. Derive score from completed days and bounded XP bonus, persist personal best independently, migrate v1/v2 saves to v3, and show Game Over/new record. Verify Day 6 browser play, Day 10/20 domain progression, defeat, restart and refresh. Implementation `faacbe4`. |
+| **A16 — Feature 10, future** | Long-term resupply economy; depends A15. | Design a repeatable, bounded water/supply source after Day 4, with unique delivery IDs, save migration, science framing and many-day balance tests. Keep domain store authoritative; do not add free resource buttons. |
+| **A17 — Feature 11, future** | Recurring emergencies and measured difficulty; depends A16 and A9. | Schedule replayable but non-overlapping hazards with unique IDs, once-only XP, warning windows, pause/save safety and bounded progression. Verify no unavoidable death or duplicate incident rewards. |
 
-Estimates are focused effort, approx. 16.75 h A-owned tasks including integration; remaining elapsed schedule includes shared review, polish and gates. Protect integration/QA time; reduce optional event breadth before core functionality.
+The original A1–A14 estimates totaled approximately 16.75 h of focused A-owned effort including integration; A15–A17 are later feature work outside that estimate. Remaining elapsed delivery work still includes shared review, polish and gates. Protect integration/QA time; reduce optional event breadth before core functionality.
 
 ## 20-hour shared wall-clock schedule
 
-Both task files use the same schedule. Hours are elapsed from kickoff; tasks may overlap only across owned files. **A starts first** and spends H0–1.5 on A1. **B may start B1 at H0.5** against the documented palette/art constraints, but must not create contract-dependent scene code until A sends the A1 commit. B branches from that hash no later than H1.5.
+The table below preserves the original approximately 20-hour MVP schedule. Feature 9 changed the target after A12; A15 was implemented separately, and A16/A17 are new future work outside this original estimate. Hours below are elapsed from the original kickoff; tasks may overlap only across owned files. **A started first** on A1; B began asset work after the palette read and waited for the shared contract handoff before dependent scene code.
 
 | Elapsed | Developer A | Developer B | Gate |
 |---|---|---|---|
@@ -89,7 +95,7 @@ Both task files use the same schedule. Hours are elapsed from kickoff; tasks may
 | H4–7 | A3 finish; A4 astronaut; A5 interactions | B3 controls; B4 enemy patterns; B5 combat | Base walk/interact; Chicken Hunt playable |
 | H7–10 | A6 survival; A7 greenhouse; A8 solar/shield | B6 pickups; B7 timer/return; B8 typed result; B10 effects start | Day/resource loop + Chicken Hunt results |
 | H10–13 | A9 events; A10 DONKI; A11 save | B10 effects; B11 sound; B12 arcade tests start | Events/offline data/save; Chicken Hunt playable |
-| H13–16 | A12 integrate; A13 test start | B12 arcade tests; B13 integration support; B14 polish | Merged five-day playthrough gate |
+| H13–16 | A12 integrate; A13 test start | B12 arcade tests; B13 integration support; B14 polish | Original five-day playthrough gate, since superseded by Feature 9 |
 | H16–18 | A13 complete, fix defects | B12 browser/visual checks and captured arcade proof | Build, unit/e2e tests, desktop/mobile screenshots |
 | H18–20 | A14 deploy/demo; integration owner leads rehearsal | B prepares mission demo/video and arcade/presentation content | Public MVP and rehearsed 3-minute demo, 5-slide deck |
 
@@ -107,10 +113,10 @@ Both task files use the same schedule. Hours are elapsed from kickoff; tasks may
 
 A owns DONKI service and data honesty, save schema, app integration, survival and browser end-to-end suite. B owns arcade unit/browser tests, sprite manifest/credits and mission result paths. Shared test requirements live in MASTER_PLAN. Do not claim unrun tests. Do not ship NASA key in browser bundle; demo fixture always permits offline play.
 
-**Definition of Done for A:** one authoritative state/store/reducer; five-day loop with all survival stats and recovery; interactive pixel-art base/astronaut/buildings/learning signs/Earth pods; farm/solar/shield/repair; at least radiation and oxygen incidents; validated NASA live/cache/demo adapter or documented demo fallback; save/resume; Chicken Hunt integrated only through shared result contract; tests/build/visual QA pass; deploy/demo material ready; documentation accurately reflects current implementation. Ice Collection is deferred.
+**Definition of Done for A's current design:** one authoritative state/store/reducer; endless daily survival with correct completed-day score, preserved personal best, all survival stats and recovery; interactive pixel-art base/astronaut/buildings/learning signs/Earth pods; farm/solar/shield/repair; at least radiation and oxygen incidents; validated NASA live/cache/demo adapter or documented demo fallback; save/resume; Chicken Hunt integrated only through shared result contract; tests/build/visual QA pass; long-term water balance (A16), recurring event balance (A17), deployment/demo material ready; documentation accurately reflects current implementation. Ice Collection is deferred. A16/A17 and deployment remain open.
 
 ## Priority order
 
-- **P0:** contract/store, playable shell/base/movement, day/resource/win-loss loop, greenhouse, solar/shield, radiation + oxygen incident, Chicken Hunt result and return, Earth water pods, seven educational interactions, save/resume, offline playable, build/e2e proof.
-- **P1:** DONKI live mode/cache polish, accessibility refinements, full visual feedback, demo recording and Vercel delivery.
+- **P0:** contract/store, playable shell/base/movement, endless day/resource/defeat loop, score/record, greenhouse, solar/shield, radiation + oxygen incident, Chicken Hunt result and return, Earth water pods, seven educational interactions, save/resume, offline playable, build/e2e proof. Sustainable long-term water (A16) is the next economy requirement.
+- **P1:** recurring incident/difficulty work (A17), DONKI live mode/cache polish, accessibility refinements, full visual feedback, demo recording and Vercel delivery.
 - **P2:** Lunar Ice Collection, extra incident variants, ambient audio, optional mission bonuses, expanded data/source exploration. Cut P2 first to protect the MVP deadline.

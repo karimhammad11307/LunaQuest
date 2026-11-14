@@ -8,6 +8,8 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 
 **Feature 8 checkpoint:** A1–A12's current MVP scope has been implemented and verified through a full Chromium five-day campaign. Chicken Hunt is the required mission; Day 2/4 Earth pods supply water; seven learning signs explain the game. Ice Collection is deferred. A13 accessibility/visual QA and A14 deployment/demo delivery remain separate gates. See [ImplementedFeatureA.md](ImplementedFeatureA.md).
 
+**Feature 9 checkpoint:** The earlier five-day victory has been replaced by endless progression at `faacbe4`. Current day equals completed days plus one; the run score prioritizes completed days, and the personal record survives restart. Save schema v3 migrates valid v1/v2 sessions. A16 long-term water supply and A17 recurring incidents remain future work. A13/A14 are still open. See [ImplementedFeatureA.md](ImplementedFeatureA.md).
+
 ## 1. A1 — Freeze the shared contract and build the game store
 
 - Review the existing `GameState`, `GameAction`, and `MissionResult` types.
@@ -45,7 +47,7 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 ## 5. A6–A8 — Implement survival and base systems
 
 - Centralize tuning in `src/game/config/balance.ts`.
-- Implement day advancement, resource consumption/production, warnings, health consequences, and five-day victory/defeat conditions.
+- Implement day advancement, resource consumption/production, warnings and health consequences. The original five-day victory was superseded by A15; current play ends only on defeat.
 - Implement greenhouse planting, one-day growth, and harvest.
 - Implement solar generation, shield energy/protection, and building repairs.
 - Test costs, resource boundaries, failures, and recovery paths.
@@ -74,14 +76,30 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 - Receive and validate the shared `MissionResult` contract.
 - Apply resources, damage, and XP exactly once, return to the base, and persist the resulting state.
 - Schedule collectible Earth water pods on Days 2 and 4; award 25 water once per pod through typed domain rules and persist their IDs.
-- Add seven player-opened WHAT/WHY/YOUR MISSION learning signs and verify the five-day water/food loop.
+- Add seven player-opened WHAT/WHY/YOUR MISSION learning signs and verify the initial five-day water/food loop. Longer-run water balance belongs to A16.
 - Keep mission scene internals in Developer B-owned files.
 
 **Gate:** Chicken Hunt success, failure, duplicate completion, return and save behavior work through the shared store; both Earth pods and all seven learning locations work. Ice Collection is a future enhancement.
 
-## 9. A13–A14 — Verify, polish, and deliver
+## 9. A15 — Endless survival and personal record (implemented)
 
-- Run domain unit tests and browser gameplay tests for start, movement, buildings, missions, incidents, day progression, win/loss, restart, and save/resume.
+- Remove automatic day-five victory while retaining daily costs, emergencies and defeat.
+- Derive score as completed days × 1,000 plus at most 999 XP points; persist personal best independently of the active run.
+- Migrate valid v1/v2 saves to v3, and show days/score/best on a pixel-art Game Over screen.
+- Verify Day 6 in Chromium, Days 10/20 in domain tests, and record safety through refresh/restart.
+
+**Gate:** no day cap; longer survival always ranks higher; a terminal save cannot resume as active play.
+
+## 10. A16–A17 — Future endless balance
+
+- A16: add a repeatable, bounded post-Day-4 water/resource economy through domain actions and saved unique IDs.
+- A17: add recurring, non-overlapping incidents and measured difficulty with once-only rewards and pause/restore safety.
+
+**Gate:** long-run play is sustainable but remains challenging; no free supply or XP loop.
+
+## 11. A13–A14 — Verify, polish, and deliver
+
+- Run domain unit tests and browser gameplay tests for start, movement, buildings, missions, incidents, endless day progression, defeat/record/restart, and save/resume.
 - Inspect desktop and mobile screenshots; fix clipping, unreadable controls, focus/accessibility issues, and broken interactions.
 - Build and deploy the static app, verify the deployed flow and offline demo mode, and prepare a demo save, recording backup, and presentation materials.
 - Report only results from checks actually run.
@@ -90,7 +108,7 @@ This is Developer A's ordered implementation checklist. The [Master Plan](MASTER
 
 ## Implementation guardrails
 
-- Work in this order: A1 first, then Phaser/base foundation, survival systems, incidents/data/persistence, mission integration, QA and delivery.
+- The original A1–A12 implementation order is historical. Feature 9 is complete; A16/A17, A13 QA and A14 delivery remain open and can be sequenced by the user.
 - A owns the shared domain, balance/configuration, app shell, base gameplay, services, integration, and deployment.
 - Keep one canonical `GameState`, `GameAction`, and `MissionResult`. Phaser scenes dispatch actions; the domain/store alone changes shared resources and awards mission rewards.
 - Keep all game quantities illustrative and NASA observations distinct from simulated hazards.

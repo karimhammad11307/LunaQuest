@@ -6,6 +6,8 @@
 
 **A11 persistence handoff:** Save/resume at `149af56` preserves completed mission run IDs. A browser refresh during a mission cancels that run without rewards and retires its run ID; a new launch must use a fresh ID. B scenes continue to emit one typed `MissionResult` and do not write LocalStorage or shared resources. No B-owned scene or asset was changed for A11.
 
+**Feature 9 scoring handoff:** Developer A's `faacbe4` changed progression to endless survival. Score is derived from completed days and capped authoritative XP; a valid, successful Chicken Hunt `MissionResult` contributes XP once through the existing reducer. Failed or duplicate results never increase score. Developer B's scene contract and file ownership are unchanged. Do not calculate or persist score in the arcade scene.
+
 ## Ownership boundaries
 
 ```text
