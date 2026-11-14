@@ -5,7 +5,7 @@ import { GameSessionStore } from '../domain/store/GameSessionStore';
 import { BootScene } from '../game/scenes/BootScene';
 import { MoonBaseScene } from '../game/scenes/MoonBaseScene';
 import { ChickenHuntScene } from '../game/scenes/ChickenHuntScene';
-import { MISSION_CONFIG, VIEW } from '../game/config/gameConfig';
+import { BUILDING_BY_ID, INTERACT_RADIUS, MISSION_CONFIG, SPAWN_POINT, VIEW } from '../game/config/gameConfig';
 import { EDUCATION, type EducationId } from '../game/config/education';
 import { BALANCE } from '../game/config/balance';
 import type { GameAction } from '../domain/models/GameAction';
@@ -18,6 +18,8 @@ import { createInitialState } from '../domain/rules/survivalRules';
 import { beatsPersonalBest, survivalScore } from '../domain/rules/scoreRules';
 import { AudioService, type AudioPreferences } from '../services/AudioService';
 import { joystickVector } from '../game/input/joystick';
+import { OnboardingService, type OnboardingProgress, type TutorialStep } from '../services/OnboardingService';
+import { IntroPanel, TutorialPanel } from './Onboarding';
 import './style.css';
 
 const audioService = new AudioService();
@@ -26,6 +28,8 @@ const store = new GameSessionStore(createInitialState(highScores.getSnapshot()))
 const weatherService = new NASAWeatherService({ apiKey: import.meta.env.VITE_NASA_API_KEY });
 const saveService = new SaveService();
 const savedAtStartup = saveService.load();
+const onboardingService = new OnboardingService(!!savedAtStartup);
+const initialOnboarding = onboardingService.getSnapshot();
 
 function Meter({ label, icon, value, color, low = false, flash = false, ariaLabel }: { label: string; icon: string; value: number; color: string; low?: boolean; flash?: boolean; ariaLabel?: string }) {
   return <div className={`meter${low ? ' meter-low' : ''}${flash ? ' meter-launch-flash' : ''}`} aria-label={`${ariaLabel ?? label}: ${Math.round(value)} of 100 game units`}>
@@ -98,7 +102,8 @@ function GameContainer({ sceneId, runId, paused }: { sceneId: GameSceneId; runId
       scale: { mode: baseScaleMode(sceneId),
         autoCenter: Phaser.Scale.CENTER_BOTH, width: VIEW.width, height: VIEW.height },
       physics: { default: 'arcade', arcade: { debug: false } },
-      scene: [new BootScene(), new MoonBaseScene(store, (cue) => audioService.play(cue)), new ChickenHuntScene()],
+      scene: [new BootScene(), new MoonBaseScene(store, (cue) => audioService.play(cue),
+        () => onboardingService.getSnapshot().tutorialStep), new ChickenHuntScene()],
     });
     gameRef.current = game;
     const resize = () => {
@@ -147,7 +152,10 @@ function App() {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const personalBest = useSyncExternalStore(highScores.subscribe, highScores.getSnapshot);
   const audioPreferences = useSyncExternalStore(audioService.subscribe, audioService.getSnapshot);
-  const [sessionReady, setSessionReady] = useState(!savedAtStartup);
+  const [sessionReady, setSessionReady] = useState(!savedAtStartup && initialOnboarding.introSeen);
+  const [introOpen, setIntroOpen] = useState(!savedAtStartup && !initialOnboarding.introSeen);
+  const [onboarding, setOnboarding] = useState<OnboardingProgress>(initialOnboarding);
+  const [showGateHelp, setShowGateHelp] = useState(false);
   const [confirmNewGame, setConfirmNewGame] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [actionFeedback, setActionFeedback] = useState('');
@@ -162,6 +170,25 @@ function App() {
   const frameRef = useRef<HTMLDivElement>(null);
   const menuOpenedAt = useRef(0);
   const weatherRequest = useRef(0);
+  const tutorialOwnsPause = useRef(false);
+  const tutorialMoveOrigin = useRef<{ x: number; y: number }>({ ...SPAWN_POINT });
+  const updateOnboarding = (next: OnboardingProgress) => {
+    if (next === onboardingService.getSnapshot() && next === onboarding) return;
+    setOnboarding(next);
+    if (next.tutorialStep === 'resources' || next.tutorialStep === 'ready') audioService.play('confirm');
+  };
+  const advanceTutorial = (expected: TutorialStep, next: TutorialStep) => {
+    const before = onboardingService.getSnapshot();
+    const after = onboardingService.advance(expected, next);
+    if (after !== before) updateOnboarding(after);
+  };
+  const skipTutorial = () => {
+    updateOnboarding(onboardingService.skipTutorial());
+    audioService.play('uiClose');
+  };
+  const tutorialStep = onboarding.tutorialStep;
+  const tutorialBlocking = tutorialStep === 'resources' || tutorialStep === 'ready';
+  const tutorialPause = tutorialBlocking && !state.activeEvent;
   useEffect(() => {
     const onFullscreen = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', onFullscreen);
@@ -198,6 +225,44 @@ function App() {
   }, [sessionReady]);
   useEffect(() => {
     if (!sessionReady) return;
+    const nearHabitat = (x: number, y: number) => Math.hypot(x - BUILDING_BY_ID.habitat.x,
+      y - (BUILDING_BY_ID.habitat.y + 25)) <= INTERACT_RADIUS;
+    const observe = (next: ReturnType<typeof store.getState>, action?: GameAction) => {
+      if (next.status !== 'playing' || next.scene !== 'moon-base') return;
+      const step = onboardingService.getSnapshot().tutorialStep;
+      if (step === 'movement' && action?.type === 'MOVE_PLAYER'
+        && Math.hypot(next.astronaut.position.x - tutorialMoveOrigin.current.x,
+          next.astronaut.position.y - tutorialMoveOrigin.current.y) >= 12) advanceTutorial('movement', 'habitat');
+      else if (step === 'habitat' && nearHabitat(next.astronaut.position.x, next.astronaut.position.y))
+        advanceTutorial('habitat', 'enter');
+      else if (step === 'enter' && next.astronaut.location === 'habitat')
+        advanceTutorial('enter', 'menu');
+      else if (step === 'exit' && next.astronaut.location === 'outside')
+        advanceTutorial('exit', 'ready');
+    };
+    observe(store.getState());
+    return store.subscribeTransitions(observe);
+  }, [sessionReady]);
+  useEffect(() => {
+    if (!sessionReady) return;
+    window.dispatchEvent(new CustomEvent<TutorialStep | null>('lunaquest-tutorial-step', { detail: tutorialStep }));
+  }, [sessionReady, tutorialStep]);
+  useEffect(() => {
+    if (sessionReady && tutorialStep === 'movement')
+      tutorialMoveOrigin.current = { ...store.getState().astronaut.position };
+  }, [sessionReady, tutorialStep]);
+  useEffect(() => {
+    if (!sessionReady || state.status !== 'playing') return;
+    if (tutorialPause) {
+      tutorialOwnsPause.current = true;
+      if (!store.getState().paused) store.dispatch({ type: 'SET_PAUSED', paused: true });
+    } else if (tutorialOwnsPause.current) {
+      tutorialOwnsPause.current = false;
+      if (store.getState().paused) store.dispatch({ type: 'SET_PAUSED', paused: false });
+    }
+  }, [sessionReady, tutorialPause, state.status]);
+  useEffect(() => {
+    if (!sessionReady) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const unsubscribe = store.subscribeTransitions((next, action) => {
       if (action.type === 'INTERACT_BUILDING' && next.selectedBuildingId) menuOpenedAt.current = performance.now();
@@ -219,6 +284,9 @@ function App() {
   const indoors = state.astronaut.location !== 'outside';
   const emergency = state.activeEvent;
   const missionSummary = state.status === 'playing' && state.lastMissionResult?.runId !== dismissedMissionRunId ? state.lastMissionResult : null;
+  const showTutorial = !!tutorialStep && state.status === 'playing' && state.scene === 'moon-base'
+    && !emergency && !learningTopic && !showAudio && !showWeather && !showHelp && !missionSummary
+    && (!state.paused || tutorialBlocking);
   const score = survivalScore(state);
   const newRecord = beatsPersonalBest(state, state.recordToBeat);
   const openEducation = (topic: EducationId) => {
@@ -275,6 +343,16 @@ function App() {
     const onGameKey = (event: KeyboardEvent) => {
       if (!sessionReady) return;
       const current = store.getState();
+      if (tutorialPause) {
+        if (event.key === 'Enter' && !event.repeat) {
+          event.preventDefault();
+          if (tutorialStep === 'resources') advanceTutorial('resources', 'exit');
+          else if (tutorialStep === 'ready') {
+            updateOnboarding(onboardingService.completeTutorial()); audioService.play('confirm');
+          }
+        } else if (event.key === 'Escape') { event.preventDefault(); skipTutorial(); }
+        return;
+      }
       if (event.key === 'Escape') {
         if (showAudio) { audioService.play('uiClose'); setShowAudio(false); }
         else if (learningTopic) closeEducation();
@@ -303,6 +381,8 @@ function App() {
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault();
         setMenuIndex((index) => (index + (event.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length);
+        if (tutorialStep === 'menu' && current.astronaut.location === 'habitat')
+          advanceTutorial('menu', 'confirm');
       } else if ((event.key === 'Enter' || event.key.toLowerCase() === 'e') && !event.repeat
         && performance.now() - menuOpenedAt.current > 180) {
         if (event.key === 'Enter' && event.target instanceof HTMLButtonElement) return;
@@ -312,21 +392,60 @@ function App() {
     };
     window.addEventListener('keydown', onGameKey);
     return () => window.removeEventListener('keydown', onGameKey);
-  }, [showHelp, showAudio, showWeather, sessionReady, learningTopic, menuIndex]);
+  }, [showHelp, showAudio, showWeather, sessionReady, learningTopic, menuIndex, tutorialStep, tutorialPause]);
   const virtualInput = (direction: string | null) => window.dispatchEvent(new CustomEvent('lunaquest-input', { detail: direction }));
-  const startNewGame = () => {
+  const startFreshSession = () => {
     saveService.clear();
     store.dispatch({ type: 'RESTART_GAME', recordToBeat: highScores.getSnapshot() });
     saveService.save(store.getState());
     setSessionReady(true);
   };
+  const startNewGame = () => {
+    const next = onboardingService.beginNewRun();
+    updateOnboarding(next);
+    if (!next.introSeen) { setIntroOpen(true); return; }
+    startFreshSession();
+  };
+  const startIntroMission = () => {
+    updateOnboarding(onboardingService.startMission());
+    audioService.play('confirm');
+    setIntroOpen(false);
+    startFreshSession();
+  };
   const continueGame = () => {
     const restored = saveService.load();
     if (!restored) { startNewGame(); return; }
-    store.dispatch({ type: 'LOAD_GAME', state: restored });
+    const step = onboardingService.getSnapshot().tutorialStep;
+    updateOnboarding(onboardingService.recoverAtBase());
+    store.dispatch({ type: 'LOAD_GAME', state: step === 'resources' ? { ...restored, paused: false } : restored });
+    setIntroOpen(false);
     setSessionReady(true);
   };
-  if (!sessionReady) return <main className="app-shell"><div className="game-frame"><header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>LUNAQUEST</span><small>Survival Mission</small></div></header><div className="save-start"><div className="save-start-panel"><strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong><p>Survive as many lunar days as you can!</p><p>Saved run: {savedAtStartup?.daysSurvived} days · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p><p>Personal best: {personalBest.bestDaysSurvived} days · {personalBest.bestScore.toLocaleString()} points</p>{confirmNewGame ? <><p>Your saved progress will be replaced. Your record stays safe.</p><button type="button" onClick={startNewGame}>Replace Save &amp; Start</button><button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></> : <><p>Your Moon Base is waiting.</p><button type="button" onClick={continueGame}>{savedAtStartup?.status === 'playing' ? 'Continue Game' : 'View Last Result'}</button><button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button><small>New Game replaces this saved run, not your record.</small></>}<button className="audio-gate-button" type="button" onClick={() => { audioService.play('uiOpen'); setShowAudio(!showAudio); }}>♫ Audio Settings</button>{showAudio && <AudioSettingsPanel preferences={audioPreferences} onClose={() => setShowAudio(false)} inGate />}</div></div></div></main>;
+  if (!sessionReady) return <main className="app-shell"><div className="game-frame">
+    <header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>LUNAQUEST</span><small>Survival Mission</small></div></header>
+    {introOpen ? <IntroPanel page={onboarding.introPage}
+      onPage={(page) => { updateOnboarding(onboardingService.setIntroPage(page)); audioService.play('uiOpen'); }}
+      onStart={startIntroMission} onSkip={startIntroMission} />
+      : <div className="save-start"><div className="save-start-panel">
+        <strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong>
+        <p>Survive as many lunar days as you can!</p>
+        <p>Saved run: {savedAtStartup?.daysSurvived} days · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p>
+        <p>Personal best: {personalBest.bestDaysSurvived} days · {personalBest.bestScore.toLocaleString()} points</p>
+        {confirmNewGame ? <><p>Your saved progress will be replaced. Your record stays safe.</p>
+          <button type="button" onClick={startNewGame}>Replace Save &amp; Start</button>
+          <button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></>
+          : <><p>Your Moon Base is waiting.</p>
+            <button type="button" onClick={continueGame}>{savedAtStartup?.status === 'playing' ? 'Continue Game' : 'View Last Result'}</button>
+            <button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button>
+            <small>New Game replaces this saved run, not your record.</small></>}
+        <button type="button" onClick={() => setShowGateHelp(!showGateHelp)}>How to Play</button>
+        {showGateHelp && <div className="gate-howto"><p>Move with WASD, arrows or the touch joystick. Press E or tap Interact near a building.</p>
+          <p>Use ↑/↓ and Enter/E in building menus; Q or touch Exit leaves. Eat stored food at the Habitat to recover HP.</p>
+          <p>Explore the learning signs and survive as many lunar days as you can!</p></div>}
+        <button className="audio-gate-button" type="button" onClick={() => { audioService.play('uiOpen'); setShowAudio(!showAudio); }}>♫ Audio Settings</button>
+        {showAudio && <AudioSettingsPanel preferences={audioPreferences} onClose={() => setShowAudio(false)} inGate />}
+      </div></div>}
+  </div></main>;
   return (
     <main className="app-shell"><div className="game-frame" ref={frameRef}>
       <header className="masthead">
@@ -335,7 +454,7 @@ function App() {
         <span className="xp-counter" aria-label={`${state.xp} experience points`}>XP {state.xp}</span>
         <button className="audio-settings-button" type="button" aria-label="Audio settings" aria-expanded={showAudio} onClick={() => { audioService.play('uiOpen'); setShowAudio(!showAudio); }}>♫ <span>Audio</span>{audioPreferences.muted ? ' OFF' : ''}</button>
         <button className="fullscreen-button" type="button" aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} onClick={() => void toggleFullscreen()}>{isFullscreen ? '⤢' : '⛶'} <span>{isFullscreen ? 'Window' : 'Fullscreen'}</span></button>
-        <button className="pause-button" type="button" disabled={state.status !== 'playing' || !!learningTopic} onClick={() => { store.dispatch({ type: 'SET_PAUSED', paused: !state.paused }); setShowHelp(false); }}>{state.paused ? 'Resume' : 'Pause'}</button>
+        <button className="pause-button" type="button" disabled={state.status !== 'playing' || !!learningTopic || tutorialPause} onClick={() => { store.dispatch({ type: 'SET_PAUSED', paused: !state.paused }); setShowHelp(false); }}>{state.paused ? 'Resume' : 'Pause'}</button>
         <button className="help-button" type="button" disabled={!!learningTopic} onClick={() => { audioService.play(showHelp ? 'uiClose' : 'uiOpen'); setShowHelp(!showHelp); }} aria-expanded={showHelp}>? <span>How to play</span></button>
       </header>
       <div className="hud" aria-label="Colony supplies and astronaut health">
@@ -348,6 +467,14 @@ function App() {
       </div>
       <div className="score-strip" aria-label="Endless survival progress"><strong>Survive as many lunar days as you can!</strong><span>Survived {state.daysSurvived} days</span><span>Score {score.toLocaleString()}</span><span>Best {personalBest.bestDaysSurvived} days</span><span>Top {personalBest.bestScore.toLocaleString()}</span></div>
       <div className="canvas-wrap"><GameContainer sceneId={state.scene} runId={state.activeMissionRunId} paused={state.paused} />
+        {showTutorial && tutorialBlocking && <div className="tutorial-scrim" aria-hidden="true" />}
+        {showTutorial && <TutorialPanel step={tutorialStep} mobile={window.matchMedia('(pointer:coarse)').matches}
+          onSkip={skipTutorial} onNext={() => {
+            if (tutorialStep === 'resources') advanceTutorial('resources', 'exit');
+            else if (tutorialStep === 'ready') {
+              updateOnboarding(onboardingService.completeTutorial()); audioService.play('confirm');
+            }
+          }} />}
         {state.status === 'playing' && state.scene === 'moon-base' && indoors && <div className="inside-indicator" role="status">INSIDE {state.astronaut.location === 'shelter' ? 'SHELTER' : state.astronaut.location.toUpperCase()} · Q TO EXIT</div>}
         {launchFeedback && state.scene === 'chicken-hunt' && <div className="launch-cost-banner" role="status">LAUNCH −{launchFeedback.cost} ENERGY · {launchFeedback.before} → {launchFeedback.after}</div>}
         {showAudio && <AudioSettingsPanel preferences={audioPreferences} onClose={() => setShowAudio(false)} />}
@@ -378,7 +505,16 @@ function App() {
           {actionFeedback && <small className="action-feedback" role="status">{actionFeedback}</small>}
         </aside>}
         {!emergency && state.lastEventOutcome && state.status === 'playing' && <div className="event-outcome" role="status"><strong>{state.lastEventOutcome.message}{state.lastEventOutcome.xpEarned ? ` +${state.lastEventOutcome.xpEarned} XP` : ''}</strong><span>{state.lastEventOutcome.takeaway}</span></div>}
-        {selected && building && state.status === 'playing' && !learningTopic && <aside className="building-panel" aria-label={`${building.type} controls`}>
+        {selected && building && state.status === 'playing' && !learningTopic && <aside className="building-panel" aria-label={`${building.type} controls`}
+          onClick={(event) => {
+            if (selected !== 'habitat' || state.astronaut.location !== 'habitat') return;
+            const button = (event.target as HTMLElement).closest('button');
+            if (!button || button.closest('.panel-head') || button.classList.contains('learn-button')
+              || button.classList.contains('advance-button') || button.textContent?.includes('Leave Habitat')) return;
+            if (tutorialStep === 'menu' && window.matchMedia('(pointer:coarse)').matches) {
+              advanceTutorial('menu', 'confirm'); advanceTutorial('confirm', 'resources');
+            } else if (tutorialStep === 'confirm') advanceTutorial('confirm', 'resources');
+          }}>
           <div className="panel-head"><strong>{({ habitat: 'HABITAT', greenhouse: 'GREENHOUSE', solar: 'SOLAR ARRAY', shield: 'RADIATION SHELTER', landingPad: 'LANDING PAD' } as Record<string, string>)[selected]}</strong><button type="button" aria-label={indoors ? 'Exit building' : 'Close building controls'} onClick={() => {
             if (state.astronaut.location === 'habitat') store.dispatch({ type: 'LEAVE_HABITAT' });
             else if (state.astronaut.location === 'greenhouse') store.dispatch({ type: 'LEAVE_GREENHOUSE' });
@@ -419,11 +555,21 @@ function App() {
           {building.condition !== 'good' && <button className="repair-button" type="button" onClick={() => dispatch({ type: 'REPAIR_BUILDING', buildingId: selected }, 'Need energy to repair.')}>Repair {building.type} <small>−{BALANCE.repair.energyCost} energy</small></button>}
           {actionFeedback && <p className="action-feedback" role="alert">{actionFeedback}</p>}
         </aside>}
-        {state.status !== 'playing' && <aside className="result-panel endless-result" aria-label="Mission result"><div className="result-stars" aria-hidden="true">✦ ✧ ✦</div><strong>MISSION ENDED</strong><p>You survived <b>{state.daysSurvived} lunar {state.daysSurvived === 1 ? 'day' : 'days'}!</b></p><div className="result-stats"><span>FINAL SCORE <b>{score.toLocaleString()}</b></span><span>PERSONAL BEST <b>{personalBest.bestDaysSurvived} days</b></span><span>BEST SCORE <b>{personalBest.bestScore.toLocaleString()}</b></span></div>{newRecord && <div className="new-record" role="status">✦ NEW RECORD! ✦</div>}<p className="result-encouragement">Every mission teaches you how to survive a little longer.</p><button type="button" onClick={() => { store.dispatch({ type: 'RESTART_GAME', recordToBeat: highScores.getSnapshot() }); setActionFeedback(''); }}>TRY AGAIN</button></aside>}
+        {state.status !== 'playing' && <aside className="result-panel endless-result" aria-label="Mission result"><div className="result-stars" aria-hidden="true">✦ ✧ ✦</div><strong>MISSION ENDED</strong><p>You survived <b>{state.daysSurvived} lunar {state.daysSurvived === 1 ? 'day' : 'days'}!</b></p><div className="result-stats"><span>FINAL SCORE <b>{score.toLocaleString()}</b></span><span>PERSONAL BEST <b>{personalBest.bestDaysSurvived} days</b></span><span>BEST SCORE <b>{personalBest.bestScore.toLocaleString()}</b></span></div>{newRecord && <div className="new-record" role="status">✦ NEW RECORD! ✦</div>}<p className="result-encouragement">Every mission teaches you how to survive a little longer.</p><button type="button" onClick={() => { startNewGame(); setActionFeedback(''); }}>TRY AGAIN</button></aside>}
         {missionSummary && <aside className="mission-summary" aria-label="Chicken Hunt mission summary"><strong>{missionSummary.success && missionSummary.returnedSafely ? 'SUPPLIES DELIVERED!' : 'MISSION ENDED'}</strong><p>{missionSummary.educationalMessage}</p><p>Food +{missionSummary.collectedResources.food ?? 0} · XP +{missionSummary.xpEarned} · Health −{missionSummary.healthDamage}</p><button type="button" onClick={() => setDismissedMissionRunId(missionSummary.runId)}>Back to Moon Base</button></aside>}
         {learningTopic && <aside className="education-panel" role="dialog" aria-modal="true" aria-label={`${EDUCATION[learningTopic].title} learning sign`}><strong>✦ {EDUCATION[learningTopic].title}</strong><p><b>WHAT?</b> {EDUCATION[learningTopic].what}</p><p><b>WHY?</b> {EDUCATION[learningTopic].why}</p><p><b>YOUR MISSION</b> {EDUCATION[learningTopic].mission}</p><button type="button" onClick={closeEducation}>Got it — back to game</button></aside>}
-        {state.paused && !learningTopic && state.status === 'playing' && <aside className="pause-panel" aria-label="Game paused"><strong>PAUSED</strong><p>Take your time. Health and suit oxygen are safe while paused.</p><button type="button" onClick={() => store.dispatch({ type: 'SET_PAUSED', paused: false })}>Resume Mission</button></aside>}
-        {showHelp && <aside className="help-panel"><strong>{state.scene === 'chicken-hunt' ? 'Chicken Hunt' : 'Explore the base'}</strong>{state.scene === 'chicken-hunt' ? <><p>Fly with WASD or arrow keys. Press Space to fire at alien birds and collect food drops.</p><p>Return to base before your ship is damaged. Food is stored when your mission succeeds.</p></> : <><p>Move with WASD or arrow keys. Walk near a building and press E, or click it when close.</p><p>Health slowly falls during active play. Eat stored food at the habitat to recover. Pause when you need a break.</p><p>Survive as many lunar days as you can and beat your best!</p></>}<button type="button" onClick={() => { audioService.play('uiClose'); setShowHelp(false); }}>Got it</button></aside>}
+        {state.paused && !learningTopic && !tutorialPause && state.status === 'playing' && <aside className="pause-panel" aria-label="Game paused"><strong>PAUSED</strong><p>Take your time. Health and suit oxygen are safe while paused.</p><button type="button" onClick={() => store.dispatch({ type: 'SET_PAUSED', paused: false })}>Resume Mission</button></aside>}
+        {showHelp && <aside className="help-panel"><strong>{state.scene === 'chicken-hunt' ? 'Chicken Hunt' : 'Explore the base'}</strong>
+          {state.scene === 'chicken-hunt' ? <><p>Fly with WASD or arrow keys. Press Space to fire at fictional alien birds and collect food drops.</p><p>Return to base before your ship is damaged. Food is stored when your mission succeeds.</p></> : <>
+            <p>Move with WASD, arrows or the touch joystick. Press E or tap Interact near a building.</p>
+            <p>Use ↑/↓ and Enter/E for building choices; Q or touch Exit leaves. Eat stored food at the Habitat to restore HP.</p>
+            <p>Survive as many lunar days as you can. The seven learning signs explain each place.</p>
+            {state.astronaut.location === 'outside' && !emergency && !state.paused && <button type="button" onClick={() => {
+              updateOnboarding(onboardingService.replay()); setShowHelp(false); audioService.play('confirm');
+            }}>Replay Guided Tutorial</button>}
+          </>}
+          <button type="button" onClick={() => { audioService.play('uiClose'); setShowHelp(false); }}>Got it</button>
+        </aside>}
       </div>
       {state.lastDaySummary && state.status === 'playing' && <div className="day-summary" role="status">Day {state.lastDaySummary.day} survived · Food −{state.lastDaySummary.food} · Water −{state.lastDaySummary.water} · Base O₂ −{state.lastDaySummary.oxygen} · Energy −{state.lastDaySummary.energy} / +{state.lastDaySummary.energyProduced} solar{state.lastDaySummary.shieldEnergyUsed > 0 && <> · Shield −{state.lastDaySummary.shieldEnergyUsed}</>}{state.lastDaySummary.warnings.length > 0 && <strong> · {state.lastDaySummary.warnings.join(' ')}</strong>}</div>}
       {state.status === 'playing' && (state.resources.food <= BALANCE.warnings.food || state.astronaut.suitOxygen <= BALANCE.warnings.suitOxygen) && <div className="survival-warning" role="alert">{state.astronaut.suitOxygen <= BALANCE.warnings.suitOxygen ? 'Suit oxygen low! Return to the habitat.' : 'Food is running low! Find supplies soon.'}</div>}

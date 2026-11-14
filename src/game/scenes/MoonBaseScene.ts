@@ -11,6 +11,7 @@ import type { GameSessionStore } from '../../domain/store/GameSessionStore';
 import type { GameState } from '../../domain/models/types';
 import { pendingEarthSupplies } from '../../domain/rules/survivalRules';
 import type { AudioCue } from '../../services/AudioService';
+import type { TutorialStep } from '../../services/OnboardingService';
 
 export class MoonBaseScene extends Phaser.Scene {
   private store: GameSessionStore;
@@ -34,11 +35,15 @@ export class MoonBaseScene extends Phaser.Scene {
   private unsubscribeStore?: () => void;
   private readonly audioCue: (cue: AudioCue) => void;
   private lastFootstepAt = 0;
+  private tutorialMarker?: Phaser.GameObjects.Text;
+  private readonly getTutorialStep: () => TutorialStep | null;
 
-  constructor(store: GameSessionStore, audioCue: (cue: AudioCue) => void = () => {}) {
+  constructor(store: GameSessionStore, audioCue: (cue: AudioCue) => void = () => {},
+    getTutorialStep: () => TutorialStep | null = () => null) {
     super('MoonBaseScene');
     this.store = store;
     this.audioCue = audioCue;
+    this.getTutorialStep = getTutorialStep;
   }
 
   create(): void {
@@ -105,6 +110,19 @@ export class MoonBaseScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height);
     this.cameras.main.startFollow(this.astronaut, true, 0.08, 0.08);
     this.cameras.main.setDeadzone(80, 45);
+    this.tutorialMarker = this.add.text(BUILDING_LAYOUT[0].x, BUILDING_LAYOUT[0].y - 93, '▼ HABITAT', {
+      fontFamily: 'monospace', fontSize: '12px', fontStyle: 'bold', color: C.outline,
+      backgroundColor: C.yellow, padding: { x: 6, y: 4 },
+    }).setOrigin(0.5).setDepth(2401);
+    this.tutorialMarker.setResolution(2);
+    this.setTutorialMarker(this.getTutorialStep());
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      this.tweens.add({ targets: this.tutorialMarker, y: this.tutorialMarker.y - 5,
+        duration: 700, yoyo: true, repeat: -1 });
+    const onTutorialStep = (event: Event) => this.setTutorialMarker((event as CustomEvent<TutorialStep | null>).detail);
+    window.addEventListener('lunaquest-tutorial-step', onTutorialStep);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN,
+      () => window.removeEventListener('lunaquest-tutorial-step', onTutorialStep));
     this.drawSkyOverlay();
     this.hazardTint = this.add.rectangle(0, 0, VIEW.width, VIEW.height, 0xff6b48, 0)
       .setOrigin(0).setScrollFactor(0).setDepth(2502).setVisible(false);
@@ -121,6 +139,10 @@ export class MoonBaseScene extends Phaser.Scene {
     this.leakBadge.setResolution(2);
     this.renderEmergency(this.previousState);
     this.showMessage('Walk with WASD or arrows. Visit a building!', 3600);
+  }
+
+  private setTutorialMarker(step: TutorialStep | null): void {
+    this.tutorialMarker?.setVisible(step === 'habitat' || step === 'enter');
   }
 
   private drawWorld(): void {

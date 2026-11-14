@@ -1,9 +1,11 @@
 import { chromium } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
+import { useExistingPlayer } from './legacyProfile.mjs';
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
 const page = await context.newPage();
+await useExistingPlayer(page);
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
 const url = process.env.LUNAQUEST_URL ?? 'http://127.0.0.1:5174/';
@@ -19,14 +21,18 @@ try {
   await page.evaluate(() => window.__lunaquestGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
   await page.waitForTimeout(180);
   await page.keyboard.press('e');
-  await page.getByRole('button', { name: 'Enter Habitat' }).click();
   await page.getByRole('button', { name: /Advance Day/ }).click();
   await page.evaluate(() => {
     for (let i = 0; i < 36; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
   });
   await page.getByRole('button', { name: /Advance Day/ }).click();
   await page.getByRole('button', { name: /Repair habitat/ }).click();
-  for (let n = 3; n <= 6; n++) await page.getByRole('button', { name: /Advance Day/ }).click();
+  for (let n = 3; n <= 6; n++) {
+    await page.evaluate(() => {
+      for (let i = 0; i < 36; i++) window.__lunaquestStore.dispatch({ type: 'TICK', deltaSeconds: 1 });
+    });
+    await page.getByRole('button', { name: /Advance Day/ }).click();
+  }
   const playing = await state();
   assert(playing.status === 'playing' && playing.daysSurvived === 6 && playing.day === 7, 'Day-six run did not remain active');
   const expectedScore = 6000 + Math.min(999, playing.xp);
