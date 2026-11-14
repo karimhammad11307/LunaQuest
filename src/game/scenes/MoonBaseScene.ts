@@ -10,6 +10,7 @@ import { EarthSupplyPod } from '../entities/EarthSupplyPod';
 import type { GameSessionStore } from '../../domain/store/GameSessionStore';
 import type { GameState } from '../../domain/models/types';
 import { pendingEarthSupplies } from '../../domain/rules/survivalRules';
+import type { AudioCue } from '../../services/AudioService';
 
 export class MoonBaseScene extends Phaser.Scene {
   private store: GameSessionStore;
@@ -31,10 +32,13 @@ export class MoonBaseScene extends Phaser.Scene {
   private hazardBadge!: Phaser.GameObjects.Text;
   private leakBadge!: Phaser.GameObjects.Text;
   private unsubscribeStore?: () => void;
+  private readonly audioCue: (cue: AudioCue) => void;
+  private lastFootstepAt = 0;
 
-  constructor(store: GameSessionStore) {
+  constructor(store: GameSessionStore, audioCue: (cue: AudioCue) => void = () => {}) {
     super('MoonBaseScene');
     this.store = store;
+    this.audioCue = audioCue;
   }
 
   create(): void {
@@ -225,7 +229,7 @@ export class MoonBaseScene extends Phaser.Scene {
     const x = pod.x;
     const y = pod.y;
     const after = this.store.dispatch({ type: 'COLLECT_EARTH_SUPPLY', deliveryId: pod.delivery.id });
-    if (after === before) { this.showMessage('Water tank needs 25 free units, or move closer!'); return; }
+    if (after === before) { this.audioCue('invalid'); this.showMessage('Water tank needs 25 free units, or move closer!'); return; }
     this.showMessage(after.notices.at(-1)?.text ?? 'Earth supplies collected!');
     this.floatAt(x, y - 36, `+${BALANCE.earthSupply.waterPerPod} WATER`, '#4EDCE5');
     this.cameras.main.flash(180, 78, 220, 229, false);
@@ -388,7 +392,14 @@ export class MoonBaseScene extends Phaser.Scene {
       this.survivalTime = 0;
     }
     this.previousStatus = state.status;
-    if (simulationActive && state.astronaut.location === 'outside' && !state.selectedBuildingId) this.astronaut.updateMovement();
+    if (simulationActive && state.astronaut.location === 'outside' && !state.selectedBuildingId) {
+      this.astronaut.updateMovement();
+      const velocity = (this.astronaut.body as Phaser.Physics.Arcade.Body).velocity;
+      if ((velocity.x !== 0 || velocity.y !== 0) && time - this.lastFootstepAt >= 320) {
+        this.audioCue('footstep');
+        this.lastFootstepAt = time;
+      }
+    }
     else this.astronaut.stopMovement();
     if (simulationActive) {
       this.survivalTime += Math.min(delta, 250);

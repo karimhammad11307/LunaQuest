@@ -129,6 +129,10 @@ export interface CombatCallbacks {
   onEnemyDestroyed: (x: number, y: number, variant: BirdVariant) => void;
   /** Fired when the ship's health reaches 0. */
   onShipDestroyed: (totalDamage: number) => void;
+  /** Optional presentation hooks; combat rules never depend on audio. */
+  onLaserFired?: () => void;
+  onEnemyHit?: () => void;
+  onShipHit?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -306,6 +310,7 @@ export class ChickenHuntCombat {
       body.enable = true;
       body.setVelocityY(COMBAT_CONFIG.laserSpeedY);
     }
+    this.callbacks.onLaserFired?.();
   }
 
   /**
@@ -426,6 +431,7 @@ export class ChickenHuntCombat {
         if (!bird || !bird.isAlive) return;
 
         const destroyed = bird.takeDamage(1);
+        this.callbacks.onEnemyHit?.();
         if (destroyed) {
           this.callbacks.onEnemyDestroyed(birdSprite.x, birdSprite.y, bird.currentVariant);
         }
@@ -445,7 +451,9 @@ export class ChickenHuntCombat {
         if (!bird || !bird.isAlive) return;
 
         // Apply damage to ship (ship handles invulnerability internally)
+        const healthBefore = this.ship.getHealth();
         this.ship.takeDamage(COMBAT_CONFIG.contactDamage);
+        if (this.ship.getHealth() < healthBefore) this.callbacks.onShipHit?.();
 
         // Deactivate the bird on contact (it "flies through" the ship)
         bird.deactivate();

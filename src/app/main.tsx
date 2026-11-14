@@ -16,20 +16,36 @@ import { SaveService } from '../services/SaveService';
 import { HighScoreService } from '../services/HighScoreService';
 import { createInitialState } from '../domain/rules/survivalRules';
 import { beatsPersonalBest, survivalScore } from '../domain/rules/scoreRules';
+import { AudioService, type AudioPreferences } from '../services/AudioService';
 import './style.css';
 
+const audioService = new AudioService();
 const highScores = new HighScoreService();
 const store = new GameSessionStore(createInitialState(highScores.getSnapshot()));
 const weatherService = new NASAWeatherService({ apiKey: import.meta.env.VITE_NASA_API_KEY });
 const saveService = new SaveService();
 const savedAtStartup = saveService.load();
 
-function Meter({ label, icon, value, color, low = false, ariaLabel }: { label: string; icon: string; value: number; color: string; low?: boolean; ariaLabel?: string }) {
-  return <div className={`meter${low ? ' meter-low' : ''}`} aria-label={`${ariaLabel ?? label}: ${Math.round(value)} of 100 game units`}>
+function Meter({ label, icon, value, color, low = false, flash = false, ariaLabel }: { label: string; icon: string; value: number; color: string; low?: boolean; flash?: boolean; ariaLabel?: string }) {
+  return <div className={`meter${low ? ' meter-low' : ''}${flash ? ' meter-launch-flash' : ''}`} aria-label={`${ariaLabel ?? label}: ${Math.round(value)} of 100 game units`}>
     <span className="meter-icon" aria-hidden="true">{icon}</span>
     <span className="meter-data"><span className="meter-label">{label}</span><span className="meter-track"><span style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color }} /></span></span>
     <strong>{Math.round(value)}</strong>
   </div>;
+}
+
+function AudioSettingsPanel({ preferences, onClose, inGate = false }: { preferences: AudioPreferences; onClose: () => void; inGate?: boolean }) {
+  const set = (changes: Partial<AudioPreferences>) => { audioService.setPreferences(changes); audioService.play('confirm'); };
+  return <aside className={`audio-panel${inGate ? ' audio-panel-gate' : ''}`} role="dialog" aria-label="Audio settings">
+    <div className="panel-head"><strong>♫ AUDIO SETTINGS</strong><button type="button" aria-label="Close audio settings" onClick={() => { audioService.play('uiClose'); onClose(); }}>×</button></div>
+    <p>Original Moonbound chiptune music and game sounds.</p>
+    <button type="button" aria-pressed={preferences.muted} className={preferences.muted ? 'audio-off' : ''} onClick={() => set({ muted: !preferences.muted })}>{preferences.muted ? 'UNMUTE ALL' : 'MUTE ALL'}</button>
+    <button type="button" aria-pressed={preferences.musicEnabled} onClick={() => set({ musicEnabled: !preferences.musicEnabled })}>MUSIC {preferences.musicEnabled ? 'ON' : 'OFF'}</button>
+    <label>Music Volume <output>{Math.round(preferences.musicVolume * 100)}%</output><input type="range" min="0" max="100" value={Math.round(preferences.musicVolume * 100)} onChange={(event) => audioService.setPreferences({ musicVolume: Number(event.target.value) / 100 })} /></label>
+    <button type="button" aria-pressed={preferences.sfxEnabled} onClick={() => set({ sfxEnabled: !preferences.sfxEnabled })}>SOUND EFFECTS {preferences.sfxEnabled ? 'ON' : 'OFF'}</button>
+    <label>Sound Effects Volume <output>{Math.round(preferences.sfxVolume * 100)}%</output><input type="range" min="0" max="100" value={Math.round(preferences.sfxVolume * 100)} onChange={(event) => audioService.setPreferences({ sfxVolume: Number(event.target.value) / 100 })} /></label>
+    <small>Settings stay saved in this browser. Sound begins after your first click or key press.</small>
+  </aside>;
 }
 
 function GameContainer({ sceneId, runId, paused }: { sceneId: GameSceneId; runId: string | null; paused: boolean }) {
@@ -42,7 +58,7 @@ function GameContainer({ sceneId, runId, paused }: { sceneId: GameSceneId; runId
       render: { antialias: false },
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: VIEW.width, height: VIEW.height },
       physics: { default: 'arcade', arcade: { debug: false } },
-      scene: [new BootScene(), new MoonBaseScene(store), new ChickenHuntScene()],
+      scene: [new BootScene(), new MoonBaseScene(store, (cue) => audioService.play(cue)), new ChickenHuntScene()],
     });
     gameRef.current = game;
     if (import.meta.env.DEV) Object.assign(window, { __moonboundGame: game, __moonboundStore: store });
@@ -59,7 +75,8 @@ function GameContainer({ sceneId, runId, paused }: { sceneId: GameSceneId; runId
       if (launchedRunId.current !== runId) {
         launchedRunId.current = runId;
         game.scene.stop('MoonBaseScene');
-        game.scene.start('ChickenHuntScene', { runId, difficulty: 1, dispatch: store.dispatch });
+        game.scene.start('ChickenHuntScene', { runId, difficulty: 1, dispatch: store.dispatch,
+          onAudioCue: (cue: import('../services/AudioService').AudioCue) => audioService.play(cue) });
       }
       if (paused) game.scene.pause('ChickenHuntScene');
       else if (game.scene.isPaused('ChickenHuntScene')) game.scene.resume('ChickenHuntScene');
@@ -75,6 +92,7 @@ function GameContainer({ sceneId, runId, paused }: { sceneId: GameSceneId; runId
 function App() {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const personalBest = useSyncExternalStore(highScores.subscribe, highScores.getSnapshot);
+  const audioPreferences = useSyncExternalStore(audioService.subscribe, audioService.getSnapshot);
   const [sessionReady, setSessionReady] = useState(!savedAtStartup);
   const [confirmNewGame, setConfirmNewGame] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -83,13 +101,47 @@ function App() {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [dismissedMissionRunId, setDismissedMissionRunId] = useState<string | null>(null);
   const [learningTopic, setLearningTopic] = useState<EducationId | null>(null);
+  const [showAudio, setShowAudio] = useState(false);
+  const [launchFeedback, setLaunchFeedback] = useState<{ before: number; after: number; cost: number } | null>(null);
   const weatherRequest = useRef(0);
+  useEffect(() => {
+    const unlock = () => { void audioService.unlock(); };
+    const visibility = () => audioService.setHidden(document.hidden);
+    window.addEventListener('pointerdown', unlock, { passive: true });
+    window.addEventListener('keydown', unlock);
+    document.addEventListener('visibilitychange', visibility);
+    if (import.meta.env.DEV) Object.assign(window, { __moonboundAudio: audioService });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      document.removeEventListener('visibilitychange', visibility);
+      if (import.meta.env.DEV) Object.assign(window, { __moonboundAudio: undefined });
+      audioService.dispose();
+    };
+  }, []);
   useEffect(() => {
     if (!sessionReady) return;
     const detach = saveService.attach(store);
     const detachRecord = highScores.attach(store);
+    const detachAudio = audioService.attach(store);
     saveService.save(store.getState());
-    return () => { detachRecord(); detach(); };
+    return () => { detachAudio(); detachRecord(); detach(); };
+  }, [sessionReady]);
+  useEffect(() => {
+    if (!sessionReady) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = store.subscribeTransitions((next, action) => {
+      if (action.type === 'START_MISSION') {
+        const cost = MISSION_CONFIG[action.mission].energyCost;
+        setLaunchFeedback({ before: next.resources.energy + cost, after: next.resources.energy, cost });
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => setLaunchFeedback(null), 4500);
+      } else if (action.type === 'COMPLETE_MISSION' || action.type === 'RESTART_GAME') {
+        setLaunchFeedback(null);
+        if (timer) clearTimeout(timer);
+      }
+    });
+    return () => { unsubscribe(); if (timer) clearTimeout(timer); };
   }, [sessionReady]);
   const notice = state.notices.at(-1)?.text ?? '';
   const selected = state.selectedBuildingId;
@@ -102,6 +154,7 @@ function App() {
   const openEducation = (topic: EducationId) => {
     const current = store.getState();
     if (current.status !== 'playing' || current.paused || current.scene !== 'moon-base') return;
+    audioService.play('uiOpen');
     if (current.selectedBuildingId) store.dispatch({ type: 'CLOSE_BUILDING' });
     store.dispatch({ type: 'SET_PAUSED', paused: true });
     setLearningTopic(topic);
@@ -109,6 +162,7 @@ function App() {
   const closeEducation = () => {
     setLearningTopic(null);
     store.dispatch({ type: 'SET_PAUSED', paused: false });
+    audioService.play('uiClose');
   };
   useEffect(() => {
     const onOpen = (event: Event) => openEducation((event as CustomEvent<EducationId>).detail);
@@ -134,13 +188,15 @@ function App() {
     const before = store.getState();
     const after = store.dispatch(action);
     setActionFeedback(after === before ? rejected : '');
+    if (after === before) audioService.play('invalid');
   };
   useEffect(() => {
     const onEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (!sessionReady) return;
       const current = store.getState();
-      if (learningTopic) closeEducation();
+      if (showAudio) { audioService.play('uiClose'); setShowAudio(false); }
+      else if (learningTopic) closeEducation();
       else if (showHelp) setShowHelp(false);
       else if (current.paused) store.dispatch({ type: 'SET_PAUSED', paused: false });
       else if (current.selectedBuildingId) { store.dispatch({ type: 'CLOSE_BUILDING' }); setActionFeedback(''); }
@@ -148,7 +204,7 @@ function App() {
     };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
-  }, [showHelp, sessionReady, learningTopic]);
+  }, [showHelp, showAudio, sessionReady, learningTopic]);
   const virtualInput = (direction: string | null) => window.dispatchEvent(new CustomEvent('moonbound-input', { detail: direction }));
   const startNewGame = () => {
     saveService.clear();
@@ -162,28 +218,31 @@ function App() {
     store.dispatch({ type: 'LOAD_GAME', state: restored });
     setSessionReady(true);
   };
-  if (!sessionReady) return <main className="app-shell"><div className="game-frame"><header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div></header><div className="save-start"><div className="save-start-panel"><strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong><p>Survive as many lunar days as you can!</p><p>Saved run: {savedAtStartup?.daysSurvived} days · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p><p>Personal best: {personalBest.bestDaysSurvived} days · {personalBest.bestScore.toLocaleString()} points</p>{confirmNewGame ? <><p>Your saved progress will be replaced. Your record stays safe.</p><button type="button" onClick={startNewGame}>Replace Save &amp; Start</button><button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></> : <><p>Your Moon Base is waiting.</p><button type="button" onClick={continueGame}>{savedAtStartup?.status === 'playing' ? 'Continue Game' : 'View Last Result'}</button><button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button><small>New Game replaces this saved run, not your record.</small></>}</div></div></div></main>;
+  if (!sessionReady) return <main className="app-shell"><div className="game-frame"><header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div></header><div className="save-start"><div className="save-start-panel"><strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong><p>Survive as many lunar days as you can!</p><p>Saved run: {savedAtStartup?.daysSurvived} days · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p><p>Personal best: {personalBest.bestDaysSurvived} days · {personalBest.bestScore.toLocaleString()} points</p>{confirmNewGame ? <><p>Your saved progress will be replaced. Your record stays safe.</p><button type="button" onClick={startNewGame}>Replace Save &amp; Start</button><button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></> : <><p>Your Moon Base is waiting.</p><button type="button" onClick={continueGame}>{savedAtStartup?.status === 'playing' ? 'Continue Game' : 'View Last Result'}</button><button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button><small>New Game replaces this saved run, not your record.</small></>}<button className="audio-gate-button" type="button" onClick={() => { audioService.play('uiOpen'); setShowAudio(!showAudio); }}>♫ Audio Settings</button>{showAudio && <AudioSettingsPanel preferences={audioPreferences} onClose={() => setShowAudio(false)} inGate />}</div></div></div></main>;
   return (
     <main className="app-shell"><div className="game-frame">
       <header className="masthead">
         <div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div>
         <div className="mission-day"><span>LUNAR DAY</span><strong>{state.day}</strong></div>
         <span className="xp-counter" aria-label={`${state.xp} experience points`}>XP {state.xp}</span>
+        <button className="audio-settings-button" type="button" aria-label="Audio settings" aria-expanded={showAudio} onClick={() => { audioService.play('uiOpen'); setShowAudio(!showAudio); }}>♫ <span>Audio</span>{audioPreferences.muted ? ' OFF' : ''}</button>
         <button className="pause-button" type="button" disabled={state.status !== 'playing' || !!learningTopic} onClick={() => { store.dispatch({ type: 'SET_PAUSED', paused: !state.paused }); setShowHelp(false); }}>{state.paused ? 'Resume' : 'Pause'}</button>
-        <button className="help-button" type="button" disabled={!!learningTopic} onClick={() => setShowHelp(!showHelp)} aria-expanded={showHelp}>? <span>How to play</span></button>
+        <button className="help-button" type="button" disabled={!!learningTopic} onClick={() => { audioService.play(showHelp ? 'uiClose' : 'uiOpen'); setShowHelp(!showHelp); }} aria-expanded={showHelp}>? <span>How to play</span></button>
       </header>
       <div className="hud" aria-label="Colony supplies and astronaut health">
         <Meter label="Food" icon="▣" value={state.resources.food} color="#FFD75E" low={state.resources.food <= BALANCE.warnings.food} />
         <Meter label="Water" icon="◆" value={state.resources.water} color="#4EDCE5" low={state.resources.water <= BALANCE.warnings.water} />
         <Meter label="Base O₂" ariaLabel="Oxygen" icon="◉" value={state.resources.oxygen} color="#80E5A0" low={state.resources.oxygen <= BALANCE.warnings.oxygen} />
         <Meter label="Suit O₂" icon="◉" value={state.astronaut.suitOxygen} color="#4EDCE5" low={state.astronaut.suitOxygen <= BALANCE.warnings.suitOxygen} />
-        <Meter label="Energy" icon="ϟ" value={state.resources.energy} color="#B9A7F5" low={state.resources.energy <= BALANCE.warnings.energy} />
+        <Meter label="Energy" icon="ϟ" value={state.resources.energy} color="#B9A7F5" low={state.resources.energy <= BALANCE.warnings.energy} flash={!!launchFeedback} />
         <Meter label="Health" icon="✚" value={state.astronaut.health} color="#FF6B81" low={state.astronaut.health <= BALANCE.warnings.health} />
       </div>
       <div className="score-strip" aria-label="Endless survival progress"><strong>Survive as many lunar days as you can!</strong><span>Survived {state.daysSurvived} days</span><span>Score {score.toLocaleString()}</span><span>Best {personalBest.bestDaysSurvived} days</span><span>Top {personalBest.bestScore.toLocaleString()}</span></div>
       <div className="canvas-wrap"><GameContainer sceneId={state.scene} runId={state.activeMissionRunId} paused={state.paused} />
+        {launchFeedback && state.scene === 'chicken-hunt' && <div className="launch-cost-banner" role="status">LAUNCH −{launchFeedback.cost} ENERGY · {launchFeedback.before} → {launchFeedback.after}</div>}
+        {showAudio && <AudioSettingsPanel preferences={audioPreferences} onClose={() => setShowAudio(false)} />}
         {showWeather && <aside className="weather-panel" aria-label="NASA space weather information">
-          <div className="panel-head"><strong>☀ SPACE WEATHER</strong><button type="button" aria-label="Close space weather" onClick={() => setShowWeather(false)}>×</button></div>
+          <div className="panel-head"><strong>☀ SPACE WEATHER</strong><button type="button" aria-label="Close space weather" onClick={() => { audioService.play('uiClose'); setShowWeather(false); }}>×</button></div>
           <p className="weather-source">{state.weather.source === 'live' ? '● LIVE · NASA DONKI' : state.weather.source === 'cached' ? '◌ CACHED · NASA DONKI' : '◇ DEMO · HISTORICAL EXAMPLE'}</p>
           <p className="weather-message">{state.weather.label}</p>
           <p><b>NASA Observation:</b> {state.weather.source === 'demo' ? 'Historical training example' : state.weather.latestEventType ? ({ FLR: 'Solar flare', CME: 'Coronal mass ejection', SEP: 'Solar energetic particles', notification: 'Space weather notice' } as const)[state.weather.latestEventType] : 'No recent record in this query'}</p>
@@ -235,7 +294,7 @@ function App() {
           </>}
           {selected === 'solar' && <><p>Stored energy: {Math.round(state.resources.energy)} / 100</p><p className="production-status">Next day: +{solarYieldForDay(building)} energy in simplified daylight.</p><p>Last day: +{state.lastDaySummary?.energyProduced ?? 0} energy stored.</p><p className="science-note">Damaged panels make less power; broken panels make none. Battery capacity is 100.</p></>}
           {selected === 'shield' && <><p>{state.astronaut.location === 'shelter' ? 'Protected inside the shelter.' : 'A safe place during outside hazards.'}</p><p className="shield-status">SHIELD: {building.active && state.resources.energy > 0 ? 'ACTIVE' : 'OFF'}</p><button type="button" onClick={() => dispatch({ type: 'ACTIVATE_SHIELD', active: !building.active }, 'Not enough energy or shield needs repair!')}>{building.active ? 'Switch Shield Off' : 'Activate Shield'} <small>{building.active ? 'no energy refund' : `−${BALANCE.shield.activationEnergy} energy · −${BALANCE.shield.dailyEnergyUpkeep} per day`}</small></button>{state.astronaut.location === 'shelter' ? <button type="button" onClick={() => dispatch({ type: 'LEAVE_SHELTER' }, 'Already outside.')}>Leave Shelter</button> : <button type="button" onClick={() => dispatch({ type: 'ENTER_SHELTER' }, 'Move closer to the shelter.')}>Enter Shelter</button>}<p className="science-note">Shelter and the powered shield protect against simulated radiation. The shield covers the nearby base only.</p></>}
-          {selected === 'landingPad' && <><p>Fly Chicken Hunt to collect food for the colony.</p><button type="button" onClick={() => openEducation('chickenHunt')}>Learn: Chicken Hunt <small>Fictional arcade training</small></button><button className="mission-launch-button" type="button" onClick={() => dispatch({ type: 'START_MISSION', mission: 'chicken-hunt', runId: `chicken-${crypto.randomUUID()}` }, 'Need energy or finish the emergency first.')}>Launch Chicken Hunt <small>−{MISSION_CONFIG['chicken-hunt'].energyCost} energy · WASD / arrows to fly · Space to fire</small></button><p>{pendingEarthSupplies(state).length ? `${pendingEarthSupplies(state).length} Earth water pod${pendingEarthSupplies(state).length > 1 ? 's' : ''} waiting west of the pad.` : state.day < 4 ? `Next Earth water delivery: Day ${state.day < 2 ? 2 : 4}.` : 'All scheduled Earth deliveries have arrived.'}</p><button type="button" onClick={() => openEducation('earthSupply')}>Learn: Earth Water Supply</button><p className="science-note">Food is banked only after a safe, successful return. Eat it at the habitat to restore HP.</p></>}
+          {selected === 'landingPad' && <><p>Fly Chicken Hunt to collect food for the colony.</p><button type="button" onClick={() => openEducation('chickenHunt')}>Learn: Chicken Hunt <small>Fictional arcade training</small></button><p className="launch-preview">ENERGY {Math.round(state.resources.energy)} → {Math.max(0, Math.round(state.resources.energy - MISSION_CONFIG['chicken-hunt'].energyCost))} · Cost {MISSION_CONFIG['chicken-hunt'].energyCost}</p><button className="mission-launch-button" type="button" onClick={() => dispatch({ type: 'START_MISSION', mission: 'chicken-hunt', runId: `chicken-${crypto.randomUUID()}` }, store.getState().resources.energy < MISSION_CONFIG['chicken-hunt'].energyCost ? 'Not enough energy to launch!' : 'Finish the emergency before launching.')}>Launch Chicken Hunt <small>−{MISSION_CONFIG['chicken-hunt'].energyCost} energy · WASD / arrows to fly · Space to fire</small></button><p>{pendingEarthSupplies(state).length ? `${pendingEarthSupplies(state).length} Earth water pod${pendingEarthSupplies(state).length > 1 ? 's' : ''} waiting west of the pad.` : state.day < 4 ? `Next Earth water delivery: Day ${state.day < 2 ? 2 : 4}.` : 'All scheduled Earth deliveries have arrived.'}</p><button type="button" onClick={() => openEducation('earthSupply')}>Learn: Earth Water Supply</button><p className="science-note">Food is banked only after a safe, successful return. Eat it at the habitat to restore HP.</p></>}
           {building.condition !== 'good' && <button className="repair-button" type="button" onClick={() => dispatch({ type: 'REPAIR_BUILDING', buildingId: selected }, 'Need energy to repair.')}>Repair {building.type} <small>−{BALANCE.repair.energyCost} energy</small></button>}
           {actionFeedback && <p className="action-feedback" role="alert">{actionFeedback}</p>}
         </aside>}
@@ -243,7 +302,7 @@ function App() {
         {missionSummary && <aside className="mission-summary" aria-label="Chicken Hunt mission summary"><strong>{missionSummary.success && missionSummary.returnedSafely ? 'SUPPLIES DELIVERED!' : 'MISSION ENDED'}</strong><p>{missionSummary.educationalMessage}</p><p>Food +{missionSummary.collectedResources.food ?? 0} · XP +{missionSummary.xpEarned} · Health −{missionSummary.healthDamage}</p><button type="button" onClick={() => setDismissedMissionRunId(missionSummary.runId)}>Back to Moon Base</button></aside>}
         {learningTopic && <aside className="education-panel" role="dialog" aria-modal="true" aria-label={`${EDUCATION[learningTopic].title} learning sign`}><strong>✦ {EDUCATION[learningTopic].title}</strong><p><b>WHAT?</b> {EDUCATION[learningTopic].what}</p><p><b>WHY?</b> {EDUCATION[learningTopic].why}</p><p><b>YOUR MISSION</b> {EDUCATION[learningTopic].mission}</p><button type="button" onClick={closeEducation}>Got it — back to game</button></aside>}
         {state.paused && !learningTopic && state.status === 'playing' && <aside className="pause-panel" aria-label="Game paused"><strong>PAUSED</strong><p>Take your time. Health and suit oxygen are safe while paused.</p><button type="button" onClick={() => store.dispatch({ type: 'SET_PAUSED', paused: false })}>Resume Mission</button></aside>}
-        {showHelp && <aside className="help-panel"><strong>{state.scene === 'chicken-hunt' ? 'Chicken Hunt' : 'Explore the base'}</strong>{state.scene === 'chicken-hunt' ? <><p>Fly with WASD or arrow keys. Press Space to fire at alien birds and collect food drops.</p><p>Return to base before your ship is damaged. Food is stored when your mission succeeds.</p></> : <><p>Move with WASD or arrow keys. Walk near a building and press E, or click it when close.</p><p>Health slowly falls during active play. Eat stored food at the habitat to recover. Pause when you need a break.</p><p>Survive as many lunar days as you can and beat your best!</p></>}<button type="button" onClick={() => setShowHelp(false)}>Got it</button></aside>}
+        {showHelp && <aside className="help-panel"><strong>{state.scene === 'chicken-hunt' ? 'Chicken Hunt' : 'Explore the base'}</strong>{state.scene === 'chicken-hunt' ? <><p>Fly with WASD or arrow keys. Press Space to fire at alien birds and collect food drops.</p><p>Return to base before your ship is damaged. Food is stored when your mission succeeds.</p></> : <><p>Move with WASD or arrow keys. Walk near a building and press E, or click it when close.</p><p>Health slowly falls during active play. Eat stored food at the habitat to recover. Pause when you need a break.</p><p>Survive as many lunar days as you can and beat your best!</p></>}<button type="button" onClick={() => { audioService.play('uiClose'); setShowHelp(false); }}>Got it</button></aside>}
       </div>
       {state.lastDaySummary && state.status === 'playing' && <div className="day-summary" role="status">Day {state.lastDaySummary.day} survived · Food −{state.lastDaySummary.food} · Water −{state.lastDaySummary.water} · Base O₂ −{state.lastDaySummary.oxygen} · Energy −{state.lastDaySummary.energy} / +{state.lastDaySummary.energyProduced} solar{state.lastDaySummary.shieldEnergyUsed > 0 && <> · Shield −{state.lastDaySummary.shieldEnergyUsed}</>}{state.lastDaySummary.warnings.length > 0 && <strong> · {state.lastDaySummary.warnings.join(' ')}</strong>}</div>}
       {state.status === 'playing' && (state.resources.food <= BALANCE.warnings.food || state.astronaut.suitOxygen <= BALANCE.warnings.suitOxygen) && <div className="survival-warning" role="alert">{state.astronaut.suitOxygen <= BALANCE.warnings.suitOxygen ? 'Suit oxygen low! Return to the habitat.' : 'Food is running low! Find supplies soon.'}</div>}
@@ -253,7 +312,7 @@ function App() {
         </div>
         <button className="touch-action" type="button" onClick={() => virtualInput('interact')}>Interact</button>
       </div>
-      <footer className="status-strip"><span className="status-pip" /><span role="status" aria-live="polite">{notice}</span><button className="weather-toggle" type="button" onClick={() => setShowWeather(!showWeather)} aria-expanded={showWeather}>☀ Space Weather</button><span className="status-hint">{state.scene === 'chicken-hunt' ? 'WASD / arrows to fly · Space to fire' : 'WASD / arrows to move · E to interact'}</span></footer>
+      <footer className="status-strip"><span className="status-pip" /><span role="status" aria-live="polite">{notice}</span><button className="weather-toggle" type="button" onClick={() => { audioService.play(showWeather ? 'uiClose' : 'uiOpen'); setShowWeather(!showWeather); }} aria-expanded={showWeather}>☀ Space Weather</button><span className="status-hint">{state.scene === 'chicken-hunt' ? 'WASD / arrows to fly · Space to fire' : 'WASD / arrows to move · E to interact'}</span></footer>
     </div><p className="demo-note">Illustrative game units and simulated hazards, not NASA measurements or a local radiation forecast. Solar output assumes a simplified illuminated workday.</p>
     </main>
   );

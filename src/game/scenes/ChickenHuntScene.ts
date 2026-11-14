@@ -37,6 +37,7 @@ import { Collectible, COLLECTIBLE_CONFIG } from '../entities/Collectible';
 import { PALETTE } from '../config/palette';
 import type { MissionResult } from '../../domain/models/types';
 import type { GameAction } from '../../domain/models/GameAction';
+import type { AudioCue } from '../../services/AudioService';
 
 // ---------------------------------------------------------------------------
 // Scene launch data passed by Dev A's coordinator (read-only)
@@ -46,6 +47,7 @@ export interface ChickenHuntLaunchData {
   runId: string;
   difficulty?: number;
   dispatch: (action: GameAction) => void;
+  onAudioCue?: (cue: AudioCue) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -110,6 +112,7 @@ export class ChickenHuntScene extends Phaser.Scene {
   // ---- Race condition guard ----
   private hasEmittedResult = false;
   private isShuttingDown = false;
+  private lastThrusterCueAt = 0;
 
   constructor() {
     super({ key: ChickenHuntScene.SCENE_KEY });
@@ -131,6 +134,7 @@ export class ChickenHuntScene extends Phaser.Scene {
     this.missionSeconds = 0;
     this.localFoodCollected = 0;
     this.totalDamageTaken = 0;
+    this.lastThrusterCueAt = 0;
 
     if (!data || typeof data !== 'object') {
       this.launchData = {
@@ -148,6 +152,7 @@ export class ChickenHuntScene extends Phaser.Scene {
       dispatch: typeof d.dispatch === 'function'
         ? d.dispatch
         : (action) => console.warn('[ChickenHuntScene] No-op dispatch:', action),
+      onAudioCue: typeof d.onAudioCue === 'function' ? d.onAudioCue : undefined,
     };
   }
 
@@ -180,6 +185,9 @@ export class ChickenHuntScene extends Phaser.Scene {
     const combatCallbacks: CombatCallbacks = {
       onEnemyDestroyed: (x, y, variant) => this.handleEnemyDestroyed(x, y, variant),
       onShipDestroyed:  (dmg) => this.handleShipDestroyed(dmg),
+      onLaserFired: () => this.launchData.onAudioCue?.('laser'),
+      onEnemyHit: () => this.launchData.onAudioCue?.('enemyHit'),
+      onShipHit: () => this.launchData.onAudioCue?.('damage'),
     };
     this.combat = new ChickenHuntCombat(this, this.ship, VIEW_W, VIEW_H, combatCallbacks);
     this.combat.init();
@@ -225,6 +233,11 @@ export class ChickenHuntScene extends Phaser.Scene {
 
     // 3. Player spaceship update
     this.ship?.update(time, delta);
+    const velocity = (this.ship?.sprite.body as Phaser.Physics.Arcade.Body | undefined)?.velocity;
+    if (velocity && (velocity.x !== 0 || velocity.y !== 0) && time - this.lastThrusterCueAt >= 350) {
+      this.launchData.onAudioCue?.('thruster');
+      this.lastThrusterCueAt = time;
+    }
 
     // 4. Combat system update (enemies, lasers, off-screen culling)
     this.combat?.updateFull(time, delta);
@@ -268,6 +281,7 @@ export class ChickenHuntScene extends Phaser.Scene {
 
         const value = collectible.collect();
         if (value > 0) {
+          this.launchData.onAudioCue?.('pickup');
           this.localFoodCollected += value;
           this.updateHUDFood();
           this.showFloatingPickupText(sprite.x, sprite.y, `+${value} FOOD`);
@@ -401,6 +415,7 @@ export class ChickenHuntScene extends Phaser.Scene {
   // =========================================================================
 
   private handleEnemyDestroyed(x: number, y: number, variant: BirdVariant): void {
+    this.launchData.onAudioCue?.('enemyDefeat');
     const foodYield = variant === 'B' ? 2 : 1;
     this.spawnFoodDrop(x, y, foodYield);
     this.showImpactBurst(x, y);
@@ -443,6 +458,7 @@ export class ChickenHuntScene extends Phaser.Scene {
 
     this.missionState = 'COMPLETING';
     this.hasEmittedResult = true;
+    if (reason === 'return-early') this.launchData.onAudioCue?.('return');
 
     // Immediately stop player input and firing
     this.ship?.pause();

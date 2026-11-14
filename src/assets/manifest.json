@@ -7,6 +7,12 @@
   },
   "renderer": "src/game/art/pixelArt.ts",
   "palette": "src/game/config/palette.ts",
+  "audio": {
+    "source": "src/services/WebAudioSynth.ts",
+    "license": "Original procedural music and sound effects authored for Moonbound; redistributable with this repository. No third-party recordings, melodies, samples, or hotlinked assets.",
+    "music": ["Moon Base: original 32-step ambient chiptune", "Chicken Hunt: original 32-step arcade chiptune"],
+    "effects": "Original Web Audio oscillator cues for movement, actions, combat, emergencies, rewards and UI; storm and leak ambience is synthesized at runtime."
+  },
   "logicalResolution": "640x360",
   "textures": [
     { "keys": ["ground-a", "ground-b"], "size": "32x32", "purpose": "Lunar terrain tiles" },

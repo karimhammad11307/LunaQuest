@@ -348,7 +348,7 @@ function reduceGameStateCore(state: GameState, action: GameAction, missions: Mis
         missionProgress: { runId: action.runId, missionType: action.mission, elapsedSeconds: 0, collectedResources: {} },
         lastMissionResult: null,
         selectedBuildingId: null,
-      }, 'Mission launched! Bring supplies home safely.', 'good');
+      }, `Mission launched! −${spec.energyCost} Energy (${state.resources.energy} → ${state.resources.energy - spec.energyCost}). Bring supplies home safely.`, 'good');
     }
     case 'UPDATE_MISSION_PROGRESS': {
       if (!state.missionProgress || action.runId !== state.activeMissionRunId) return state;
