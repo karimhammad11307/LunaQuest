@@ -20,7 +20,8 @@ try {
   await page.waitForLoadState('networkidle');
   await page.waitForFunction(() => window.__moonboundGame?.scene?.getScene('MoonBaseScene')?.sys?.isActive());
   const frame = await page.locator('.game-frame').boundingBox();
-  check(Math.abs(frame.width - 1280) < 8 && Math.abs(frame.height - 900) < 8, 'Game does not fill desktop viewport');
+  check(Math.abs(frame.width - 900) < 8 && Math.abs(frame.x - 190) < 8 && frame.height < 900,
+    'Desktop arcade frame is not compact and centered');
   await page.keyboard.down('d');
   await page.waitForTimeout(260);
   await page.keyboard.up('d');
@@ -97,11 +98,18 @@ try {
   await page.getByRole('button', { name: 'Enter fullscreen' }).click();
   await page.waitForTimeout(250);
   const fullscreenSupported = await page.evaluate(() => !!document.fullscreenElement);
-  if (fullscreenSupported) await page.getByRole('button', { name: 'Exit fullscreen' }).click();
+  if (fullscreenSupported) {
+    const fullFrame = await page.locator('.game-frame').boundingBox();
+    check(Math.abs(fullFrame.width - 1280) < 8, 'Player-controlled fullscreen did not expand the frame');
+    await page.getByRole('button', { name: 'Exit fullscreen' }).click();
+    await page.waitForFunction(() => !document.fullscreenElement);
+  }
   await page.setViewportSize({ width: 960, height: 620 });
   await page.waitForTimeout(250);
   const resized = await page.locator('.game-frame').boundingBox();
-  check(Math.abs(resized.width - 960) < 8 && Math.abs(resized.height - 620) < 8, 'Desktop resize did not refill viewport');
+  check(resized.width < 900 && resized.height <= 620
+    && Math.abs(resized.x + resized.width / 2 - 480) < 8,
+  `Compact desktop frame did not shrink and remain centered after resize: ${JSON.stringify(resized)}`);
 
   const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const mobile = await mobileContext.newPage();
