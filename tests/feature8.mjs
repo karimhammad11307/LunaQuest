@@ -155,7 +155,7 @@ try {
   await page.getByRole('button', { name: /back to game/ }).click();
   await page.setViewportSize({ width: 1280, height: 900 });
 
-  // Begin a full five-day survival run. Day 2 and Day 4 deliver separate pods.
+  // Continue survival through the former five-day limit. Day 2 and Day 4 still deliver pods.
   const goHome = async () => {
     await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(400, 274));
     await page.waitForTimeout(180);
@@ -241,10 +241,13 @@ try {
   await page.waitForFunction(() => window.__moonboundStore.getState().day === 5);
   await page.getByRole('button', { name: /Advance Day/ }).click();
   const final = await state();
-  assert(final.status === 'victory' && final.daysSurvived === 5 && final.resources.water > 0, 'Five-day survival victory failed');
+  assert(final.status === 'playing' && final.daysSurvived === 5 && final.day === 6 && final.resources.water > 0, 'Survival stopped at day five');
+  await page.getByRole('button', { name: /Advance Day/ }).click();
+  assert((await state()).daysSurvived === 6 && (await state()).status === 'playing', 'Day six progression failed');
+  await page.screenshot({ path: 'artifacts/feature8-endless-day7.png', fullPage: true });
+  await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'UPDATE_ASTRONAUT', changes: { health: 0 } }));
   await page.getByRole('complementary', { name: 'Mission result' }).waitFor();
-  await page.screenshot({ path: 'artifacts/feature8-five-day-victory.png', fullPage: true });
-  await page.getByRole('button', { name: 'Restart Mission' }).click();
+  await page.getByRole('button', { name: 'TRY AGAIN' }).click();
   const restarted = await state();
   assert(restarted.collectedEarthSupplyIds.length === 0 && restarted.resources.water === 40 && restarted.completedMissionRunIds.length === 0, 'Restart retained delivery or mission ledger');
   await page.evaluate(() => {
@@ -260,7 +263,7 @@ try {
     'Insufficient-energy mission launch was not rejected atomically');
 
   assert(errors.length === 0, `Browser errors: ${errors.join(' | ')}`);
-  console.log('Feature 8 Chromium flow passed: combat/pickup, success/failure, eating, seven signs, mobile, both supplies, reload/idempotency, emergencies, five-day victory and restart.');
+  console.log('Feature 8 Chromium flow passed: combat/pickup, success/failure, eating, seven signs, mobile, both supplies, reload/idempotency, emergencies, endless day-six progression and restart.');
 } finally {
   await browser.close();
 }

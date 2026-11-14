@@ -5,6 +5,7 @@ import { BUILDING_LAYOUT, EARTH_SUPPLY_DELIVERIES, MISSION_CONFIG, WORLD } from 
 import type { MissionSpec } from '../../game/config/gameConfig';
 import { advanceSurvivalDay, applyEnvironmentalDamage, clamp, createInitialState, tickSurvival, trimNotices } from './survivalRules';
 import { EMERGENCY_CATALOG, repairOxygenLeak, resolveEmergency, tickEmergency, triggerEmergency } from './eventRules';
+import { validPersonalBest } from './scoreRules';
 
 export type MissionCatalog = Record<MissionType, Pick<MissionSpec, 'available' | 'energyCost'>>;
 const resources: ResourceName[] = ['food', 'water', 'oxygen', 'energy'];
@@ -59,8 +60,9 @@ export function validLoadedState(value: unknown): value is GameState {
   if (!value || typeof value !== 'object') return false;
   const state = value as Partial<GameState>;
   const sceneIds = ['title', 'moon-base', 'chicken-hunt', 'ice-collection', 'result'];
-  return numberIn(state.day, 1, BALANCE.dayLimit)
-    && Number.isInteger(state.daysSurvived) && numberIn(state.daysSurvived, 0, BALANCE.dayLimit)
+  return Number.isSafeInteger(state.day) && numberIn(state.day, 1)
+    && Number.isSafeInteger(state.daysSurvived) && numberIn(state.daysSurvived, 0)
+    && validPersonalBest(state.recordToBeat)
     && numberIn(state.timeOfDay, 0, 1)
     && sceneIds.includes(state.scene ?? '')
     && validResourceMap(state.resources)
@@ -141,7 +143,7 @@ export function validLoadedState(value: unknown): value is GameState {
     && typeof state.paused === 'boolean'
     && (state.selectedBuildingId === null || (typeof state.selectedBuildingId === 'string' && !!state.buildings[state.selectedBuildingId]))
     && (state.lastDaySummary === null || (!!state.lastDaySummary && Number.isInteger(state.lastDaySummary.day)
-      && numberIn(state.lastDaySummary.day, 1, BALANCE.dayLimit)
+      && numberIn(state.lastDaySummary.day, 1)
       && resources.every((name) => numberIn(state.lastDaySummary?.[name], 0, 100))
       && numberIn(state.lastDaySummary.energyProduced, 0, 100)
       && numberIn(state.lastDaySummary.shieldEnergyUsed, 0, 100)
@@ -164,7 +166,10 @@ export function reduceGameState(state: GameState, action: GameAction, missions: 
 function reduceGameStateCore(state: GameState, action: GameAction, missions: MissionCatalog): GameState {
   if (!action || typeof action !== 'object' || typeof action.type !== 'string') return state;
   if (action.type === 'LOAD_GAME') return validLoadedState(action.state) ? action.state : state;
-  if (action.type === 'RESTART_GAME') return createInitialState();
+  if (action.type === 'RESTART_GAME') {
+    if (action.recordToBeat !== undefined && !validPersonalBest(action.recordToBeat)) return state;
+    return createInitialState(action.recordToBeat);
+  }
   if (action.type === 'SET_SPACE_WEATHER') {
     const weather = action.weather;
     if (!weather || !['live', 'cached', 'demo'].includes(weather.source)

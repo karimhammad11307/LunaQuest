@@ -27,25 +27,26 @@ state = await page.evaluate(() => window.__moonboundStore.getState());
 if (state.daysSurvived !== 1 || state.resources.food !== 38 || !state.lastDaySummary) throw new Error('Day advancement did not apply costs');
 mkdirSync('artifacts', { recursive: true });
 await page.screenshot({ path: 'artifacts/feature3-habitat.png', fullPage: true });
-// Feature 5 now gates the day loop with two scripted hazards. Resolve them so
-// this earlier regression still checks the five-day survival result.
+// Feature 5 gates the day loop with two scripted hazards. Resolve them before
+// checking that endless survival continues past the former five-day limit.
 await page.evaluate(() => {
   const store = window.__moonboundStore;
   for (let i = 0; i < 36; i++) store.dispatch({ type: 'TICK', deltaSeconds: 1 });
 });
 await page.getByRole('button', { name: 'Advance Day' }).click();
 await page.getByRole('button', { name: /Repair habitat/ }).click();
-for (let i = 2; i < 5; i++) await page.getByRole('button', { name: 'Advance Day' }).click();
-await page.getByText('MISSION COMPLETE!', { exact: true }).waitFor();
+for (let i = 2; i < 6; i++) await page.getByRole('button', { name: 'Advance Day' }).click();
 state = await page.evaluate(() => window.__moonboundStore.getState());
-if (state.status !== 'victory' || state.daysSurvived !== 5) throw new Error('Victory did not follow five complete days');
-await page.screenshot({ path: 'artifacts/feature3-victory.png', fullPage: true });
-await page.getByRole('button', { name: 'Restart Mission' }).click();
+if (state.status !== 'playing' || state.daysSurvived !== 6 || state.day !== 7) throw new Error('Survival stopped at the old day limit');
+await page.screenshot({ path: 'artifacts/feature3-endless-day7.png', fullPage: true });
+await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'UPDATE_ASTRONAUT', changes: { health: 0 } }));
+await page.getByText('MISSION ENDED', { exact: true }).waitFor();
+await page.getByRole('button', { name: 'TRY AGAIN' }).click();
 state = await page.evaluate(() => window.__moonboundStore.getState());
 if (state.status !== 'playing' || state.daysSurvived !== 0 || state.completedMissionRunIds.length || state.resources.food !== 55) throw new Error('Restart did not reset session');
 await page.evaluate(() => window.__moonboundStore.dispatch({ type: 'UPDATE_ASTRONAUT', changes: { health: 0 } }));
-await page.getByText('GAME OVER').waitFor();
-await page.getByRole('button', { name: 'Restart Mission' }).click();
+await page.getByText('MISSION ENDED', { exact: true }).waitFor();
+await page.getByRole('button', { name: 'TRY AGAIN' }).click();
 state = await page.evaluate(() => window.__moonboundStore.getState());
 if (state.status !== 'playing' || state.astronaut.health < 99.5) throw new Error('Defeat/restart failed');
 await page.evaluate(() => window.__moonboundGame.scene.getScene('MoonBaseScene').astronaut.setPosition(608, 371));
@@ -58,5 +59,5 @@ await page.getByRole('button', { name: 'Leave Shelter' }).click();
 state = await page.evaluate(() => window.__moonboundStore.getState());
 if (state.astronaut.location !== 'outside') throw new Error('Shelter did not leave');
 if (errors.length) throw new Error(`Browser errors: ${errors.join(' | ')}`);
-console.log('Feature 3 browser habitat, refill, eat, day costs, victory, defeat, restart and shelter passed.');
+console.log('Feature 3 browser habitat, refill, eat, day costs, endless progression, defeat, restart and shelter passed.');
 await browser.close();

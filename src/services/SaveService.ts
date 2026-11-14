@@ -5,9 +5,11 @@ import { validLoadedState } from '../domain/rules/gameRules';
 import { createInitialState, trimNotices } from '../domain/rules/survivalRules';
 import { BALANCE } from '../game/config/balance';
 import { SPAWN_POINT } from '../game/config/gameConfig';
+import { EMPTY_PERSONAL_BEST } from '../domain/rules/scoreRules';
 
-export const SAVE_KEY = 'moonbound.session.v2';
-export const SAVE_VERSION = 2;
+export const SAVE_KEY = 'moonbound.session.v3';
+export const SAVE_VERSION = 3;
+export const PREVIOUS_SAVE_KEY = 'moonbound.session.v2';
 export const LEGACY_SAVE_KEY = 'moonbound.session.v1';
 const DEFERRED_SAVE_MS = 5000;
 
@@ -60,9 +62,14 @@ export function parseSave(raw: string): GameState | null {
     if (!envelope || typeof envelope !== 'object') return null;
     const candidate = envelope as Partial<SaveEnvelope>;
     if (typeof candidate.savedAt !== 'string' || !Number.isFinite(Date.parse(candidate.savedAt))) return null;
-    // V1 had no Earth cargo ledger. Existing progress migrates with all due pods uncollected.
-    const state = candidate.schemaVersion === 1 && candidate.state && typeof candidate.state === 'object'
-      ? { ...candidate.state, collectedEarthSupplyIds: [] } : candidate.schemaVersion === SAVE_VERSION ? candidate.state : null;
+    // V1 lacked cargo IDs; V1/V2 both lacked the run-start record. Keep all other progress.
+    const state = candidate.state && typeof candidate.state === 'object'
+      ? candidate.schemaVersion === 1
+        ? { ...candidate.state, collectedEarthSupplyIds: [], recordToBeat: { ...EMPTY_PERSONAL_BEST } }
+        : candidate.schemaVersion === 2
+          ? { ...candidate.state, recordToBeat: { ...EMPTY_PERSONAL_BEST } }
+          : candidate.schemaVersion === SAVE_VERSION ? candidate.state : null
+      : null;
     if (!validLoadedState(state)) return null;
     const recovered = recoverSavedState(state);
     return validLoadedState(recovered) ? recovered : null;
@@ -90,8 +97,14 @@ export class SaveService {
 
   load(): GameState | null {
     try {
-      const raw = this.storage?.getItem(SAVE_KEY) ?? this.storage?.getItem(LEGACY_SAVE_KEY);
-      return raw ? parseSave(raw) : null;
+      for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, LEGACY_SAVE_KEY]) {
+        const raw = this.storage?.getItem(key);
+        if (raw) {
+          const state = parseSave(raw);
+          if (state) return state;
+        }
+      }
+      return null;
     } catch { return null; }
   }
 
@@ -100,7 +113,9 @@ export class SaveService {
     try {
       const envelope: SaveEnvelope = { schemaVersion: SAVE_VERSION, savedAt: new Date().toISOString(), state };
       this.storage.setItem(SAVE_KEY, JSON.stringify(envelope));
-      try { this.storage.removeItem(LEGACY_SAVE_KEY); } catch { /* new save is already durable */ }
+      for (const key of [PREVIOUS_SAVE_KEY, LEGACY_SAVE_KEY]) {
+        try { this.storage.removeItem(key); } catch { /* new save is already durable */ }
+      }
       return true;
     } catch { return false; }
   }
@@ -108,8 +123,9 @@ export class SaveService {
   clear(): void {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
-    try { this.storage?.removeItem(SAVE_KEY); this.storage?.removeItem(LEGACY_SAVE_KEY); }
-    catch { /* gameplay continues without storage */ }
+    for (const key of [SAVE_KEY, PREVIOUS_SAVE_KEY, LEGACY_SAVE_KEY]) {
+      try { this.storage?.removeItem(key); } catch { /* gameplay continues without storage */ }
+    }
   }
 
   /** One subscription. High-frequency movement/ticks coalesce into one write per window. */

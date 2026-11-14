@@ -3,7 +3,7 @@ import { GameSessionStore } from '../domain/store/GameSessionStore';
 import { reduceGameState } from '../domain/rules/gameRules';
 import { createInitialState } from '../domain/rules/survivalRules';
 import { BALANCE } from '../game/config/balance';
-import { LEGACY_SAVE_KEY, parseSave, recoverSavedState, SAVE_KEY, SAVE_VERSION, SaveService } from './SaveService';
+import { LEGACY_SAVE_KEY, PREVIOUS_SAVE_KEY, parseSave, recoverSavedState, SAVE_KEY, SAVE_VERSION, SaveService } from './SaveService';
 import type { GameState, MissionResult } from '../domain/models/types';
 
 function memoryStorage() {
@@ -62,20 +62,38 @@ describe('A11 browser save and recovery', () => {
     expect(parseSave(JSON.stringify({ schemaVersion: SAVE_VERSION, savedAt: 'not-a-date', state: initial }))).toBeNull();
   });
 
-  it('migrates a valid V1 save to V2 without erasing progress or creating collected cargo', () => {
+  it('migrates a valid V1 save to V3 without erasing progress or creating collected cargo', () => {
     const storage = memoryStorage();
     const original = createInitialState();
     const legacy = { ...original, day: 3, daysSurvived: 2, xp: 24 };
-    const { collectedEarthSupplyIds: _unused, ...v1State } = legacy;
+    const { collectedEarthSupplyIds: _unused, recordToBeat: _unusedRecord, ...v1State } = legacy;
     storage.values.set(LEGACY_SAVE_KEY, envelope(v1State, 1));
     const service = new SaveService(storage);
     const loaded = service.load()!;
     expect(loaded.day).toBe(3);
     expect(loaded.xp).toBe(24);
     expect(loaded.collectedEarthSupplyIds).toEqual([]);
+    expect(loaded.recordToBeat).toEqual({ bestDaysSurvived: 0, bestScore: 0 });
     expect(service.save(loaded)).toBe(true);
     expect(storage.values.has(SAVE_KEY)).toBe(true);
     expect(storage.values.has(LEGACY_SAVE_KEY)).toBe(false);
+  });
+
+  it('migrates a valid V2 save to V3 with deliveries and survival progress intact', () => {
+    const storage = memoryStorage();
+    const original = createInitialState();
+    const { recordToBeat: _oldRecord, ...v2State } = { ...original, day: 6, daysSurvived: 5,
+      xp: 47, collectedEarthSupplyIds: ['earth-water-day-2'] };
+    storage.values.set(PREVIOUS_SAVE_KEY, envelope(v2State, 2));
+    const service = new SaveService(storage);
+    const loaded = service.load()!;
+    expect(loaded.daysSurvived).toBe(5);
+    expect(loaded.xp).toBe(47);
+    expect(loaded.collectedEarthSupplyIds).toEqual(['earth-water-day-2']);
+    expect(loaded.recordToBeat).toEqual({ bestDaysSurvived: 0, bestScore: 0 });
+    expect(service.save(loaded)).toBe(true);
+    expect(storage.values.has(PREVIOUS_SAVE_KEY)).toBe(false);
+    expect(storage.values.has(SAVE_KEY)).toBe(true);
   });
 
   it('keeps the game playable when storage is unavailable or quota writes fail', () => {
@@ -196,8 +214,8 @@ describe('A11 browser save and recovery', () => {
     const detach = service.attach(store);
     const initial = store.getState();
     const changed = { ...initial, xp: 50, completedMissionRunIds: ['old-run'],
-      completedEventIds: [BALANCE.emergencies.storm.id], status: 'victory' as const, scene: 'result' as const,
-      daysSurvived: BALANCE.dayLimit, day: BALANCE.dayLimit };
+      completedEventIds: [BALANCE.emergencies.storm.id], status: 'defeat' as const, scene: 'result' as const,
+      astronaut: { ...initial.astronaut, health: 0 }, daysSurvived: 5, day: 6 };
     store.dispatch({ type: 'LOAD_GAME', state: changed });
     expect(service.load()?.xp).toBe(50);
     store.dispatch({ type: 'RESTART_GAME' });

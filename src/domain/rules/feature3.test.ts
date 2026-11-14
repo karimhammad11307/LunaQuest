@@ -91,7 +91,7 @@ describe('Feature 3 survival and building actions', () => {
     expect(reduceGameState(full, { type: 'REST_AT_HABITAT' })).toBe(full);
   });
 
-  it('advances full days with costs, summaries and five-day victory', () => {
+  it('advances full days with costs and continues past the old five-day limit', () => {
     let state = habitat();
     for (let n = 1; n <= 5; n++) {
       // Exercise the underlying daily economy independently of Feature 5's event gate.
@@ -101,10 +101,12 @@ describe('Feature 3 survival and building actions', () => {
       expect(state.resources.food).toBe(55 - n * BALANCE.daily.food);
       expect(state.resources.water).toBe(Math.max(0, BALANCE.start.water - n * BALANCE.daily.water));
     }
-    expect(state.status).toBe('victory');
-    expect(state.day).toBe(5);
-    expect(state.scene).toBe('result');
-    expect(reduceGameState(state, { type: 'ADVANCE_DAY' })).toBe(state);
+    expect(state.status).toBe('playing');
+    expect(state.day).toBe(6);
+    expect(state.scene).toBe('moon-base');
+    state = advanceSurvivalDay(state);
+    expect(state.daysSurvived).toBe(6);
+    expect(state.day).toBe(7);
     expect(reduceGameState(state, { type: 'RESTART_GAME' })).toEqual(createInitialState());
   });
 

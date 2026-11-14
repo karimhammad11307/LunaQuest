@@ -94,6 +94,12 @@ export interface MissionProgress {
 
 export type GameStatus = 'playing' | 'victory' | 'defeat';
 
+/** Personal record is stored separately from the active run. */
+export interface PersonalBest {
+  bestDaysSurvived: number;
+  bestScore: number;
+}
+
 export type WeatherSource = 'live' | 'cached' | 'demo' | 'loading';
 
 export interface WeatherStatus {
@@ -139,8 +145,10 @@ export interface EmergencyOutcome {
 
 export interface GameState {
   day: number;
-  /** Completed survival turns; victory follows the fifth completed turn. */
+  /** Completed survival days; the player starts Day 1 with zero completed days. */
   daysSurvived: number;
+  /** Record at this run's start, for a truthful New Record result after reload. */
+  recordToBeat: PersonalBest;
   /** 0–1 progress through the current day. */
   timeOfDay: number;
   scene: GameSceneId;

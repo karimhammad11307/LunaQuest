@@ -27,7 +27,7 @@ export const BALANCE = {
     energy: 5,
   },
 
-  /** Illustrative Earth cargo schedule: two fixed arrivals during the five-day mission. */
+  /** Illustrative Earth cargo schedule; no recurring deliveries yet. */
   earthSupply: { deliveryDays: [2, 4], waterPerPod: 25, interactionRadius: 38 },
 
   /** Simplified illuminated workday: one charge on ADVANCE_DAY, no lunar day/night model. */
@@ -96,8 +96,6 @@ export const BALANCE = {
     suitOxygenEmptyPerSecond: 2,
     lowOxygenThreshold: 10,
   },
-
-  dayLimit: 5,
 
   xp: {
     mission: 20,

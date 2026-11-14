@@ -4,9 +4,10 @@
  * Pure functions: no Phaser, no React, no randomness. Every rule is
  * unit-testable via createInitialState + the store's dispatch.
  */
-import type { BuildingState, GameState, Resources } from '../models/types';
+import type { BuildingState, GameState, PersonalBest, Resources } from '../models/types';
 import { BALANCE } from '../../game/config/balance';
 import { BUILDING_LAYOUT, EARTH_SUPPLY_DELIVERIES, SPAWN_POINT } from '../../game/config/gameConfig';
+import { EMPTY_PERSONAL_BEST } from './scoreRules';
 
 export const clamp = (v: number, min = 0, max = 100): number =>
   Math.max(min, Math.min(max, v));
@@ -36,10 +37,11 @@ export function createInitialBuildings(): Record<string, import('../models/types
   );
 }
 
-export function createInitialState(): GameState {
+export function createInitialState(recordToBeat: PersonalBest = EMPTY_PERSONAL_BEST): GameState {
   return {
     day: 1,
     daysSurvived: 0,
+    recordToBeat: { ...recordToBeat },
     timeOfDay: 0,
     scene: 'moon-base',
     resources: {
@@ -173,7 +175,8 @@ export function pendingEarthSupplies(state: GameState) {
 
 /** One full completed day: consumption, one solar charge, shield upkeep, and crop growth. */
 export function advanceSurvivalDay(state: GameState): GameState {
-  if (!canTickSurvival(state) || state.astronaut.location !== 'habitat') return state;
+  if (!canTickSurvival(state) || state.astronaut.location !== 'habitat'
+    || !Number.isSafeInteger(state.daysSurvived + 1)) return state;
   const used = {
     food: Math.min(state.resources.food, BALANCE.daily.food),
     water: Math.min(state.resources.water, BALANCE.daily.water),
@@ -210,16 +213,15 @@ export function advanceSurvivalDay(state: GameState): GameState {
   if (state.buildings.solar.condition !== 'good') warnings.push(solarPotential > 0 ? 'Damaged solar panels made less power.' : 'Solar panels made no power.');
   const health = clamp(state.astronaut.health - damage);
   const daysSurvived = state.daysSurvived + 1;
-  const status = health === 0 ? 'defeat' : daysSurvived >= BALANCE.dayLimit ? 'victory' : 'playing';
+  const status = health === 0 ? 'defeat' : 'playing';
   const summary = { day: state.day, ...used, energyProduced, shieldEnergyUsed, healthLost: state.astronaut.health - health, warnings };
   const id = Math.max(0, ...state.notices.map((entry) => entry.id)) + 1;
-  const text = status === 'victory' ? 'Five days survived! Mission complete!'
-    : status === 'defeat' ? 'Life support failed. Try again, astronaut!'
+  const text = status === 'defeat' ? 'Life support failed. Try again, astronaut!'
       : BALANCE.earthSupply.deliveryDays.some((deliveryDay) => deliveryDay === daysSurvived + 1)
         ? `Day ${state.day} complete! An Earth water pod landed near the Landing Pad.`
         : `Day ${state.day} complete! Solar +${energyProduced} energy; supplies used.`;
   return {
-    ...state, day: Math.min(daysSurvived + 1, BALANCE.dayLimit), daysSurvived,
+    ...state, day: daysSurvived + 1, daysSurvived,
     resources, buildings: { ...state.buildings, greenhouse: nextGreenhouse, shield: nextShield },
     astronaut: { ...state.astronaut, health }, status,
     scene: status === 'playing' ? state.scene : 'result', lastDaySummary: summary,

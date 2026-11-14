@@ -13,9 +13,13 @@ import type { GameSceneId } from '../domain/models/types';
 import { pendingEarthSupplies, solarYieldForDay } from '../domain/rules/survivalRules';
 import { NASAWeatherService } from '../services/NASAWeatherService';
 import { SaveService } from '../services/SaveService';
+import { HighScoreService } from '../services/HighScoreService';
+import { createInitialState } from '../domain/rules/survivalRules';
+import { beatsPersonalBest, survivalScore } from '../domain/rules/scoreRules';
 import './style.css';
 
-const store = new GameSessionStore();
+const highScores = new HighScoreService();
+const store = new GameSessionStore(createInitialState(highScores.getSnapshot()));
 const weatherService = new NASAWeatherService({ apiKey: import.meta.env.VITE_NASA_API_KEY });
 const saveService = new SaveService();
 const savedAtStartup = saveService.load();
@@ -70,6 +74,7 @@ function GameContainer({ sceneId, runId, paused }: { sceneId: GameSceneId; runId
 
 function App() {
   const state = useSyncExternalStore(store.subscribe, store.getState);
+  const personalBest = useSyncExternalStore(highScores.subscribe, highScores.getSnapshot);
   const [sessionReady, setSessionReady] = useState(!savedAtStartup);
   const [confirmNewGame, setConfirmNewGame] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -82,8 +87,9 @@ function App() {
   useEffect(() => {
     if (!sessionReady) return;
     const detach = saveService.attach(store);
+    const detachRecord = highScores.attach(store);
     saveService.save(store.getState());
-    return detach;
+    return () => { detachRecord(); detach(); };
   }, [sessionReady]);
   const notice = state.notices.at(-1)?.text ?? '';
   const selected = state.selectedBuildingId;
@@ -91,6 +97,8 @@ function App() {
   const indoors = state.astronaut.location !== 'outside';
   const emergency = state.activeEvent;
   const missionSummary = state.status === 'playing' && state.lastMissionResult?.runId !== dismissedMissionRunId ? state.lastMissionResult : null;
+  const score = survivalScore(state);
+  const newRecord = beatsPersonalBest(state, state.recordToBeat);
   const openEducation = (topic: EducationId) => {
     const current = store.getState();
     if (current.status !== 'playing' || current.paused || current.scene !== 'moon-base') return;
@@ -144,7 +152,7 @@ function App() {
   const virtualInput = (direction: string | null) => window.dispatchEvent(new CustomEvent('moonbound-input', { detail: direction }));
   const startNewGame = () => {
     saveService.clear();
-    store.dispatch({ type: 'RESTART_GAME' });
+    store.dispatch({ type: 'RESTART_GAME', recordToBeat: highScores.getSnapshot() });
     saveService.save(store.getState());
     setSessionReady(true);
   };
@@ -154,12 +162,12 @@ function App() {
     store.dispatch({ type: 'LOAD_GAME', state: restored });
     setSessionReady(true);
   };
-  if (!sessionReady) return <main className="app-shell"><div className="game-frame"><header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div></header><div className="save-start"><div className="save-start-panel"><strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong><p>Day {savedAtStartup?.day} · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p>{confirmNewGame ? <><p>Your saved progress will be replaced.</p><button type="button" onClick={startNewGame}>Replace Save &amp; Start</button><button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></> : <><p>Your Moon Base is waiting.</p><button type="button" onClick={continueGame}>Continue Game</button><button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button><small>New Game replaces this saved mission.</small></>}</div></div></div></main>;
+  if (!sessionReady) return <main className="app-shell"><div className="game-frame"><header className="masthead"><div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div></header><div className="save-start"><div className="save-start-panel"><strong>{confirmNewGame ? 'START A NEW MISSION?' : 'WELCOME BACK, ASTRONAUT!'}</strong><p>Survive as many lunar days as you can!</p><p>Saved run: {savedAtStartup?.daysSurvived} days · Food {Math.round(savedAtStartup?.resources.food ?? 0)} · XP {savedAtStartup?.xp}</p><p>Personal best: {personalBest.bestDaysSurvived} days · {personalBest.bestScore.toLocaleString()} points</p>{confirmNewGame ? <><p>Your saved progress will be replaced. Your record stays safe.</p><button type="button" onClick={startNewGame}>Replace Save &amp; Start</button><button type="button" onClick={() => setConfirmNewGame(false)}>Keep Saved Game</button></> : <><p>Your Moon Base is waiting.</p><button type="button" onClick={continueGame}>{savedAtStartup?.status === 'playing' ? 'Continue Game' : 'View Last Result'}</button><button type="button" onClick={() => setConfirmNewGame(true)}>New Game</button><small>New Game replaces this saved run, not your record.</small></>}</div></div></div></main>;
   return (
     <main className="app-shell"><div className="game-frame">
       <header className="masthead">
         <div className="brand"><span className="brand-star">✦</span><span>MOONBOUND</span><small>Survival Mission</small></div>
-        <div className="mission-day"><span>MISSION DAY</span><strong>{state.day}<em>/ {BALANCE.dayLimit}</em></strong></div>
+        <div className="mission-day"><span>LUNAR DAY</span><strong>{state.day}</strong></div>
         <span className="xp-counter" aria-label={`${state.xp} experience points`}>XP {state.xp}</span>
         <button className="pause-button" type="button" disabled={state.status !== 'playing' || !!learningTopic} onClick={() => { store.dispatch({ type: 'SET_PAUSED', paused: !state.paused }); setShowHelp(false); }}>{state.paused ? 'Resume' : 'Pause'}</button>
         <button className="help-button" type="button" disabled={!!learningTopic} onClick={() => setShowHelp(!showHelp)} aria-expanded={showHelp}>? <span>How to play</span></button>
@@ -172,6 +180,7 @@ function App() {
         <Meter label="Energy" icon="ϟ" value={state.resources.energy} color="#B9A7F5" low={state.resources.energy <= BALANCE.warnings.energy} />
         <Meter label="Health" icon="✚" value={state.astronaut.health} color="#FF6B81" low={state.astronaut.health <= BALANCE.warnings.health} />
       </div>
+      <div className="score-strip" aria-label="Endless survival progress"><strong>Survive as many lunar days as you can!</strong><span>Survived {state.daysSurvived} days</span><span>Score {score.toLocaleString()}</span><span>Best {personalBest.bestDaysSurvived} days</span><span>Top {personalBest.bestScore.toLocaleString()}</span></div>
       <div className="canvas-wrap"><GameContainer sceneId={state.scene} runId={state.activeMissionRunId} paused={state.paused} />
         {showWeather && <aside className="weather-panel" aria-label="NASA space weather information">
           <div className="panel-head"><strong>☀ SPACE WEATHER</strong><button type="button" aria-label="Close space weather" onClick={() => setShowWeather(false)}>×</button></div>
@@ -230,11 +239,11 @@ function App() {
           {building.condition !== 'good' && <button className="repair-button" type="button" onClick={() => dispatch({ type: 'REPAIR_BUILDING', buildingId: selected }, 'Need energy to repair.')}>Repair {building.type} <small>−{BALANCE.repair.energyCost} energy</small></button>}
           {actionFeedback && <p className="action-feedback" role="alert">{actionFeedback}</p>}
         </aside>}
-        {state.status !== 'playing' && <aside className="result-panel" aria-label="Mission result"><strong>{state.status === 'victory' ? 'MISSION COMPLETE!' : 'GAME OVER'}</strong><p>{state.status === 'victory' ? 'You kept the crew safe for five complete days!' : 'Your astronaut needs another try.'}</p><p>Days survived: {state.daysSurvived} / {BALANCE.dayLimit}</p><button type="button" onClick={() => { store.dispatch({ type: 'RESTART_GAME' }); setActionFeedback(''); }}>Restart Mission</button></aside>}
+        {state.status !== 'playing' && <aside className="result-panel endless-result" aria-label="Mission result"><div className="result-stars" aria-hidden="true">✦ ✧ ✦</div><strong>MISSION ENDED</strong><p>You survived <b>{state.daysSurvived} lunar {state.daysSurvived === 1 ? 'day' : 'days'}!</b></p><div className="result-stats"><span>FINAL SCORE <b>{score.toLocaleString()}</b></span><span>PERSONAL BEST <b>{personalBest.bestDaysSurvived} days</b></span><span>BEST SCORE <b>{personalBest.bestScore.toLocaleString()}</b></span></div>{newRecord && <div className="new-record" role="status">✦ NEW RECORD! ✦</div>}<p className="result-encouragement">Every mission teaches you how to survive a little longer.</p><button type="button" onClick={() => { store.dispatch({ type: 'RESTART_GAME', recordToBeat: highScores.getSnapshot() }); setActionFeedback(''); }}>TRY AGAIN</button></aside>}
         {missionSummary && <aside className="mission-summary" aria-label="Chicken Hunt mission summary"><strong>{missionSummary.success && missionSummary.returnedSafely ? 'SUPPLIES DELIVERED!' : 'MISSION ENDED'}</strong><p>{missionSummary.educationalMessage}</p><p>Food +{missionSummary.collectedResources.food ?? 0} · XP +{missionSummary.xpEarned} · Health −{missionSummary.healthDamage}</p><button type="button" onClick={() => setDismissedMissionRunId(missionSummary.runId)}>Back to Moon Base</button></aside>}
         {learningTopic && <aside className="education-panel" role="dialog" aria-modal="true" aria-label={`${EDUCATION[learningTopic].title} learning sign`}><strong>✦ {EDUCATION[learningTopic].title}</strong><p><b>WHAT?</b> {EDUCATION[learningTopic].what}</p><p><b>WHY?</b> {EDUCATION[learningTopic].why}</p><p><b>YOUR MISSION</b> {EDUCATION[learningTopic].mission}</p><button type="button" onClick={closeEducation}>Got it — back to game</button></aside>}
         {state.paused && !learningTopic && state.status === 'playing' && <aside className="pause-panel" aria-label="Game paused"><strong>PAUSED</strong><p>Take your time. Health and suit oxygen are safe while paused.</p><button type="button" onClick={() => store.dispatch({ type: 'SET_PAUSED', paused: false })}>Resume Mission</button></aside>}
-        {showHelp && <aside className="help-panel"><strong>{state.scene === 'chicken-hunt' ? 'Chicken Hunt' : 'Explore the base'}</strong>{state.scene === 'chicken-hunt' ? <><p>Fly with WASD or arrow keys. Press Space to fire at alien birds and collect food drops.</p><p>Return to base before your ship is damaged. Food is stored when your mission succeeds.</p></> : <><p>Move with WASD or arrow keys. Walk near a building and press E, or click it when close.</p><p>Health slowly falls during active play. Eat stored food at the habitat to recover. Pause when you need a break.</p><p>Keep the crew safe for five days!</p></>}<button type="button" onClick={() => setShowHelp(false)}>Got it</button></aside>}
+        {showHelp && <aside className="help-panel"><strong>{state.scene === 'chicken-hunt' ? 'Chicken Hunt' : 'Explore the base'}</strong>{state.scene === 'chicken-hunt' ? <><p>Fly with WASD or arrow keys. Press Space to fire at alien birds and collect food drops.</p><p>Return to base before your ship is damaged. Food is stored when your mission succeeds.</p></> : <><p>Move with WASD or arrow keys. Walk near a building and press E, or click it when close.</p><p>Health slowly falls during active play. Eat stored food at the habitat to recover. Pause when you need a break.</p><p>Survive as many lunar days as you can and beat your best!</p></>}<button type="button" onClick={() => setShowHelp(false)}>Got it</button></aside>}
       </div>
       {state.lastDaySummary && state.status === 'playing' && <div className="day-summary" role="status">Day {state.lastDaySummary.day} survived · Food −{state.lastDaySummary.food} · Water −{state.lastDaySummary.water} · Base O₂ −{state.lastDaySummary.oxygen} · Energy −{state.lastDaySummary.energy} / +{state.lastDaySummary.energyProduced} solar{state.lastDaySummary.shieldEnergyUsed > 0 && <> · Shield −{state.lastDaySummary.shieldEnergyUsed}</>}{state.lastDaySummary.warnings.length > 0 && <strong> · {state.lastDaySummary.warnings.join(' ')}</strong>}</div>}
       {state.status === 'playing' && (state.resources.food <= BALANCE.warnings.food || state.astronaut.suitOxygen <= BALANCE.warnings.suitOxygen) && <div className="survival-warning" role="alert">{state.astronaut.suitOxygen <= BALANCE.warnings.suitOxygen ? 'Suit oxygen low! Return to the habitat.' : 'Food is running low! Find supplies soon.'}</div>}
